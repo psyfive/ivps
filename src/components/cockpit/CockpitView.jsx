@@ -38,16 +38,16 @@ function TopBar({ skill, score, phase, bpm, immersionMode, onBack, onPhaseChange
   const catMeta = skill ? getCategoryMeta(skill.id) : null;
 
   return (
-    <div className="h-[44px] flex items-center gap-3 px-4 bg-[#080b10] border-b border-[#1a2035] flex-shrink-0">
+    <div className="h-[44px] flex items-center gap-3 px-4 bg-[var(--ivps-nav)] border-b border-[var(--ivps-border)] flex-shrink-0">
       {/* 뒤로 가기 */}
       <button
         onClick={onBack}
-        className="text-[#4a5568] hover:text-[#8896ae] text-[12px] flex items-center gap-1 px-2 py-1 rounded transition-colors flex-shrink-0"
+        className="text-[var(--ivps-text3)] hover:text-[var(--ivps-text2)] text-[12px] flex items-center gap-1 px-2 py-1 rounded transition-colors flex-shrink-0"
       >
         ‹ 라이브러리
       </button>
 
-      <div className="w-px h-3.5 bg-[#1a2035] flex-shrink-0" />
+      <div className="w-px h-3.5 bg-[var(--ivps-surface2)] flex-shrink-0" />
 
       {/* 스킬명 */}
       <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -59,13 +59,13 @@ function TopBar({ skill, score, phase, bpm, immersionMode, onBack, onPhaseChange
             {skill.id}
           </span>
         )}
-        <span className="font-serif text-[15px] font-semibold text-[#e8e2d6] truncate">
+        <span className="font-serif text-[15px] font-semibold text-[var(--ivps-text1)] truncate">
           {skill?.name ?? (score?.name ?? '스킬 없음')}
         </span>
       </div>
 
       {/* Phase 탭 */}
-      <div className="flex bg-[#0d1117] border border-[#1a2035] rounded-[5px] p-[2px] gap-[1px] flex-shrink-0">
+      <div className="flex bg-[var(--ivps-bg)] border border-[var(--ivps-border)] rounded-[5px] p-[2px] gap-[1px] flex-shrink-0">
         {PHASES.map(p => (
           <button
             key={p.id}
@@ -73,8 +73,8 @@ function TopBar({ skill, score, phase, bpm, immersionMode, onBack, onPhaseChange
             className={[
               'px-3.5 py-[4px] rounded-[4px] text-[11px] font-medium flex flex-col items-center leading-none transition-all font-mono',
               phase === p.id
-                ? 'bg-[#131720] shadow-[0_1px_3px_rgba(0,0,0,.3)]'
-                : 'text-[#4a5568] hover:text-[#8896ae]',
+                ? 'bg-[var(--ivps-surface)] shadow-[0_1px_3px_rgba(0,0,0,.3)]'
+                : 'text-[var(--ivps-text3)] hover:text-[var(--ivps-text2)]',
             ].join(' ')}
             style={phase === p.id ? { color: p.color } : {}}
           >
@@ -85,14 +85,14 @@ function TopBar({ skill, score, phase, bpm, immersionMode, onBack, onPhaseChange
 
       {/* 몰입 모드 토글 */}
       <div className="flex items-center gap-1.5 flex-shrink-0">
-        <span className="text-[10px] text-[#3d4455]">몰입</span>
+        <span className="text-[10px] text-[var(--ivps-text4)]">몰입</span>
         <button
           onClick={onToggleImmersion}
           className={[
             'w-[28px] h-[16px] rounded-full border relative transition-all flex-shrink-0',
             immersionMode
               ? 'bg-[rgba(212,168,67,.25)] border-[#d4a843]'
-              : 'bg-[#1a2035] border-[#2a3048]',
+              : 'bg-[var(--ivps-surface2)] border-[var(--ivps-border2)]',
           ].join(' ')}
         >
           <span
@@ -102,7 +102,7 @@ function TopBar({ skill, score, phase, bpm, immersionMode, onBack, onPhaseChange
             ].join(' ')}
           />
         </button>
-        <span className="font-mono text-[10px] text-[#3d4455]">♩={bpm}</span>
+        <span className="font-mono text-[10px] text-[var(--ivps-text4)]">♩={bpm}</span>
       </div>
     </div>
   );
@@ -113,7 +113,7 @@ function TopBar({ skill, score, phase, bpm, immersionMode, onBack, onPhaseChange
 // ─────────────────────────────────────────────────────────────────────────────
 function PhasePanel({ phase }) {
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-[#0d1117]">
+    <div className="flex flex-col h-full overflow-hidden bg-[var(--ivps-bg)]">
       {phase === 'before' && <CognitiveBriefing />}
       {phase === 'during' && <PracticeHUD />}
       {phase === 'after'  && <DiagnosticInterface />}
@@ -127,12 +127,12 @@ function PhasePanel({ phase }) {
 function EmptySkillBanner({ onGoLibrary }) {
   return (
     <div className="absolute top-3 left-3 right-3 z-10 flex items-center gap-3 px-4 py-2.5 bg-[rgba(212,168,67,.08)] border border-[rgba(212,168,67,.22)] rounded-lg">
-      <span className="text-[12px] text-[#d4a843]">
+      <span className="text-[12px] text-[var(--ivps-gold)]">
         스킬을 선택하지 않았습니다. 라이브러리에서 먼저 스킬을 선택하세요.
       </span>
       <button
         onClick={onGoLibrary}
-        className="ml-auto text-[11px] text-[#d4a843] border border-[rgba(212,168,67,.3)] px-2.5 py-1 rounded hover:bg-[rgba(212,168,67,.1)] transition-colors flex-shrink-0"
+        className="ml-auto text-[11px] text-[var(--ivps-gold)] border border-[rgba(212,168,67,.3)] px-2.5 py-1 rounded hover:bg-[rgba(212,168,67,.1)] transition-colors flex-shrink-0"
       >
         라이브러리 가기
       </button>
@@ -177,7 +177,7 @@ export function CockpitView() {
       <div className="flex flex-1 min-h-0 overflow-hidden">
 
         {/* ── 악보 영역 ── */}
-        <div className="relative flex flex-col overflow-hidden border-r border-[#1a2035]"
+        <div className="relative flex flex-col overflow-hidden border-r border-[var(--ivps-border)]"
           style={{ flex: '1.7' }}
         >
           {/* 스킬 없음 배너 */}

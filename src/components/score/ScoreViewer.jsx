@@ -131,10 +131,10 @@ function UploadZone({ onFile }) {
       <div className="text-5xl opacity-20">🎼</div>
 
       <div className="text-center">
-        <div className="text-[15px] font-medium text-[#8896ae] mb-1">
+        <div className="text-[15px] font-medium text-[var(--ivps-text2)] mb-1">
           악보를 여기에 드롭하거나
         </div>
-        <div className="text-[12px] text-[#4a5568]">
+        <div className="text-[12px] text-[var(--ivps-text3)]">
           이미지(PNG, JPG) 또는 PDF를 선택하세요
         </div>
       </div>
@@ -143,7 +143,7 @@ function UploadZone({ onFile }) {
         className={[
           'px-4 py-2 rounded-lg text-[12.5px] font-semibold transition-all border',
           dragging
-            ? 'bg-[rgba(212,168,67,.15)] border-[#d4a843] text-[#d4a843]'
+            ? 'bg-[rgba(212,168,67,.15)] border-[#d4a843] text-[var(--ivps-gold)]'
             : 'bg-gradient-to-r from-[#d4a843] to-[#b8891f] border-none text-[#0d1117]',
         ].join(' ')}
       >
@@ -268,7 +268,7 @@ function SessionLayer({ sessions, activeSessionId, onAdd, onSelect, onOpenPicker
               data-session-rect
               className={[
                 'absolute -top-3.5 -right-3.5 w-7 h-7 rounded-full',
-                'bg-[#131720] border-2 border-[#0d1117]',
+                'bg-[var(--ivps-surface)] border-2 border-[#0d1117]',
                 'text-white text-[13px] font-bold leading-none',
                 'flex items-center justify-center',
                 'shadow-[0_2px_8px_rgba(0,0,0,0.4)]',
@@ -285,9 +285,9 @@ function SessionLayer({ sessions, activeSessionId, onAdd, onSelect, onOpenPicker
             {skillCount > 0 && (
               <div
                 className="absolute -bottom-4 left-1/2 -translate-x-1/2
-                  bg-[rgba(19,23,32,0.9)] text-[#d4a843] text-[9px] font-mono
+                  bg-[rgba(19,23,32,0.9)] text-[var(--ivps-gold)] text-[9px] font-mono
                   px-1.5 py-0.5 rounded-full whitespace-nowrap pointer-events-none
-                  border border-[#2a3048]"
+                  border border-[var(--ivps-border2)]"
               >
                 {sess.skills
                   .slice(0, 2)
@@ -322,11 +322,11 @@ function SessionLayer({ sessions, activeSessionId, onAdd, onSelect, onOpenPicker
 
 function ScoreToolbar({ score, onReplace, onRename, onDelete }) {
   return (
-    <div className="h-9 flex items-center gap-2 px-3.5 bg-[#080b10] border-b border-[#1a2035] flex-shrink-0">
-      <span className="font-mono text-[10px] text-[#3d4455] uppercase tracking-wider">SCORE</span>
-      <div className="w-px h-3.5 bg-[#1a2035]" />
+    <div className="h-9 flex items-center gap-2 px-3.5 bg-[var(--ivps-nav)] border-b border-[var(--ivps-border)] flex-shrink-0">
+      <span className="font-mono text-[10px] text-[var(--ivps-text4)] uppercase tracking-wider">SCORE</span>
+      <div className="w-px h-3.5 bg-[var(--ivps-surface2)]" />
       <span
-        className="text-[12px] text-[#4a5568] truncate max-w-[180px]"
+        className="text-[12px] text-[var(--ivps-text3)] truncate max-w-[180px]"
         title={score?.name}
       >
         {score?.name ?? '악보 없음'}
@@ -337,13 +337,13 @@ function ScoreToolbar({ score, onReplace, onRename, onDelete }) {
         <>
           <button
             onClick={onRename}
-            className="px-2 py-1 text-[10.5px] text-[#4a5568] hover:text-[#8896ae] rounded transition-colors"
+            className="px-2 py-1 text-[10.5px] text-[var(--ivps-text3)] hover:text-[var(--ivps-text2)] rounded transition-colors"
           >
             이름
           </button>
           <button
             onClick={onDelete}
-            className="px-2 py-1 text-[10.5px] text-[#e07070] hover:bg-[rgba(224,112,112,.08)] rounded transition-colors"
+            className="px-2 py-1 text-[10.5px] text-[var(--ivps-rust)] hover:bg-[rgba(224,112,112,.08)] rounded transition-colors"
           >
             삭제
           </button>
@@ -351,7 +351,7 @@ function ScoreToolbar({ score, onReplace, onRename, onDelete }) {
       )}
       <button
         onClick={onReplace}
-        className="px-2 py-1 text-[10.5px] bg-[#1a2035] border border-[#2a3048] text-[#8896ae] hover:bg-[#222b3d] rounded transition-colors"
+        className="px-2 py-1 text-[10.5px] bg-[var(--ivps-surface2)] border border-[var(--ivps-border2)] text-[var(--ivps-text2)] hover:bg-[#222b3d] rounded transition-colors"
       >
         ↑ 교체
       </button>
@@ -368,21 +368,21 @@ function PdfPager({ score, onChangePage }) {
   if (!pageData || pageData.length <= 1) return null;
 
   return (
-    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 px-4 py-2 rounded-full bg-[rgba(8,11,16,0.85)] border border-[#2a3048] backdrop-blur-sm shadow-lg">
+    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 px-4 py-2 rounded-full bg-[rgba(8,11,16,0.85)] border border-[var(--ivps-border2)] backdrop-blur-sm shadow-lg">
       <button
         onClick={() => onChangePage(-1)}
         disabled={currentPageIndex === 0}
-        className="text-[#8896ae] hover:text-[#e8e2d6] disabled:opacity-30 text-lg leading-none transition-colors"
+        className="text-[var(--ivps-text2)] hover:text-[var(--ivps-text1)] disabled:opacity-30 text-lg leading-none transition-colors"
       >
         ◀
       </button>
-      <span className="font-mono text-[12px] text-[#8896ae]">
+      <span className="font-mono text-[12px] text-[var(--ivps-text2)]">
         {currentPageIndex + 1} / {pageData.length}
       </span>
       <button
         onClick={() => onChangePage(1)}
         disabled={currentPageIndex === pageData.length - 1}
-        className="text-[#8896ae] hover:text-[#e8e2d6] disabled:opacity-30 text-lg leading-none transition-colors"
+        className="text-[var(--ivps-text2)] hover:text-[var(--ivps-text1)] disabled:opacity-30 text-lg leading-none transition-colors"
       >
         ▶
       </button>
@@ -399,13 +399,13 @@ function LoadingOverlay({ current, total }) {
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center z-50 bg-[rgba(13,17,23,0.85)] backdrop-blur-sm">
       <div className="text-3xl mb-4 animate-bounce">📄</div>
-      <div className="text-[14px] text-[#e8e2d6] font-medium mb-2">
+      <div className="text-[14px] text-[var(--ivps-text1)] font-medium mb-2">
         PDF 변환 중...
       </div>
-      <div className="text-[12px] text-[#4a5568] mb-4">
+      <div className="text-[12px] text-[var(--ivps-text3)] mb-4">
         {total > 0 ? `${current} / ${total} 페이지` : '처리 중'}
       </div>
-      <div className="w-48 h-1.5 bg-[#1a2035] rounded-full overflow-hidden">
+      <div className="w-48 h-1.5 bg-[var(--ivps-surface2)] rounded-full overflow-hidden">
         <div
           className="h-full bg-[#d4a843] rounded-full transition-all duration-300"
           style={{ width: `${pct}%` }}
@@ -446,32 +446,32 @@ function SkillPickerModal({ sessionId, session, onClose }) {
       className="fixed inset-0 z-[200] flex items-center justify-center bg-[rgba(0,0,0,0.7)]"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-[#131720] border border-[#2a3048] rounded-xl w-[480px] max-h-[72vh] flex flex-col shadow-2xl">
+      <div className="bg-[var(--ivps-surface)] border border-[var(--ivps-border2)] rounded-xl w-[480px] max-h-[72vh] flex flex-col shadow-2xl">
         {/* 헤더 */}
-        <div className="px-5 py-4 border-b border-[#1a2035] flex items-center justify-between flex-shrink-0">
+        <div className="px-5 py-4 border-b border-[var(--ivps-border)] flex items-center justify-between flex-shrink-0">
           <div>
-            <div className="text-[14px] font-semibold text-[#e8e2d6]">스킬 할당</div>
-            <div className="text-[11px] text-[#4a5568] mt-0.5">
+            <div className="text-[14px] font-semibold text-[var(--ivps-text1)]">스킬 할당</div>
+            <div className="text-[11px] text-[var(--ivps-text3)] mt-0.5">
               {assigned.length}개 선택됨
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded flex items-center justify-center text-[#4a5568] hover:text-[#8896ae] hover:bg-[#1a2035] transition-colors text-lg"
+            className="w-7 h-7 rounded flex items-center justify-center text-[var(--ivps-text3)] hover:text-[var(--ivps-text2)] hover:bg-[var(--ivps-surface2)] transition-colors text-lg"
           >
             ×
           </button>
         </div>
 
         {/* 카테고리 필터 */}
-        <div className="px-4 py-2 border-b border-[#1a2035] flex gap-1.5 flex-shrink-0 flex-wrap">
+        <div className="px-4 py-2 border-b border-[var(--ivps-border)] flex gap-1.5 flex-shrink-0 flex-wrap">
           <button
             onClick={() => setActiveCat('전체')}
             className={[
               'px-2.5 py-1 rounded-full text-[11px] border transition-colors',
               activeCat === '전체'
-                ? 'bg-[rgba(212,168,67,.12)] border-[#d4a843] text-[#d4a843]'
-                : 'bg-transparent border-[#1a2035] text-[#4a5568] hover:text-[#8896ae]',
+                ? 'bg-[rgba(212,168,67,.12)] border-[#d4a843] text-[var(--ivps-gold)]'
+                : 'bg-transparent border-[var(--ivps-border)] text-[var(--ivps-text3)] hover:text-[var(--ivps-text2)]',
             ].join(' ')}
           >
             전체
@@ -483,8 +483,8 @@ function SkillPickerModal({ sessionId, session, onClose }) {
               className={[
                 'px-2.5 py-1 rounded-full text-[11px] border transition-colors',
                 activeCat === c
-                  ? 'bg-[rgba(212,168,67,.12)] border-[#d4a843] text-[#d4a843]'
-                  : 'bg-transparent border-[#1a2035] text-[#4a5568] hover:text-[#8896ae]',
+                  ? 'bg-[rgba(212,168,67,.12)] border-[#d4a843] text-[var(--ivps-gold)]'
+                  : 'bg-transparent border-[var(--ivps-border)] text-[var(--ivps-text3)] hover:text-[var(--ivps-text2)]',
               ].join(' ')}
             >
               {CAT_LABEL[c] ?? c}
@@ -504,7 +504,7 @@ function SkillPickerModal({ sessionId, session, onClose }) {
                   'flex items-center gap-2.5 px-3 py-2.5 rounded-lg border text-left transition-all',
                   sel
                     ? 'bg-[rgba(212,168,67,.08)] border-[rgba(212,168,67,.3)]'
-                    : 'bg-[#0d1117] border-[#1a2035] hover:border-[#2a3048]',
+                    : 'bg-[var(--ivps-bg)] border-[var(--ivps-border)] hover:border-[var(--ivps-border2)]',
                 ].join(' ')}
               >
                 {/* 체크박스 */}
@@ -513,7 +513,7 @@ function SkillPickerModal({ sessionId, session, onClose }) {
                     'w-4.5 h-4.5 rounded border flex items-center justify-center text-[10px] flex-shrink-0 transition-all',
                     sel
                       ? 'bg-[#d4a843] border-[#d4a843] text-[#0d1117]'
-                      : 'bg-transparent border-[#2a3048]',
+                      : 'bg-transparent border-[var(--ivps-border2)]',
                   ].join(' ')}
                   style={{ width: '18px', height: '18px' }}
                 >
@@ -523,11 +523,11 @@ function SkillPickerModal({ sessionId, session, onClose }) {
                 {/* 스킬 정보 */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="font-mono text-[10px] text-[#d4a843]">{sk.id}</span>
-                    <span className="text-[12.5px] font-medium text-[#e8e2d6]">{sk.name}</span>
-                    <span className="text-[10px] text-[#4a5568] ml-auto flex-shrink-0">Lv.{sk.level}</span>
+                    <span className="font-mono text-[10px] text-[var(--ivps-gold)]">{sk.id}</span>
+                    <span className="text-[12.5px] font-medium text-[var(--ivps-text1)]">{sk.name}</span>
+                    <span className="text-[10px] text-[var(--ivps-text3)] ml-auto flex-shrink-0">Lv.{sk.level}</span>
                   </div>
-                  <div className="text-[11px] text-[#4a5568] truncate">
+                  <div className="text-[11px] text-[var(--ivps-text3)] truncate">
                     {sk.corePrinciple.slice(0, 55)}…
                   </div>
                 </div>
@@ -537,7 +537,7 @@ function SkillPickerModal({ sessionId, session, onClose }) {
         </div>
 
         {/* 푸터 */}
-        <div className="px-5 py-3 border-t border-[#1a2035] flex justify-end flex-shrink-0">
+        <div className="px-5 py-3 border-t border-[var(--ivps-border)] flex justify-end flex-shrink-0">
           <button
             onClick={onClose}
             className="px-4 py-2 bg-gradient-to-r from-[#d4a843] to-[#b8891f] rounded-lg text-[#0d1117] text-[13px] font-semibold"
@@ -659,7 +659,7 @@ export function ScoreViewer({ phase }) {
         {/* 전역 드래그 오버레이 */}
         {globalDragOver && !loading.active && (
           <div className="absolute inset-0 z-40 flex items-center justify-center bg-[rgba(212,168,67,.05)] border-2 border-dashed border-[#d4a843] pointer-events-none">
-            <div className="text-[#d4a843] text-[15px] font-medium">악보 파일을 드롭하세요</div>
+            <div className="text-[var(--ivps-gold)] text-[15px] font-medium">악보 파일을 드롭하세요</div>
           </div>
         )}
 
@@ -730,19 +730,19 @@ export function ScoreViewer({ phase }) {
       {hasScore && (
         <div className={[
           'h-11 flex items-center px-4 gap-3 flex-shrink-0',
-          'bg-[#080b10] border-t border-[#1a2035]',
+          'bg-[var(--ivps-nav)] border-t border-[var(--ivps-border)]',
         ].join(' ')}>
           {/* During: 힌트 + 세션 카운트 */}
           {isDuring && (
             <>
               <button
                 onClick={() => nav.setPhase('before')}
-                className="text-[11.5px] text-[#4a5568] hover:text-[#8896ae] transition-colors flex items-center gap-1"
+                className="text-[11.5px] text-[var(--ivps-text3)] hover:text-[var(--ivps-text2)] transition-colors flex items-center gap-1"
               >
                 ← Before
               </button>
               <div className="flex-1 text-center">
-                <span className="text-[11px] text-[#3d4455]">
+                <span className="text-[11px] text-[var(--ivps-text4)]">
                   {hasScore
                     ? sessions.length === 0
                       ? '악보 위를 드래그하여 연습 구간을 지정하세요'
@@ -764,11 +764,11 @@ export function ScoreViewer({ phase }) {
             <>
               <button
                 onClick={() => nav.setPhase('during')}
-                className="text-[11.5px] text-[#4a5568] hover:text-[#8896ae] transition-colors"
+                className="text-[11.5px] text-[var(--ivps-text3)] hover:text-[var(--ivps-text2)] transition-colors"
               >
                 ← 다시 연습
               </button>
-              <div className="flex-1 text-center text-[11px] text-[#3d4455]">
+              <div className="flex-1 text-center text-[11px] text-[var(--ivps-text4)]">
                 구간을 클릭해 자기 평가를 기록하세요
               </div>
             </>
@@ -776,7 +776,7 @@ export function ScoreViewer({ phase }) {
 
           {/* Before: 이미지 교체 힌트 */}
           {phase === 'before' && (
-            <div className="flex-1 text-center text-[11px] text-[#3d4455]">
+            <div className="flex-1 text-center text-[11px] text-[var(--ivps-text4)]">
               스킬 라이브러리를 확인하고 연습을 준비하세요
             </div>
           )}
@@ -794,18 +794,18 @@ export function ScoreViewer({ phase }) {
 
       {/* During 단계: 선택된 세션 인라인 정보 바 */}
       {isDuring && activeSession && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-[#131720] border-t border-[#1a2035] flex-shrink-0">
-          <span className="text-[10px] text-[#4a5568] uppercase tracking-wider font-mono">선택됨</span>
+        <div className="flex items-center gap-2 px-4 py-2 bg-[var(--ivps-surface)] border-t border-[var(--ivps-border)] flex-shrink-0">
+          <span className="text-[10px] text-[var(--ivps-text3)] uppercase tracking-wider font-mono">선택됨</span>
           <div className="flex gap-1.5 flex-wrap flex-1">
             {activeSession.skills.length === 0 ? (
-              <span className="text-[11px] text-[#3d4455]">스킬 없음 — 말풍선(+)으로 추가</span>
+              <span className="text-[11px] text-[var(--ivps-text4)]">스킬 없음 — 말풍선(+)으로 추가</span>
             ) : (
               activeSession.skills.map(id => {
                 const sk = TAXONOMY.find(t => t.id === id);
                 return sk ? (
                   <span
                     key={id}
-                    className="px-2 py-0.5 bg-[rgba(212,168,67,.1)] border border-[rgba(212,168,67,.25)] rounded-full text-[10.5px] text-[#d4a843]"
+                    className="px-2 py-0.5 bg-[rgba(212,168,67,.1)] border border-[rgba(212,168,67,.25)] rounded-full text-[10.5px] text-[var(--ivps-gold)]"
                   >
                     {sk.id} {sk.name}
                   </span>
@@ -815,13 +815,13 @@ export function ScoreViewer({ phase }) {
           </div>
           <button
             onClick={() => sessionActs.openPicker(activeSession.id)}
-            className="text-[11px] text-[#d4a843] hover:underline"
+            className="text-[11px] text-[var(--ivps-gold)] hover:underline"
           >
             스킬 변경
           </button>
           <button
             onClick={() => sessionActs.deleteSession(activeSession.id)}
-            className="text-[11px] text-[#e07070] hover:underline"
+            className="text-[11px] text-[var(--ivps-rust)] hover:underline"
           >
             삭제
           </button>

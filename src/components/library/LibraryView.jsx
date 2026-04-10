@@ -38,8 +38,7 @@ function SkillCard({ skill, onSelect }) {
       onClick={() => onSelect(skill.id)}
       className={[
         'w-full text-left rounded-[11px] p-[18px] border transition-all duration-150',
-        'bg-[#131720] border-[#1a2035]',
-        'hover:border-[rgba(212,168,67,.3)] hover:bg-[#171e2c]',
+        'ivps-skill-card rounded-[11px] p-[18px]',
       ].join(' ')}
     >
       {/* 상단: ID + 레벨 */}
@@ -50,13 +49,13 @@ function SkillCard({ skill, onSelect }) {
         >
           {skill.id}
         </span>
-        <span className="font-mono text-[10px] text-[#3d4455]">
+        <span className="font-mono text-[10px] text-[var(--ivps-text4)]">
           Lv.{skill.level}
         </span>
       </div>
 
       {/* 스킬명 */}
-      <div className="font-serif text-[17px] font-semibold text-[#e8e2d6] mt-2 mb-1 leading-tight">
+      <div className="font-serif text-[17px] font-semibold text-[var(--ivps-text1)] mt-2 mb-1 leading-tight">
         {skill.name}
       </div>
 
@@ -82,11 +81,11 @@ function SkillCard({ skill, onSelect }) {
       </p>
 
       {/* XP 바 */}
-      <div className="flex items-center justify-between font-mono text-[10px] text-[#3d4455] mb-1">
+      <div className="flex items-center justify-between font-mono text-[10px] text-[var(--ivps-text4)] mb-1">
         <span>XP</span>
         <span>{skill.xp}/{skill.maxXp}</span>
       </div>
-      <div className="h-[3px] bg-[#1a2035] rounded-full overflow-hidden">
+      <div className="h-[3px] bg-[var(--ivps-surface2)] rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-300"
           style={{
@@ -111,7 +110,7 @@ function GroupChip({ group, active, onClick }) {
         'px-3 py-1 rounded-full border text-[11px] font-medium transition-all whitespace-nowrap',
         active
           ? 'font-semibold'
-          : 'bg-transparent border-[#1a2035] text-[#4a5568] hover:border-[#2a3048] hover:text-[#8896ae]',
+          : 'bg-transparent border-[var(--ivps-border)] text-[var(--ivps-text3)] hover:border-[var(--ivps-border2)] hover:text-[var(--ivps-text2)]',
       ].join(' ')}
       style={active ? {
         background: `${meta.color}15`,
@@ -177,20 +176,20 @@ export function LibraryView() {
     <div className="flex-1 flex flex-col overflow-hidden">
 
       {/* ── 페이지 헤더 ── */}
-      <div className="px-7 pt-6 pb-4 flex-shrink-0 border-b border-[#1a2035]">
+      <div className="px-7 pt-6 pb-4 flex-shrink-0 border-b border-[var(--ivps-border)]">
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
-            <h1 className="font-serif text-[24px] font-bold text-[#e8e2d6] leading-tight">
+            <h1 className="font-serif text-[24px] font-bold text-[var(--ivps-text1)] leading-tight">
               스킬 라이브러리
             </h1>
-            <p className="text-[12px] text-[#4a5568] mt-1">
+            <p className="text-[12px] text-[var(--ivps-text3)] mt-1">
               연습할 기술을 선택하세요 &middot; {totalSkills}개 스킬 &middot; {practicedCount}개 연습 기록
             </p>
           </div>
 
           {/* 검색창 */}
           <div className="relative flex-shrink-0">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#3d4455] text-[13px] pointer-events-none">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ivps-text4)] text-[13px] pointer-events-none">
               🔍
             </span>
             <input
@@ -199,9 +198,9 @@ export function LibraryView() {
               onChange={e => setQuery(e.target.value)}
               placeholder="스킬 검색…"
               className={[
-                'pl-8 pr-4 py-2 rounded-lg border bg-[#131720] text-[12.5px]',
-                'text-[#e8e2d6] placeholder-[#3d4455] outline-none',
-                'border-[#1a2035] focus:border-[rgba(212,168,67,.4)]',
+                'pl-8 pr-4 py-2 rounded-lg border bg-[var(--ivps-surface)] text-[12.5px]',
+                'text-[var(--ivps-text1)] placeholder-[#3d4455] outline-none',
+                'border-[var(--ivps-border)] focus:border-[rgba(212,168,67,.4)]',
                 'transition-colors w-52',
               ].join(' ')}
             />
@@ -221,7 +220,7 @@ export function LibraryView() {
                   'px-3.5 py-1.5 rounded-full border text-[12px] font-medium transition-all',
                   isActive
                     ? ''
-                    : 'bg-transparent border-[#1a2035] text-[#4a5568] hover:border-[#2a3048] hover:text-[#8896ae]',
+                    : 'bg-transparent border-[var(--ivps-border)] text-[var(--ivps-text3)] hover:border-[var(--ivps-border2)] hover:text-[var(--ivps-text2)]',
                 ].join(' ')}
                 style={isActive && meta ? {
                   background: `${meta.color}14`,
@@ -242,7 +241,7 @@ export function LibraryView() {
 
       {/* ── 그룹 칩 스크롤 ── */}
       {visibleGroups.length > 0 && (
-        <div className="px-7 py-3 border-b border-[#1a2035] flex-shrink-0 overflow-x-auto">
+        <div className="px-7 py-3 border-b border-[var(--ivps-border)] flex-shrink-0 overflow-x-auto">
           <div className="flex gap-2 min-w-max">
             <GroupChip
               group={{ id: 'ALL', name: '전체 그룹', category: activeCat === 'ALL' ? 'A' : activeCat }}
@@ -265,7 +264,7 @@ export function LibraryView() {
       <div className="flex-1 overflow-y-auto px-7 py-5">
 
         {/* 결과 카운트 */}
-        <div className="text-[10px] text-[#3d4455] font-mono mb-4">
+        <div className="text-[10px] text-[var(--ivps-text4)] font-mono mb-4">
           {filteredSkills.length}개 스킬
           {query && ` — "${query}" 검색 결과`}
         </div>
@@ -273,11 +272,11 @@ export function LibraryView() {
         {filteredSkills.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
             <div className="text-[36px] opacity-20">🎻</div>
-            <div className="text-[13px] text-[#3d4455] text-center leading-relaxed">
+            <div className="text-[13px] text-[var(--ivps-text4)] text-center leading-relaxed">
               검색 결과가 없습니다.<br />
               <button
                 onClick={() => { setQuery(''); setActiveCat('ALL'); setActiveGroup('ALL'); }}
-                className="mt-2 text-[#d4a843] hover:underline text-[12px]"
+                className="mt-2 text-[var(--ivps-gold)] hover:underline text-[12px]"
               >
                 필터 초기화
               </button>

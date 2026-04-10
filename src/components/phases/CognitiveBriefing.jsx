@@ -46,12 +46,12 @@ function NoSkillPrompt() {
   return (
     <div className="flex flex-col items-center justify-center h-full gap-4 px-8 text-center">
       <div className="text-[40px] opacity-20">🎛</div>
-      <div className="text-[13px] text-[#4a5568] leading-relaxed">
+      <div className="text-[13px] text-[var(--ivps-text3)] leading-relaxed">
         스킬 라이브러리에서<br />연습할 기술을 선택해주세요.
       </div>
       <button
         onClick={() => nav.navigate('library')}
-        className="px-4 py-2 bg-[rgba(212,168,67,.08)] border border-[rgba(212,168,67,.3)] rounded-lg text-[#d4a843] text-[12.5px] hover:bg-[rgba(212,168,67,.14)] transition-colors"
+        className="px-4 py-2 bg-[rgba(212,168,67,.08)] border border-[rgba(212,168,67,.3)] rounded-lg text-[var(--ivps-gold)] text-[12.5px] hover:bg-[rgba(212,168,67,.14)] transition-colors"
       >
         스킬 라이브러리 가기
       </button>
@@ -87,20 +87,20 @@ export function CognitiveBriefing() {
               >
                 {s.id}
               </span>
-              <span className="text-[#4a5568]">{s.groupId}</span>
+              <span className="text-[var(--ivps-text3)]">{s.groupId}</span>
             </div>
-            <h2 className="font-serif text-[22px] font-bold text-[#e8e2d6] leading-tight">
+            <h2 className="font-serif text-[22px] font-bold text-[var(--ivps-text1)] leading-tight">
               {s.name}
             </h2>
           </div>
           <div className="text-right flex-shrink-0">
-            <div className="font-mono text-[10px] text-[#4a5568] mb-1">
+            <div className="font-mono text-[10px] text-[var(--ivps-text3)] mb-1">
               Lv.{s.level}
             </div>
-            <div className="text-[10px] text-[#3d4455]">
+            <div className="text-[10px] text-[var(--ivps-text4)]">
               {s.xp}/{s.maxXp} XP
             </div>
-            <div className="h-1 w-16 bg-[#1a2035] rounded-full mt-1 overflow-hidden">
+            <div className="h-1 w-16 bg-[var(--ivps-surface2)] rounded-full mt-1 overflow-hidden">
               <div
                 className="h-full rounded-full"
                 style={{
@@ -118,7 +118,7 @@ export function CognitiveBriefing() {
 
         {/* 핵심 원리 */}
         <BriefingCard label="핵심 원리" dotColor="#d4a843">
-          <p className="text-[13.5px] text-[#e8e2d6] leading-[1.75]">
+          <p className="text-[13.5px] text-[var(--ivps-text1)] leading-[1.75]">
             {s.corePrinciple}
           </p>
         </BriefingCard>
@@ -141,11 +141,11 @@ export function CognitiveBriefing() {
             className="w-full flex items-center justify-between px-4 py-3 text-left"
             onClick={() => setPrincipleExpanded(v => !v)}
           >
-            <div className="text-[10.5px] font-semibold uppercase tracking-[.07em] flex items-center gap-1.5 text-[#9b7fc8]">
+            <div className="text-[10.5px] font-semibold uppercase tracking-[.07em] flex items-center gap-1.5 text-[var(--ivps-plum)]">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#9b7fc8] flex-shrink-0" />
               During 체크포인트 미리보기
             </div>
-            <span className="text-[#4a5568] text-[12px] transition-transform duration-200"
+            <span className="text-[var(--ivps-text3)] text-[12px] transition-transform duration-200"
               style={{ transform: principleExpanded ? 'rotate(180deg)' : 'none' }}>
               ▾
             </span>
@@ -165,7 +165,7 @@ export function CognitiveBriefing() {
                     >
                       {i + 1}
                     </span>
-                    <span className="text-[13px] text-[#e8e2d6]">{item}</span>
+                    <span className="text-[13px] text-[var(--ivps-text1)]">{item}</span>
                   </div>
                 ))}
               </div>
@@ -183,11 +183,11 @@ export function CognitiveBriefing() {
               className="w-full flex items-center justify-between px-4 py-3 text-left"
               onClick={() => setGuideExpanded(v => !v)}
             >
-              <div className="text-[10.5px] font-semibold uppercase tracking-[.07em] flex items-center gap-1.5 text-[#e07070]">
+              <div className="text-[10.5px] font-semibold uppercase tracking-[.07em] flex items-center gap-1.5 text-[var(--ivps-rust)]">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#e07070] flex-shrink-0" />
                 After 진단 케이스 ({s.after.length}개)
               </div>
-              <span className="text-[#4a5568] text-[12px] transition-transform duration-200"
+              <span className="text-[var(--ivps-text3)] text-[12px] transition-transform duration-200"
                 style={{ transform: guideExpanded ? 'rotate(180deg)' : 'none' }}>
                 ▾
               </span>
@@ -199,7 +199,7 @@ export function CognitiveBriefing() {
                     key={i}
                     className="flex items-start gap-2 py-2 border-b border-[rgba(224,112,112,.1)] last:border-0 last:pb-0"
                   >
-                    <span className="font-mono text-[9.5px] text-[#e07070] mt-0.5 flex-shrink-0 w-12">
+                    <span className="font-mono text-[9.5px] text-[var(--ivps-rust)] mt-0.5 flex-shrink-0 w-12">
                       증상 {s.after.length > 1 ? i + 1 : ''}
                     </span>
                     <span className="text-[11.5px] text-[#6a7688] leading-relaxed">

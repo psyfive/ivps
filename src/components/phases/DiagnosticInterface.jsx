@@ -12,7 +12,7 @@ import { getSkillById, getCategoryMeta } from '../../data/taxonomyData';
 // ── 진단 셀 ────────────────────────────────────────────────────────────────
 function DiagCell({ label, color, value }) {
   return (
-    <div className="bg-[#0d1117] rounded-lg p-3">
+    <div className="bg-[var(--ivps-surface2)] rounded-lg p-3 border border-[var(--ivps-border)]">
       <div className="flex items-center gap-1.5 mb-1.5">
         <span
           className="inline-block w-1 h-1 rounded-full flex-shrink-0"
@@ -25,7 +25,7 @@ function DiagCell({ label, color, value }) {
           {label}
         </span>
       </div>
-      <div className="text-[12px] text-[#e8e2d6] leading-relaxed">
+      <div className="text-[12px] text-[var(--ivps-text1)] leading-relaxed">
         {value}
       </div>
     </div>
@@ -37,14 +37,14 @@ function CheckItem({ text, checked, onToggle }) {
   return (
     <button
       onClick={onToggle}
-      className="w-full flex items-start gap-2.5 py-2.5 border-b border-[#1a2035] last:border-0 last:pb-0 text-left group transition-colors"
+      className="w-full flex items-start gap-2.5 py-2.5 border-b border-[var(--ivps-border)] last:border-0 last:pb-0 text-left group transition-colors"
     >
       <div
         className={[
           'w-4 h-4 rounded flex items-center justify-center text-[10px] flex-shrink-0 mt-0.5 border transition-all',
           checked
             ? 'bg-[#7ea890] border-[#7ea890] text-white'
-            : 'border-[#2a3048] bg-transparent group-hover:border-[#7ea890]',
+            : 'border-[var(--ivps-border2)] bg-transparent group-hover:border-[#7ea890]',
         ].join(' ')}
       >
         {checked ? '✓' : ''}
@@ -52,7 +52,7 @@ function CheckItem({ text, checked, onToggle }) {
       <span
         className={[
           'text-[12px] leading-relaxed transition-colors',
-          checked ? 'text-[#4a5568] line-through' : 'text-[#c8d0dc]',
+          checked ? 'text-[var(--ivps-text3)] line-through' : 'text-[#c8d0dc]',
         ].join(' ')}
       >
         {text}
@@ -86,22 +86,22 @@ function SkillDiagPanel({ skill, sessionId, checks, onToggleCheck }) {
           >
             {skill.id}
           </span>
-          <span className="font-serif text-[14px] font-semibold text-[#e8e2d6]">
+          <span className="font-serif text-[14px] font-semibold text-[var(--ivps-text1)]">
             {skill.name}
           </span>
-          <span className="ml-auto font-mono text-[10px] text-[#9b7fc8]">
+          <span className="ml-auto font-mono text-[10px] text-[var(--ivps-plum)]">
             {checkedCount}/{total}
           </span>
         </div>
 
         {/* During 체크리스트 */}
-        <div className="bg-[#131720] rounded-xl border border-[#1a2035] overflow-hidden mb-3">
-          <div className="px-3 py-2 border-b border-[#1a2035] flex items-center justify-between">
-            <span className="text-[10px] text-[#4a5568] uppercase tracking-[.07em] font-semibold">
+        <div className="bg-[var(--ivps-surface)] rounded-xl border border-[var(--ivps-border)] overflow-hidden mb-3">
+          <div className="px-3 py-2 border-b border-[var(--ivps-border)] flex items-center justify-between">
+            <span className="text-[10px] text-[var(--ivps-text3)] uppercase tracking-[.07em] font-semibold">
               During 체크리스트
             </span>
             <div
-              className="h-1 rounded-full overflow-hidden w-20 bg-[#1a2035]"
+              className="h-1 rounded-full overflow-hidden w-20 bg-[var(--ivps-surface2)]"
             >
               <div
                 className="h-full rounded-full transition-all duration-300"
@@ -135,8 +135,8 @@ function SkillDiagPanel({ skill, sessionId, checks, onToggleCheck }) {
               className={[
                 'px-2.5 py-1 rounded-full border text-[10.5px] transition-colors',
                 activeDiagIdx === i
-                  ? 'bg-[rgba(224,112,112,.12)] border-[rgba(224,112,112,.3)] text-[#e07070]'
-                  : 'bg-transparent border-[#1a2035] text-[#4a5568] hover:text-[#8896ae]',
+                  ? 'bg-[rgba(224,112,112,.12)] border-[rgba(224,112,112,.3)] text-[var(--ivps-rust)]'
+                  : 'bg-transparent border-[var(--ivps-border)] text-[var(--ivps-text3)] hover:text-[var(--ivps-text2)]',
               ].join(' ')}
             >
               케이스 {i + 1}
@@ -174,10 +174,10 @@ function SkillDiagPanel({ skill, sessionId, checks, onToggleCheck }) {
         <div className="flex items-start gap-2.5 px-3.5 py-3 rounded-xl bg-[rgba(212,168,67,.06)] border border-[rgba(212,168,67,.15)]">
           <span className="text-[14px] flex-shrink-0">💊</span>
           <div>
-            <div className="text-[10px] text-[#d4a843] font-semibold uppercase tracking-wide mb-1">
+            <div className="text-[10px] text-[var(--ivps-gold)] font-semibold uppercase tracking-wide mb-1">
               처방 드릴
             </div>
-            <div className="text-[12px] text-[#d4a843] leading-relaxed">
+            <div className="text-[12px] text-[var(--ivps-gold)] leading-relaxed">
               {activeDiag.prescription}
             </div>
           </div>
@@ -212,10 +212,10 @@ function XpLogger({ sessionId, skills }) {
         borderColor: 'rgba(212,168,67,.18)',
       }}
     >
-      <div className="text-[10.5px] text-[#d4a843] font-semibold uppercase tracking-[.07em] mb-3 flex items-center gap-1.5">
+      <div className="text-[10.5px] text-[var(--ivps-gold)] font-semibold uppercase tracking-[.07em] mb-3 flex items-center gap-1.5">
         🏆 연습 결과 기록
         {logged && (
-          <span className="ml-auto text-[#7ea890] font-normal">✓ 기록됨</span>
+          <span className="ml-auto text-[var(--ivps-moss)] font-normal">✓ 기록됨</span>
         )}
       </div>
       <div className="grid grid-cols-3 gap-2">
@@ -243,7 +243,7 @@ function XpLogger({ sessionId, skills }) {
         <div className="mt-3 text-center">
           <button
             onClick={() => nav.setPhase('before')}
-            className="text-[11px] text-[#4a5568] hover:text-[#8896ae] transition-colors"
+            className="text-[11px] text-[var(--ivps-text3)] hover:text-[var(--ivps-text2)] transition-colors"
           >
             다음 스킬 연습하기 →
           </button>
@@ -279,12 +279,12 @@ export function DiagnosticInterface() {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4 px-8 text-center">
         <div className="text-[38px] opacity-20">🔍</div>
-        <div className="text-[13px] text-[#4a5568] leading-relaxed">
+        <div className="text-[13px] text-[var(--ivps-text3)] leading-relaxed">
           악보 위의 빨간 구간을 클릭하면<br />해당 세션의 자가 평가를 할 수 있어요.
           {sessions.length === 0 && (
             <>
               <br />
-              <span className="text-[11px] text-[#3d4455]">
+              <span className="text-[11px] text-[var(--ivps-text4)]">
                 During 탭에서 구간을 먼저 설정하세요.
               </span>
             </>
@@ -292,7 +292,7 @@ export function DiagnosticInterface() {
         </div>
         <button
           onClick={() => nav.setPhase('during')}
-          className="px-4 py-2 bg-[#1a2035] border border-[#2a3048] rounded-lg text-[#8896ae] text-[12px] hover:bg-[#222b3d] transition-colors"
+          className="px-4 py-2 bg-[var(--ivps-surface2)] border border-[var(--ivps-border2)] rounded-lg text-[var(--ivps-text2)] text-[12px] hover:bg-[#222b3d] transition-colors"
         >
           ← During으로 돌아가기
         </button>
@@ -307,21 +307,21 @@ export function DiagnosticInterface() {
     return (
       <div className="flex flex-col h-full overflow-hidden">
         {/* 세션 헤더 */}
-        <div className="px-5 pt-4 pb-3 flex-shrink-0 border-b border-[#1a2035]">
+        <div className="px-5 pt-4 pb-3 flex-shrink-0 border-b border-[var(--ivps-border)]">
           <div className="flex items-center justify-between">
-            <div className="text-[10.5px] text-[#4a5568] uppercase tracking-[.07em] font-semibold">
+            <div className="text-[10.5px] text-[var(--ivps-text3)] uppercase tracking-[.07em] font-semibold">
               ✓ 자가 평가
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => nav.setPhase('during')}
-                className="text-[10px] text-[#4a5568] hover:text-[#8896ae] transition-colors"
+                className="text-[10px] text-[var(--ivps-text3)] hover:text-[var(--ivps-text2)] transition-colors"
               >
                 ← 다시 연습
               </button>
               <button
                 onClick={() => sessionActs.deleteSession(session.id)}
-                className="text-[10px] text-[#e07070] hover:underline transition-colors"
+                className="text-[10px] text-[var(--ivps-rust)] hover:underline transition-colors"
               >
                 세션 삭제
               </button>
@@ -330,7 +330,7 @@ export function DiagnosticInterface() {
           {/* 할당 스킬 태그 */}
           <div className="flex gap-1.5 flex-wrap mt-2">
             {sessionSkills.length === 0 ? (
-              <span className="text-[11px] text-[#3d4455]">스킬 없음</span>
+              <span className="text-[11px] text-[var(--ivps-text4)]">스킬 없음</span>
             ) : (
               sessionSkills.map(sk => {
                 const meta = getCategoryMeta(sk.id);
@@ -352,14 +352,14 @@ export function DiagnosticInterface() {
         <div className="flex-1 overflow-y-auto px-5 py-4">
           {/* 스킬별 진단 패널 */}
           {sessionSkills.length === 0 ? (
-            <div className="text-center py-8 text-[12px] text-[#3d4455]">
+            <div className="text-center py-8 text-[12px] text-[var(--ivps-text4)]">
               이 세션에 할당된 스킬이 없습니다.
             </div>
           ) : (
             <div className="flex flex-col gap-6">
               {sessionSkills.map((sk, idx) => (
                 <div key={sk.id}>
-                  {idx > 0 && <div className="h-px bg-[#1a2035] mb-6" />}
+                  {idx > 0 && <div className="h-px bg-[var(--ivps-surface2)] mb-6" />}
                   <SkillDiagPanel
                     skill={sk}
                     sessionId={session.id}
@@ -385,8 +385,8 @@ export function DiagnosticInterface() {
                 color: '#d4a843',
               },
             ].map(({ label, value, color }) => (
-              <div key={label} className="bg-[#131720] rounded-lg p-3 border border-[#1a2035]">
-                <div className="text-[9.5px] text-[#4a5568] uppercase tracking-[.07em] mb-1.5">
+              <div key={label} className="bg-[var(--ivps-surface)] rounded-lg p-3 border border-[var(--ivps-border)]">
+                <div className="text-[9.5px] text-[var(--ivps-text3)] uppercase tracking-[.07em] mb-1.5">
                   {label}
                 </div>
                 <div
@@ -422,7 +422,7 @@ export function DiagnosticInterface() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="px-5 pt-4 pb-3 flex-shrink-0">
-        <div className="text-[10.5px] text-[#4a5568] uppercase tracking-[.07em] font-semibold">
+        <div className="text-[10.5px] text-[var(--ivps-text3)] uppercase tracking-[.07em] font-semibold">
           자가 진단 · 증상·원인·처방
         </div>
       </div>
@@ -440,7 +440,7 @@ export function DiagnosticInterface() {
           >
             {skill.id}
           </span>
-          <span className="font-serif text-[16px] font-semibold text-[#e8e2d6]">
+          <span className="font-serif text-[16px] font-semibold text-[var(--ivps-text1)]">
             {skill.name}
           </span>
         </div>
@@ -455,8 +455,8 @@ export function DiagnosticInterface() {
                 className={[
                   'px-2.5 py-1 rounded-full border text-[10.5px] transition-colors',
                   activeDiagIdx === i
-                    ? 'bg-[rgba(224,112,112,.12)] border-[rgba(224,112,112,.3)] text-[#e07070]'
-                    : 'bg-transparent border-[#1a2035] text-[#4a5568]',
+                    ? 'bg-[rgba(224,112,112,.12)] border-[rgba(224,112,112,.3)] text-[var(--ivps-rust)]'
+                    : 'bg-transparent border-[var(--ivps-border)] text-[var(--ivps-text3)]',
                 ].join(' ')}
               >
                 케이스 {i + 1}
@@ -472,7 +472,7 @@ export function DiagnosticInterface() {
             style={{ borderColor: 'rgba(224,112,112,.2)' }}
           >
             <div
-              className="px-3 py-2 border-b text-[10.5px] font-semibold text-[#e07070]"
+              className="px-3 py-2 border-b text-[10.5px] font-semibold text-[var(--ivps-rust)]"
               style={{
                 background: 'rgba(224,112,112,.06)',
                 borderColor: 'rgba(224,112,112,.15)',
@@ -493,8 +493,8 @@ export function DiagnosticInterface() {
           <div className="flex items-start gap-2.5 px-3.5 py-3 rounded-xl bg-[rgba(212,168,67,.06)] border border-[rgba(212,168,67,.15)] mb-4">
             <span className="text-[14px] flex-shrink-0">💊</span>
             <div>
-              <div className="text-[10px] text-[#d4a843] font-semibold uppercase tracking-wide mb-1">처방 드릴</div>
-              <div className="text-[12px] text-[#d4a843] leading-relaxed">{activeDiag.prescription}</div>
+              <div className="text-[10px] text-[var(--ivps-gold)] font-semibold uppercase tracking-wide mb-1">처방 드릴</div>
+              <div className="text-[12px] text-[var(--ivps-gold)] leading-relaxed">{activeDiag.prescription}</div>
             </div>
           </div>
         )}

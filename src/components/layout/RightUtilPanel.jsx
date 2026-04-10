@@ -11,8 +11,8 @@ import { useTuner, centsColor, VIOLIN_OPEN_STRINGS } from '../../hooks/useTuner'
 // ── UtilCard 공통 래퍼 ─────────────────────────────────────────────────────
 function UtilCard({ icon, title, children }) {
   return (
-    <div className="bg-[#131720] rounded-[10px] border border-[#1a2035] p-[15px] mb-3">
-      <div className="text-[10.5px] text-[#4a5568] uppercase tracking-[.06em] font-semibold mb-3 flex items-center gap-1.5">
+    <div className="ivps-util-card p-[15px] mb-3 rounded-[10px]">
+      <div className="text-[10.5px] text-[var(--ivps-text3)] ...">
         <span>{icon}</span>
         {title}
       </div>
@@ -59,17 +59,17 @@ function Metronome() {
 
       {/* BPM 디스플레이 */}
       <div className="text-center mb-3">
-        <div className="font-serif text-[34px] font-bold text-[#e8e2d6] leading-none">
+        <div className="font-serif text-[34px] font-bold text-[var(--ivps-text1)] leading-none">
           {bpm}
         </div>
-        <div className="font-mono text-[10px] text-[#4a5568] mt-0.5">BPM</div>
+        <div className="font-mono text-[10px] text-[var(--ivps-text3)] mt-0.5">BPM</div>
       </div>
 
       {/* 슬라이더 + ±5 */}
       <div className="flex items-center gap-1.5 mb-2.5">
         <button
           onClick={() => metro.setBpm(bpm - 5)}
-          className="w-8 h-8 bg-[#1a2035] border border-[#2a3048] rounded-md text-[#e8e2d6] text-sm font-mono flex items-center justify-center hover:bg-[#222b3d] transition-colors flex-shrink-0"
+          className="w-8 h-8 bg-[var(--ivps-surface2)] border border-[var(--ivps-border2)] rounded-md text-[var(--ivps-text1)] text-sm font-mono flex items-center justify-center hover:bg-[#222b3d] transition-colors flex-shrink-0"
         >
           −
         </button>
@@ -81,7 +81,7 @@ function Metronome() {
         />
         <button
           onClick={() => metro.setBpm(bpm + 5)}
-          className="w-8 h-8 bg-[#1a2035] border border-[#2a3048] rounded-md text-[#e8e2d6] text-sm font-mono flex items-center justify-center hover:bg-[#222b3d] transition-colors flex-shrink-0"
+          className="w-8 h-8 bg-[var(--ivps-surface2)] border border-[var(--ivps-border2)] rounded-md text-[var(--ivps-text1)] text-sm font-mono flex items-center justify-center hover:bg-[#222b3d] transition-colors flex-shrink-0"
         >
           +
         </button>
@@ -96,8 +96,8 @@ function Metronome() {
             className={[
               'flex-1 py-1 rounded text-[10px] font-mono border transition-colors',
               bpm === v
-                ? 'bg-[rgba(212,168,67,.15)] border-[#d4a843] text-[#d4a843]'
-                : 'bg-[#1a2035] border-[#2a3048] text-[#4a5568] hover:text-[#8896ae]',
+                ? 'bg-[rgba(212,168,67,.15)] border-[#d4a843] text-[var(--ivps-gold)]'
+                : 'bg-[var(--ivps-surface2)] border-[var(--ivps-border2)] text-[var(--ivps-text3)] hover:text-[var(--ivps-text2)]',
             ].join(' ')}
           >
             {v}
@@ -111,8 +111,8 @@ function Metronome() {
         className={[
           'w-full py-2.5 rounded-lg text-[12.5px] font-semibold flex items-center justify-center gap-1.5 transition-all',
           metroPlaying
-            ? 'bg-[rgba(212,168,67,.12)] border border-[#d4a843] text-[#d4a843]'
-            : 'bg-gradient-to-r from-[#d4a843] to-[#b8891f] text-[#0d1117] border-none',
+              ? 'border text-[var(--ivps-gold)] bg-[var(--ivps-gold-bg)] border-[var(--ivps-gold-border)]'
+               : 'ivps-btn-gold border-none',
         ].join(' ')}
       >
         {metroPlaying ? '⏸ 정지' : '▶ 시작'}
@@ -159,7 +159,7 @@ function Tuner() {
   return (
     <UtilCard icon="🎙" title="튜너">
       {/* 음이름 디스플레이 */}
-      <div className="text-center py-3 px-3 bg-[#0d1117] rounded-lg border border-[#1a2035] mb-2.5 min-h-[76px] flex flex-col items-center justify-center">
+      <div className="text-center py-3 px-3 bg-[var(--ivps-bg)] rounded-lg border border-[var(--ivps-border)] mb-2.5 min-h-[76px] flex flex-col items-center justify-center">
         <div
           className="font-serif text-[36px] font-bold leading-none transition-colors duration-75"
           style={{ color: noteColor }}
@@ -169,14 +169,14 @@ function Tuner() {
 
         {nt ? (
           <>
-            <div className="w-full h-[5px] bg-[#1a2035] rounded-full mt-2 mb-1 relative overflow-hidden">
+            <div className="w-full h-[5px] bg-[var(--ivps-surface2)] rounded-full mt-2 mb-1 relative overflow-hidden">
               <div
                 className="absolute top-0 h-full w-[10px] -translate-x-1/2 rounded transition-all duration-75"
                 style={{ left: `${needleLeft}%`, background: noteColor }}
               />
               <div className="absolute left-1/2 top-0 h-full w-px bg-[#3d4455] -translate-x-1/2" />
             </div>
-            <div className="font-mono text-[10px] text-[#4a5568]">
+            <div className="font-mono text-[10px] text-[var(--ivps-text3)]">
               {nt.cents > 0 ? '+' : ''}{nt.cents}¢ · {nt.freq}Hz
             </div>
           </>
@@ -196,7 +196,7 @@ function Tuner() {
               'text-center py-1.5 rounded border text-[10px] font-mono transition-colors',
               matchedString === string
                 ? 'bg-[rgba(126,168,144,.12)] border-[#7ea890]'
-                : 'bg-[#1a2035] border-[#1a2035]',
+                : 'bg-[var(--ivps-surface2)] border-[var(--ivps-border)]',
             ].join(' ')}
           >
             <div className="text-[8px] opacity-50" style={{ color: matchedString === string ? '#7ea890' : '#3d4455' }}>
@@ -215,8 +215,8 @@ function Tuner() {
         className={[
           'w-full py-2 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1.5 transition-all border',
           tunerActive
-            ? 'bg-[rgba(126,168,144,.12)] border-[#7ea890] text-[#7ea890]'
-            : 'bg-[#1a2035] border-[#2a3048] text-[#4a5568] hover:bg-[#222b3d] hover:text-[#8896ae]',
+            ? 'bg-[rgba(126,168,144,.12)] border-[#7ea890] text-[var(--ivps-moss)]'
+            : 'bg-[var(--ivps-surface2)] border-[var(--ivps-border2)] text-[var(--ivps-text3)] hover:bg-[#222b3d] hover:text-[var(--ivps-text2)]',
         ].join(' ')}
       >
         {tunerActive ? '🎙 튜너 끄기' : '🎙 마이크 켜기'}
@@ -236,16 +236,16 @@ function GrapeChecker() {
     <UtilCard icon="🍇" title="포도 체크">
       {/* 헤더 정보 */}
       <div className="flex items-center justify-between mb-1.5">
-        <span className="text-[11px] text-[#4a5568]">
-          <span className="text-[#e8e2d6] font-mono">{grapeFilled}</span>
-          <span className="text-[#3d4455]"> / {grapeTotal}</span>
+        <span className="text-[11px] text-[var(--ivps-text3)]">
+          <span className="text-[var(--ivps-text1)] font-mono">{grapeFilled}</span>
+          <span className="text-[var(--ivps-text4)]"> / {grapeTotal}</span>
           <span className="ml-1">세트 완료</span>
         </span>
-        <span className="font-mono text-[11px] text-[#4a5568]">{pct}%</span>
+        <span className="font-mono text-[11px] text-[var(--ivps-text3)]">{pct}%</span>
       </div>
 
       {/* 진행 바 */}
-      <div className="h-[3px] bg-[#1a2035] rounded-full mb-3 overflow-hidden">
+      <div className="h-[3px] bg-[var(--ivps-surface2)] rounded-full mb-3 overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-300"
           style={{
@@ -270,7 +270,7 @@ function GrapeChecker() {
                 'w-[22px] h-[22px] rounded-full border flex items-center justify-center text-[9px] transition-all duration-150',
                 done
                   ? 'bg-gradient-to-br from-[#9b7fc8] to-[#7b5fa8] border-[#9b7fc8] text-white scale-105'
-                  : 'bg-[#1a2035] border-[#2a3048] text-transparent hover:border-[#4a5568]',
+                  : 'bg-[var(--ivps-surface2)] border-[var(--ivps-border2)] text-transparent hover:border-[#4a5568]',
               ].join(' ')}
             >
               {done ? '✓' : ''}
@@ -283,19 +283,19 @@ function GrapeChecker() {
       <div className="flex gap-1.5">
         <button
           onClick={grape.resetGrapes}
-          className="flex-1 py-1.5 bg-[#1a2035] border border-[#2a3048] rounded-md text-[#4a5568] text-[11px] hover:bg-[#222b3d] hover:text-[#8896ae] transition-colors"
+          className="flex-1 py-1.5 bg-[var(--ivps-surface2)] border border-[var(--ivps-border2)] rounded-md text-[var(--ivps-text3)] text-[11px] hover:bg-[#222b3d] hover:text-[var(--ivps-text2)] transition-colors"
         >
           초기화
         </button>
         <button
           onClick={() => grape.adjustGrapeTotal(-1)}
-          className="w-7 h-7 bg-[#1a2035] border border-[#2a3048] rounded-md text-[#4a5568] text-sm flex items-center justify-center hover:bg-[#222b3d] transition-colors"
+          className="w-7 h-7 bg-[var(--ivps-surface2)] border border-[var(--ivps-border2)] rounded-md text-[var(--ivps-text3)] text-sm flex items-center justify-center hover:bg-[#222b3d] transition-colors"
         >
           −
         </button>
         <button
           onClick={() => grape.adjustGrapeTotal(1)}
-          className="w-7 h-7 bg-[#1a2035] border border-[#2a3048] rounded-md text-[#4a5568] text-sm flex items-center justify-center hover:bg-[#222b3d] transition-colors"
+          className="w-7 h-7 bg-[var(--ivps-surface2)] border border-[var(--ivps-border2)] rounded-md text-[var(--ivps-text3)] text-sm flex items-center justify-center hover:bg-[#222b3d] transition-colors"
         >
           +
         </button>
@@ -309,7 +309,7 @@ function GrapeChecker() {
 // ─────────────────────────────────────────────────────────────────────────────
 export function RightUtilPanel() {
   return (
-    <aside className="w-[230px] flex-shrink-0 bg-[#080b10] border-l border-[#1a2035] flex flex-col overflow-hidden">
+    <aside className="w-[230px] flex-shrink-0 bg-[var(--ivps-nav)] border-l border-[var(--ivps-border)] flex flex-col overflow-hidden">
       <div className="px-3.5 pt-3.5 pb-2 flex-shrink-0">
         <div className="text-[9px] text-[#2a3045] uppercase tracking-[.1em] font-mono">
           유틸리티

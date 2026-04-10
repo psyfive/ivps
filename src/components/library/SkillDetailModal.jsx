@@ -32,7 +32,7 @@ function PhaseBlock({ label, dotColor, children }) {
 // ── DiagRow ────────────────────────────────────────────────────────────────
 function DiagRow({ label, color, value }) {
   return (
-    <div className="bg-[#0d1117] rounded-lg p-3">
+    <div className="bg-[var(--ivps-bg)] rounded-lg p-3">
       <div className="flex items-center gap-1.5 mb-1.5">
         <span
           className="w-[5px] h-[5px] rounded-full flex-shrink-0"
@@ -45,7 +45,7 @@ function DiagRow({ label, color, value }) {
           {label}
         </span>
       </div>
-      <p className="text-[12px] text-[#e8e2d6] leading-relaxed">{value}</p>
+      <p className="text-[12px] text-[var(--ivps-text1)] leading-relaxed">{value}</p>
     </div>
   );
 }
@@ -84,12 +84,12 @@ export function SkillDetailModal({ skill, onClose, onStartPractice }) {
       onClick={handleOverlayClick}
     >
       <div
-        className="bg-[#131720] rounded-[14px] w-full max-w-[580px] max-h-[88vh] flex flex-col border border-[#2a3048] shadow-2xl"
+        className="bg-[var(--ivps-surface)] rounded-[14px] w-full max-w-[580px] max-h-[88vh] flex flex-col border border-[var(--ivps-border2)] shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
 
         {/* ── 헤더 ── */}
-        <div className="px-[26px] pt-[22px] pb-[18px] border-b border-[#1a2035] flex items-start justify-between sticky top-0 bg-[#131720] z-10 rounded-t-[14px]">
+        <div className="px-[26px] pt-[22px] pb-[18px] border-b border-[var(--ivps-border)] flex items-start justify-between sticky top-0 bg-[var(--ivps-surface)] z-10 rounded-t-[14px]">
           <div className="flex-1 min-w-0 pr-4">
             {/* ID + 그룹 */}
             <div className="flex items-center gap-2 mb-1.5 flex-wrap">
@@ -109,12 +109,12 @@ export function SkillDetailModal({ skill, onClose, onStartPractice }) {
               )}
             </div>
             {/* 스킬명 */}
-            <h2 className="font-serif text-[24px] font-bold text-[#e8e2d6] leading-tight">
+            <h2 className="font-serif text-[24px] font-bold text-[var(--ivps-text1)] leading-tight">
               {skill.name}
             </h2>
             {/* XP 바 */}
             <div className="flex items-center gap-2.5 mt-2">
-              <div className="h-[3px] flex-1 bg-[#1a2035] rounded-full overflow-hidden">
+              <div className="h-[3px] flex-1 bg-[var(--ivps-surface2)] rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full"
                   style={{
@@ -123,14 +123,14 @@ export function SkillDetailModal({ skill, onClose, onStartPractice }) {
                   }}
                 />
               </div>
-              <span className="font-mono text-[10px] text-[#3d4455] flex-shrink-0">
+              <span className="font-mono text-[10px] text-[var(--ivps-text4)] flex-shrink-0">
                 {skill.xp}/{skill.maxXp} XP · Lv.{skill.level}
               </span>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded flex items-center justify-center text-[#4a5568] hover:text-[#8896ae] hover:bg-[#1a2035] transition-colors text-lg leading-none flex-shrink-0"
+            className="w-7 h-7 rounded flex items-center justify-center text-[var(--ivps-text3)] hover:text-[var(--ivps-text2)] hover:bg-[var(--ivps-surface2)] transition-colors text-lg leading-none flex-shrink-0"
           >
             ✕
           </button>
@@ -141,7 +141,7 @@ export function SkillDetailModal({ skill, onClose, onStartPractice }) {
 
           {/* 핵심 원리 */}
           <PhaseBlock label="핵심 원리" dotColor="#d4a843">
-            <p className="text-[13px] text-[#e8e2d6] leading-[1.75]">
+            <p className="text-[13px] text-[var(--ivps-text1)] leading-[1.75]">
               {skill.corePrinciple}
             </p>
           </PhaseBlock>
@@ -173,7 +173,7 @@ export function SkillDetailModal({ skill, onClose, onStartPractice }) {
                   >
                     {i + 1}
                   </span>
-                  <span className="text-[13px] text-[#e8e2d6]">{item}</span>
+                  <span className="text-[13px] text-[var(--ivps-text1)]">{item}</span>
                 </div>
               ))}
             </div>
@@ -192,8 +192,8 @@ export function SkillDetailModal({ skill, onClose, onStartPractice }) {
                     className={[
                       'px-2.5 py-1 rounded-full border text-[10.5px] transition-colors',
                       activeDiagIdx === i
-                        ? 'bg-[rgba(224,112,112,.12)] border-[rgba(224,112,112,.35)] text-[#e07070]'
-                        : 'bg-transparent border-[#2a3048] text-[#4a5568] hover:text-[#8896ae]',
+                        ? 'bg-[rgba(224,112,112,.12)] border-[rgba(224,112,112,.35)] text-[var(--ivps-rust)]'
+                        : 'bg-transparent border-[var(--ivps-border2)] text-[var(--ivps-text3)] hover:text-[var(--ivps-text2)]',
                     ].join(' ')}
                   >
                     케이스 {i + 1}

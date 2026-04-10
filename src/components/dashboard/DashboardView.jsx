@@ -100,7 +100,7 @@ function StatCard({ label, value, sub, accent }) {
         {value}
       </div>
       {sub && (
-        <div className="text-[10.5px] text-[#3d4455] mt-1">{sub}</div>
+        <div className="text-[10.5px] text-[var(--ivps-text4)] mt-1">{sub}</div>
       )}
     </div>
   );
@@ -111,17 +111,17 @@ function StatCard({ label, value, sub, accent }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function LevelBar({ level, xpPct, xpToNext }) {
   return (
-    <div className="bg-[#131720] border border-[#1a2035] rounded-[10px] px-4 py-3.5">
+    <div className="bg-[var(--ivps-surface)] border border-[var(--ivps-border)] rounded-[10px] px-4 py-3.5">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="font-mono text-[11px] text-[#d4a843] bg-[rgba(212,168,67,.1)] border border-[rgba(212,168,67,.2)] px-2 py-0.5 rounded">
+          <span className="font-mono text-[11px] text-[var(--ivps-gold)] bg-[rgba(212,168,67,.1)] border border-[rgba(212,168,67,.2)] px-2 py-0.5 rounded">
             Lv.{level}
           </span>
-          <span className="text-[11px] text-[#4a5568]">다음 레벨까지</span>
+          <span className="text-[11px] text-[var(--ivps-text3)]">다음 레벨까지</span>
         </div>
-        <span className="font-mono text-[11px] text-[#4a5568]">{xpToNext} XP</span>
+        <span className="font-mono text-[11px] text-[var(--ivps-text3)]">{xpToNext} XP</span>
       </div>
-      <div className="h-1.5 bg-[#1a2035] rounded-full overflow-hidden">
+      <div className="h-1.5 bg-[var(--ivps-surface2)] rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{
@@ -144,7 +144,7 @@ function RecentSkillRow({ skill, onStart }) {
   return (
     <button
       onClick={() => onStart(skill.id)}
-      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[#1a2035] transition-colors group"
+      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[var(--ivps-surface2)] transition-colors group"
     >
       <span
         className="font-mono text-[10px] px-1.5 py-0.5 rounded flex-shrink-0"
@@ -153,16 +153,16 @@ function RecentSkillRow({ skill, onStart }) {
         {skill.id}
       </span>
       <div className="flex-1 min-w-0 text-left">
-        <div className="text-[12.5px] text-[#e8e2d6] truncate">{skill.name}</div>
-        <div className="h-[3px] bg-[#1a2035] rounded-full mt-1.5 overflow-hidden">
+        <div className="text-[12.5px] text-[var(--ivps-text1)] truncate">{skill.name}</div>
+        <div className="h-[3px] bg-[var(--ivps-surface2)] rounded-full mt-1.5 overflow-hidden">
           <div
             className="h-full rounded-full"
             style={{ width: `${pct}%`, background: meta.color }}
           />
         </div>
       </div>
-      <span className="font-mono text-[10px] text-[#3d4455] flex-shrink-0">Lv.{skill.level}</span>
-      <span className="text-[#3d4455] text-[12px] group-hover:text-[#8896ae] transition-colors">›</span>
+      <span className="font-mono text-[10px] text-[var(--ivps-text4)] flex-shrink-0">Lv.{skill.level}</span>
+      <span className="text-[var(--ivps-text4)] text-[12px] group-hover:text-[var(--ivps-text2)] transition-colors">›</span>
     </button>
   );
 }
@@ -180,12 +180,12 @@ function ReviewRow({ skill, onStart }) {
       className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg border border-[rgba(126,168,144,.12)] bg-[rgba(126,168,144,.05)] hover:bg-[rgba(126,168,144,.09)] transition-colors group mb-2"
     >
       <div className="text-left">
-        <div className="text-[12.5px] text-[#e8e2d6]">{skill.name}</div>
-        <div className="text-[10.5px] text-[#7ea890] mt-0.5">
+        <div className="text-[12.5px] text-[var(--ivps-text1)]">{skill.name}</div>
+        <div className="text-[10.5px] text-[var(--ivps-moss)] mt-0.5">
           XP {skill.xp}/{skill.maxXp} · 복습 필요
         </div>
       </div>
-      <span className="text-[#7ea890] text-[13px]">›</span>
+      <span className="text-[var(--ivps-moss)] text-[13px]">›</span>
     </button>
   );
 }
@@ -198,10 +198,10 @@ function ScoreThumb({ score, onOpen, onRename, onDelete }) {
   const pageCount    = score.pageData?.length ?? 1;
 
   return (
-    <div className="bg-[#131720] border border-[#1a2035] rounded-[10px] overflow-hidden cursor-pointer group transition-all hover:border-[rgba(212,168,67,.3)] hover:bg-[#171e2c]">
+    <div className="bg-[var(--ivps-surface)] border border-[var(--ivps-border)] rounded-[10px] overflow-hidden cursor-pointer group transition-all hover:border-[rgba(212,168,67,.3)] hover:bg-[#171e2c]">
       {/* 이미지 영역 */}
       <div
-        className="h-[110px] bg-[#0d1117] overflow-hidden flex items-center justify-center relative"
+        className="h-[110px] bg-[var(--ivps-bg)] overflow-hidden flex items-center justify-center relative"
         onClick={() => onOpen(score.id)}
       >
         <img
@@ -218,7 +218,7 @@ function ScoreThumb({ score, onOpen, onRename, onDelete }) {
             </div>
           )}
           {pageCount > 1 && (
-            <div className="self-start bg-[rgba(0,0,0,.6)] text-[#d4a843] text-[9px] font-mono px-1.5 py-0.5 rounded-full">
+            <div className="self-start bg-[rgba(0,0,0,.6)] text-[var(--ivps-gold)] text-[9px] font-mono px-1.5 py-0.5 rounded-full">
               {pageCount}p
             </div>
           )}
@@ -227,10 +227,10 @@ function ScoreThumb({ score, onOpen, onRename, onDelete }) {
 
       {/* 정보 영역 */}
       <div className="px-3 py-2" onClick={() => onOpen(score.id)}>
-        <div className="text-[12.5px] font-medium text-[#e8e2d6] truncate" title={score.name}>
+        <div className="text-[12.5px] font-medium text-[var(--ivps-text1)] truncate" title={score.name}>
           {score.name}
         </div>
-        <div className="text-[10.5px] font-mono text-[#3d4455] mt-0.5">
+        <div className="text-[10.5px] font-mono text-[var(--ivps-text4)] mt-0.5">
           {formatDate(score.uploadedAt)}
         </div>
       </div>
@@ -239,13 +239,13 @@ function ScoreThumb({ score, onOpen, onRename, onDelete }) {
       <div className="px-2.5 pb-2.5 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
           onClick={e => { e.stopPropagation(); onRename(score.id); }}
-          className="flex-1 py-1 text-[10.5px] text-[#4a5568] bg-[#1a2035] border border-[#2a3048] rounded hover:text-[#8896ae] transition-colors"
+          className="flex-1 py-1 text-[10.5px] text-[var(--ivps-text3)] bg-[var(--ivps-surface2)] border border-[var(--ivps-border2)] rounded hover:text-[var(--ivps-text2)] transition-colors"
         >
           이름
         </button>
         <button
           onClick={e => { e.stopPropagation(); onDelete(score.id); }}
-          className="flex-1 py-1 text-[10.5px] text-[#e07070] bg-[rgba(224,112,112,.06)] border border-[rgba(224,112,112,.18)] rounded hover:bg-[rgba(224,112,112,.1)] transition-colors"
+          className="flex-1 py-1 text-[10.5px] text-[var(--ivps-rust)] bg-[rgba(224,112,112,.06)] border border-[rgba(224,112,112,.18)] rounded hover:bg-[rgba(224,112,112,.1)] transition-colors"
         >
           삭제
         </button>
@@ -261,7 +261,7 @@ function AddScoreThumb({ onClick }) {
   return (
     <div
       onClick={onClick}
-      className="border-2 border-dashed border-[#1a2035] rounded-[10px] overflow-hidden cursor-pointer flex flex-col items-center justify-center gap-2 h-full min-h-[160px] text-[#3d4455] hover:border-[rgba(212,168,67,.4)] hover:text-[#d4a843] hover:bg-[rgba(212,168,67,.04)] transition-all"
+      className="border-2 border-dashed border-[var(--ivps-border)] rounded-[10px] overflow-hidden cursor-pointer flex flex-col items-center justify-center gap-2 h-full min-h-[160px] text-[var(--ivps-text4)] hover:border-[rgba(212,168,67,.4)] hover:text-[var(--ivps-gold)] hover:bg-[rgba(212,168,67,.04)] transition-all"
     >
       <div className="text-[28px] leading-none opacity-70">+</div>
       <div className="text-[12.5px] font-medium">새 악보 추가</div>
@@ -276,7 +276,7 @@ function AddScoreThumb({ onClick }) {
 function SectionHeader({ title, action }) {
   return (
     <div className="flex items-center justify-between mb-3">
-      <div className="text-[10px] text-[#4a5568] uppercase tracking-[.08em] font-semibold">
+      <div className="text-[10px] text-[var(--ivps-text3)] uppercase tracking-[.08em] font-semibold">
         {title}
       </div>
       {action}
@@ -289,7 +289,7 @@ function SectionHeader({ title, action }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function Panel({ title, action, children, className = '' }) {
   return (
-    <div className={`bg-[#131720] border border-[#1a2035] rounded-[10px] p-4 ${className}`}>
+    <div className={`bg-[var(--ivps-surface)] border border-[var(--ivps-border)] rounded-[10px] p-4 ${className}`}>
       <SectionHeader title={title} action={action} />
       {children}
     </div>
@@ -381,10 +381,10 @@ export function DashboardView() {
 
         {/* ── 페이지 헤더 ── */}
         <div className="mb-6">
-          <h1 className="font-serif text-[24px] font-bold text-[#e8e2d6] mb-1">
+          <h1 className="font-serif text-[24px] font-bold text-[var(--ivps-text1)] mb-1">
             오늘의 연습
           </h1>
-          <div className="text-[12px] text-[#4a5568]">{today}</div>
+          <div className="text-[12px] text-[var(--ivps-text3)]">{today}</div>
         </div>
 
         {/* ── 스탯 카드 그리드 ── */}
@@ -421,18 +421,18 @@ export function DashboardView() {
             action={
               <button
                 onClick={() => nav.navigate('library')}
-                className="text-[10.5px] text-[#4a5568] hover:text-[#8896ae] transition-colors"
+                className="text-[10.5px] text-[var(--ivps-text3)] hover:text-[var(--ivps-text2)] transition-colors"
               >
                 전체 보기 →
               </button>
             }
           >
             {recentSkills.length === 0 ? (
-              <div className="text-center py-5 text-[12px] text-[#3d4455]">
+              <div className="text-center py-5 text-[12px] text-[var(--ivps-text4)]">
                 아직 연습 기록이 없어요.<br />
                 <button
                   onClick={() => nav.navigate('library')}
-                  className="mt-2 text-[#d4a843] hover:underline"
+                  className="mt-2 text-[var(--ivps-gold)] hover:underline"
                 >
                   스킬 라이브러리 가기 →
                 </button>
@@ -450,13 +450,13 @@ export function DashboardView() {
           <Panel
             title="🌱 복습 정원"
             action={
-              <span className="text-[10px] text-[#3d4455] font-mono">
+              <span className="text-[10px] text-[var(--ivps-text4)] font-mono">
                 {reviewSkills.length}개 항목
               </span>
             }
           >
             {reviewSkills.length === 0 ? (
-              <div className="text-center py-5 text-[12px] text-[#3d4455]">
+              <div className="text-center py-5 text-[12px] text-[var(--ivps-text4)]">
                 복습할 항목이 없어요 🎉
               </div>
             ) : (
@@ -468,7 +468,7 @@ export function DashboardView() {
             )}
             <button
               onClick={() => nav.navigate('cockpit')}
-              className="w-full mt-2 py-2 bg-[rgba(126,168,144,.08)] border border-[rgba(126,168,144,.18)] rounded-lg text-[#7ea890] text-[12px] hover:bg-[rgba(126,168,144,.13)] transition-colors"
+              className="w-full mt-2 py-2 bg-[rgba(126,168,144,.08)] border border-[rgba(126,168,144,.18)] rounded-lg text-[var(--ivps-moss)] text-[12px] hover:bg-[rgba(126,168,144,.13)] transition-colors"
             >
               + 연습 시작하기
             </button>
@@ -478,10 +478,10 @@ export function DashboardView() {
         {/* ── 악보 갤러리 ── */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <div className="text-[10px] text-[#4a5568] uppercase tracking-[.08em] font-semibold">
+            <div className="text-[10px] text-[var(--ivps-text3)] uppercase tracking-[.08em] font-semibold">
               🎼 최근 연습한 악보
               {scores.length > 0 && (
-                <span className="ml-2 font-mono text-[#3d4455]">
+                <span className="ml-2 font-mono text-[var(--ivps-text4)]">
                   {scores.length}개 · {totalSessions}개 세션
                 </span>
               )}
@@ -508,7 +508,7 @@ export function DashboardView() {
           </div>
 
           {scores.length === 0 && (
-            <div className="text-center py-4 text-[11.5px] text-[#3d4455]">
+            <div className="text-center py-4 text-[11.5px] text-[var(--ivps-text4)]">
               악보를 업로드하면 여기에 표시됩니다.
             </div>
           )}
