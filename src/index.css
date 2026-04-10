@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   --text: #6b6375;
   --text-h: #08060d;
@@ -50,20 +54,22 @@
   }
 }
 
-body {
+body, html {
   margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  /* 배경을 다크 테마 색상으로 깔아주어 흰 여백을 원천 차단합니다 */
+  background-color: #0d1117; 
 }
 
 #root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  /* 기존에 글자가 무조건 가운데 정렬되는 것을 막습니다 */
+  text-align: left; 
 }
 
 h1,

@@ -1,0 +1,500 @@
+/* src/styles/themes.css
+ * ─────────────────────────────────────────────────────────────────────────────
+ * IVPS 테마 CSS 변수 시스템
+ *
+ * 사용 방법:
+ *   - src/main.jsx 또는 src/index.css 최상단에서 import './styles/themes.css'
+ *   - 컴포넌트는 var(--ivps-*) 변수를 직접 사용하거나
+ *     tailwind.config.js 에 연결된 bg-theme-* 유틸리티 클래스를 사용
+ *
+ * 모드 전환:
+ *   - <html class="">      → Light Mode (기본)
+ *   - <html class="dark">  → Soft Dark Mode
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   1. LIGHT MODE — 따뜻한 목재 & 호박 테마
+   이미지 참조: 크림색 악보 배경, 앰버 사이드바, 황금 포인트
+══════════════════════════════════════════════════════════════════════════════ */
+:root {
+
+  /* 배경 레이어 */
+  --ivps-bg:        #FAF6EC;  /* 전체 앱 배경 — 따뜻한 크림 */
+  --ivps-surface:   #FFF8F0;  /* 카드, 패널 — 밝은 호박 흰색 */
+  --ivps-surface2:  #F3EBD8;  /* 중간 서피스 — 부드러운 모래색 */
+  --ivps-nav:       #EDE0C8;  /* 좌측 네비 배경 — 따뜻한 탄 */
+  --ivps-score-bg:  #EDEAD8;  /* 악보 영역 배경 — 양피지 */
+
+  /* 인터랙션 배경 */
+  --ivps-hover:     rgba(180, 130, 50, 0.08);   /* 호버 — 황금빛 얇은 레이어 */
+  --ivps-active:    rgba(180, 130, 50, 0.16);   /* 활성 — 더 진한 황금 레이어 */
+  --ivps-focus-ring:rgba(212, 175, 55, 0.35);   /* 포커스 링 */
+
+  /* 보더 */
+  --ivps-border:    rgba(160, 110, 55, 0.18);   /* 기본 보더 — 은은한 갈색 */
+  --ivps-border2:   rgba(160, 110, 55, 0.32);   /* 강조 보더 */
+  --ivps-divider:   rgba(160, 110, 55, 0.12);   /* 구분선 */
+
+  /* 텍스트 */
+  --ivps-text1:     #2C1A08;  /* 제목 — 깊은 다크 브라운 */
+  --ivps-text2:     #5C3A18;  /* 본문 — 미디엄 브라운 */
+  --ivps-text3:     #8A6238;  /* 보조 — 따뜻한 브라운 그레이 */
+  --ivps-text4:     #B89060;  /* 힌트 — 라이트 앰버 브라운 */
+  --ivps-text-inv:  #FFF8F0;  /* 색상 배경 위 텍스트 (버튼 등) */
+
+  /* 포인트 컬러 — 두 모드 공통 기조, 밝기만 조정 */
+  --ivps-gold:        #D4AF37;  /* 메인 골드 — 시작버튼, 활성메뉴 */
+  --ivps-gold-dim:    #B8920A;  /* 골드 hover/pressed */
+  --ivps-gold-bg:     rgba(212, 175, 55, 0.12);
+  --ivps-gold-border: rgba(212, 175, 55, 0.35);
+  --ivps-gold-text:   #7A5500;  /* 라이트모드에서 골드 배경 위 텍스트 */
+
+  --ivps-amber:        #D97706;  /* 보조 앰버 — 복습, 경고 */
+  --ivps-amber-bg:     rgba(217, 119, 6, 0.10);
+
+  --ivps-moss:         #5A9070;  /* 성공, 음정 일치 */
+  --ivps-moss-bg:      rgba(90, 144, 112, 0.10);
+  --ivps-moss-border:  rgba(90, 144, 112, 0.30);
+
+  --ivps-rust:         #C85840;  /* 진단, 오류, 삭제 */
+  --ivps-rust-bg:      rgba(200, 88, 64, 0.08);
+  --ivps-rust-border:  rgba(200, 88, 64, 0.25);
+
+  --ivps-plum:         #8060B0;  /* During HUD — 집중 */
+  --ivps-plum-bg:      rgba(128, 96, 176, 0.10);
+  --ivps-plum-border:  rgba(128, 96, 176, 0.28);
+
+  /* 그림자 */
+  --ivps-shadow-sm: 0 1px 3px rgba(100, 60, 10, 0.08), 0 1px 2px rgba(100, 60, 10, 0.04);
+  --ivps-shadow-md: 0 4px 14px rgba(100, 60, 10, 0.10), 0 2px 4px rgba(100, 60, 10, 0.06);
+  --ivps-shadow-lg: 0 10px 32px rgba(100, 60, 10, 0.14), 0 4px 8px rgba(100, 60, 10, 0.08);
+
+  /* 스크롤바 */
+  --ivps-scrollbar-thumb: rgba(160, 110, 55, 0.25);
+  --ivps-scrollbar-track: transparent;
+
+  /* 전환 */
+  --ivps-transition: background-color 220ms ease, color 220ms ease,
+                     border-color 220ms ease, box-shadow 220ms ease;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   2. SOFT DARK MODE — 딥 차콜-브라운 (눈이 편안한 어두운 테마)
+   :root 의 포인트 컬러는 그대로 유지, 배경·서피스·텍스트만 교체
+══════════════════════════════════════════════════════════════════════════════ */
+.dark {
+
+  /* 배경 레이어 */
+  --ivps-bg:        #1C1510;  /* 전체 앱 배경 — 딥 웜 블랙-브라운 */
+  --ivps-surface:   #261E16;  /* 카드, 패널 */
+  --ivps-surface2:  #302518;  /* 중간 서피스 */
+  --ivps-nav:       #18120C;  /* 사이드바 — 가장 깊은 브라운 */
+  --ivps-score-bg:  #1E1A14;  /* 악보 영역 */
+
+  /* 인터랙션 배경 */
+  --ivps-hover:     rgba(212, 175, 55, 0.07);
+  --ivps-active:    rgba(212, 175, 55, 0.14);
+  --ivps-focus-ring:rgba(212, 175, 55, 0.30);
+
+  /* 보더 */
+  --ivps-border:    rgba(212, 175, 55, 0.10);  /* 황금빛 은은한 보더 */
+  --ivps-border2:   rgba(212, 175, 55, 0.20);
+  --ivps-divider:   rgba(212, 175, 55, 0.07);
+
+  /* 텍스트 */
+  --ivps-text1:     #F0E8D8;  /* 제목 — 따뜻한 크림 화이트 */
+  --ivps-text2:     #D4C4A8;  /* 본문 — 부드러운 탄 */
+  --ivps-text3:     #9A8470;  /* 보조 — 웜 그레이 */
+  --ivps-text4:     #6A5848;  /* 힌트 — 딥 브라운 */
+  --ivps-text-inv:  #1C1510;  /* 밝은 배경 위 텍스트 */
+
+  /* 포인트 컬러 — 다크모드에서 약간 더 밝게 (대비 확보) */
+  --ivps-gold:        #E0BC48;  /* 다크모드 골드 — 약간 더 밝음 */
+  --ivps-gold-dim:    #C8A020;
+  --ivps-gold-bg:     rgba(224, 188, 72, 0.12);
+  --ivps-gold-border: rgba(224, 188, 72, 0.28);
+  --ivps-gold-text:   #E0BC48;  /* 다크모드에서 골드는 텍스트에도 그대로 */
+
+  --ivps-amber:        #F59E0B;
+  --ivps-amber-bg:     rgba(245, 158, 11, 0.12);
+
+  --ivps-moss:         #6AB880;
+  --ivps-moss-bg:      rgba(106, 184, 128, 0.12);
+  --ivps-moss-border:  rgba(106, 184, 128, 0.25);
+
+  --ivps-rust:         #E07060;
+  --ivps-rust-bg:      rgba(224, 112, 96, 0.10);
+  --ivps-rust-border:  rgba(224, 112, 96, 0.28);
+
+  --ivps-plum:         #9B7FC8;
+  --ivps-plum-bg:      rgba(155, 127, 200, 0.12);
+  --ivps-plum-border:  rgba(155, 127, 200, 0.28);
+
+  /* 그림자 — 다크에서는 더 짙게 */
+  --ivps-shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.30);
+  --ivps-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.40);
+  --ivps-shadow-lg: 0 12px 36px rgba(0, 0, 0, 0.55);
+
+  /* 스크롤바 */
+  --ivps-scrollbar-thumb: rgba(212, 175, 55, 0.18);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   3. 전역 기본 스타일 — 테마 변수 적용
+══════════════════════════════════════════════════════════════════════════════ */
+
+/* 부드러운 테마 전환 */
+*, *::before, *::after {
+  transition: var(--ivps-transition);
+  /* transition 이 퍼포먼스에 영향을 줄 경우
+     특정 컴포넌트에서 transition-none 으로 오버라이드 가능 */
+}
+
+/* transform, filter 등 non-theme 속성 전환은 별도 처리 */
+.no-theme-transition,
+.no-theme-transition * {
+  transition: none !important;
+}
+
+body {
+  background-color: var(--ivps-bg);
+  color: var(--ivps-text1);
+  font-family: 'IBM Plex Sans', sans-serif;
+}
+
+/* 스크롤바 */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--ivps-scrollbar-track); }
+::-webkit-scrollbar-thumb {
+  background: var(--ivps-scrollbar-thumb);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ivps-gold-border);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   4. 시맨틱 레이아웃 클래스 — 컴포넌트에서 재사용
+   className="ivps-surface" 처럼 사용
+══════════════════════════════════════════════════════════════════════════════ */
+
+/* 배경 */
+.ivps-bg       { background-color: var(--ivps-bg); }
+.ivps-surface  { background-color: var(--ivps-surface); }
+.ivps-surface2 { background-color: var(--ivps-surface2); }
+.ivps-nav      { background-color: var(--ivps-nav); }
+
+/* 보더 */
+.ivps-border  { border-color: var(--ivps-border); }
+.ivps-border2 { border-color: var(--ivps-border2); }
+.ivps-divider-b { border-bottom: 1px solid var(--ivps-divider); }
+.ivps-divider-r { border-right:  1px solid var(--ivps-divider); }
+.ivps-divider-t { border-top:    1px solid var(--ivps-divider); }
+
+/* 텍스트 */
+.ivps-text1 { color: var(--ivps-text1); }
+.ivps-text2 { color: var(--ivps-text2); }
+.ivps-text3 { color: var(--ivps-text3); }
+.ivps-text4 { color: var(--ivps-text4); }
+.ivps-gold  { color: var(--ivps-gold);  }
+.ivps-moss  { color: var(--ivps-moss);  }
+.ivps-rust  { color: var(--ivps-rust);  }
+.ivps-plum  { color: var(--ivps-plum);  }
+
+/* 그림자 */
+.ivps-shadow-sm { box-shadow: var(--ivps-shadow-sm); }
+.ivps-shadow-md { box-shadow: var(--ivps-shadow-md); }
+.ivps-shadow-lg { box-shadow: var(--ivps-shadow-lg); }
+
+/* 패널/카드 — surface + border + shadow 조합 */
+.ivps-panel {
+  background-color: var(--ivps-surface);
+  border: 1px solid var(--ivps-border);
+  box-shadow: var(--ivps-shadow-sm);
+}
+.ivps-panel-raised {
+  background-color: var(--ivps-surface);
+  border: 1px solid var(--ivps-border2);
+  box-shadow: var(--ivps-shadow-md);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   5. 공통 컴포넌트 스타일 — 버튼, 입력, 배지
+══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── 골드 CTA 버튼 (시작버튼 등) ── */
+.ivps-btn-gold {
+  background: linear-gradient(135deg, var(--ivps-gold) 0%, var(--ivps-gold-dim) 100%);
+  color: var(--ivps-text-inv);
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ivps-btn-gold:hover {
+  opacity: 0.88;
+  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.4);
+}
+.ivps-btn-gold:active { opacity: 0.78; transform: scale(0.98); }
+
+/* ── 고스트 버튼 ── */
+.ivps-btn-ghost {
+  background: transparent;
+  color: var(--ivps-text3);
+  border: 1px solid var(--ivps-border);
+  cursor: pointer;
+}
+.ivps-btn-ghost:hover {
+  background: var(--ivps-hover);
+  color: var(--ivps-text2);
+  border-color: var(--ivps-border2);
+}
+
+/* ── 위험 버튼 ── */
+.ivps-btn-danger {
+  background: var(--ivps-rust-bg);
+  color: var(--ivps-rust);
+  border: 1px solid var(--ivps-rust-border);
+  cursor: pointer;
+}
+.ivps-btn-danger:hover {
+  background: rgba(200, 88, 64, 0.16);
+}
+
+/* ── 네비 버튼 (사이드바) ── */
+.ivps-nav-btn {
+  background: transparent;
+  color: var(--ivps-text3);
+  border-left: 2px solid transparent;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+.ivps-nav-btn:hover {
+  background: var(--ivps-hover);
+  color: var(--ivps-text2);
+}
+.ivps-nav-btn.active {
+  background: var(--ivps-gold-bg);
+  color: var(--ivps-gold);
+  border-left-color: var(--ivps-gold);
+  font-weight: 500;
+}
+
+/* ── Phase 탭 ── */
+.ivps-phase-tab {
+  background: transparent;
+  color: var(--ivps-text4);
+  border: none;
+  cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.ivps-phase-tab.active {
+  background: var(--ivps-surface);
+  box-shadow: var(--ivps-shadow-sm);
+}
+.ivps-phase-tab.active-before { color: var(--ivps-moss); }
+.ivps-phase-tab.active-during { color: var(--ivps-plum); }
+.ivps-phase-tab.active-after  { color: var(--ivps-rust); }
+
+/* ── 스킬 카드 ── */
+.ivps-skill-card {
+  background: var(--ivps-surface);
+  border: 1px solid var(--ivps-border);
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+.ivps-skill-card:hover {
+  border-color: var(--ivps-gold-border);
+  background: var(--ivps-surface2);
+  box-shadow: var(--ivps-shadow-md);
+  transform: translateY(-1px);
+}
+
+/* ── 입력창 ── */
+.ivps-input {
+  background: var(--ivps-surface2);
+  border: 1px solid var(--ivps-border);
+  color: var(--ivps-text1);
+  outline: none;
+}
+.ivps-input:focus {
+  border-color: var(--ivps-gold-border);
+  box-shadow: 0 0 0 3px var(--ivps-focus-ring);
+}
+.ivps-input::placeholder { color: var(--ivps-text4); }
+
+/* ── XP 바 ── */
+.ivps-xp-track { background: var(--ivps-border); }
+.ivps-xp-fill-gold { background: linear-gradient(90deg, var(--ivps-gold) 0%, var(--ivps-gold-dim) 100%); }
+.ivps-xp-fill-moss { background: var(--ivps-moss); }
+
+/* ── 모달 배경 ── */
+.ivps-modal-overlay {
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+}
+.dark .ivps-modal-overlay {
+  background: rgba(0, 0, 0, 0.72);
+}
+
+/* ── 업로드 존 ── */
+.ivps-upload-zone {
+  background: var(--ivps-score-bg);
+  border: 2px dashed var(--ivps-border2);
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+.ivps-upload-zone:hover,
+.ivps-upload-zone.drag-over {
+  border-color: var(--ivps-gold-border);
+  background: var(--ivps-gold-bg);
+}
+
+/* ── 세션 rect (악보 드래그) ── */
+.ivps-session-rect {
+  border: 1.5px solid var(--ivps-rust);
+  background: var(--ivps-rust-bg);
+  border-radius: 3px;
+  cursor: pointer;
+}
+.ivps-session-rect.active {
+  border-color: var(--ivps-rust);
+  background: rgba(200, 88, 64, 0.18);
+  box-shadow: 0 0 0 2px var(--ivps-rust-bg);
+}
+
+/* ── 유틸리티 카드 (메트로놈 등) ── */
+.ivps-util-card {
+  background: var(--ivps-surface);
+  border: 1px solid var(--ivps-border);
+  border-radius: 10px;
+  box-shadow: var(--ivps-shadow-sm);
+}
+
+/* ── 토글 스위치 ── */
+.ivps-toggle-track {
+  background: var(--ivps-border2);
+  transition: background 200ms ease;
+}
+.ivps-toggle-track.on {
+  background: var(--ivps-gold);
+}
+.ivps-toggle-knob {
+  background: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+}
+
+/* ── Range input 커스텀 ── */
+input[type="range"] {
+  accent-color: var(--ivps-gold);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   6. 라이트모드 전용 미세 텍스처 — 목재/양피지 느낌
+══════════════════════════════════════════════════════════════════════════════ */
+
+/* 사이드바 하단 미세 그라디언트 */
+:root .ivps-nav {
+  background: linear-gradient(
+    180deg,
+    #EDE0C8 0%,
+    #E5D5B5 60%,
+    #DCC89A 100%
+  );
+}
+
+/* 악보 영역 양피지 질감 */
+:root .ivps-score-area {
+  background:
+    /* 미세한 노이즈 느낌 — CSS만으로 표현 */
+    repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 28px,
+      rgba(180, 130, 50, 0.025) 28px,
+      rgba(180, 130, 50, 0.025) 29px
+    ),
+    var(--ivps-score-bg);
+}
+
+/* 다크모드에서는 텍스처 제거 */
+.dark .ivps-score-area {
+  background: var(--ivps-score-bg);
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   7. 테마 토글 버튼 전용 스타일
+══════════════════════════════════════════════════════════════════════════════ */
+
+.ivps-theme-toggle {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--ivps-border2);
+  background: var(--ivps-surface);
+  box-shadow: var(--ivps-shadow-md);
+  cursor: pointer;
+  user-select: none;
+  transition: box-shadow 180ms ease, border-color 180ms ease;
+}
+.ivps-theme-toggle:hover {
+  border-color: var(--ivps-gold-border);
+  box-shadow: var(--ivps-shadow-lg);
+}
+
+.ivps-theme-toggle-icon {
+  font-size: 15px;
+  line-height: 1;
+  transition: transform 300ms ease;
+}
+.ivps-theme-toggle:hover .ivps-theme-toggle-icon {
+  transform: rotate(20deg);
+}
+
+.ivps-theme-toggle-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: var(--ivps-text3);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* 토글 트랙 내부 */
+.ivps-theme-toggle-track {
+  width: 32px;
+  height: 18px;
+  border-radius: 9px;
+  position: relative;
+  transition: background 220ms ease;
+  background: var(--ivps-border2);
+  flex-shrink: 0;
+}
+.dark .ivps-theme-toggle-track {
+  background: var(--ivps-gold);
+}
+.ivps-theme-toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  transition: left 220ms ease;
+}
+.dark .ivps-theme-toggle-knob {
+  left: 16px;
+}
