@@ -3,7 +3,7 @@ import { useReducer, useCallback, useRef } from 'react';
 import { getSkillById } from '../data/taxonomyData';
 
 // ── 초기 상태 ──────────────────────────────────────────────────────────────
-const INITIAL_STATE = {
+export const INITIAL_STATE = {
   // ─ 네비게이션 ─
   screen: 'dashboard',        // 'dashboard' | 'library' | 'cockpit'
   phase: 'before',            // 'before' | 'during' | 'after'
@@ -105,7 +105,7 @@ function updateActiveScore(scores, activeScoreId, updater) {
 }
 
 // ── Reducer ────────────────────────────────────────────────────────────────
-function reducer(state, action) {
+export function reducer(state, action) {
   switch (action.type) {
 
     // ── 네비게이션 ──────────────────────────────────────────────────

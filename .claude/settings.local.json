@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/psy/.claude/projects/C--dev-ivps/memory//**)",
+      "Read(//c/Users/psy/.claude/projects/C--dev-ivps/memory/**)",
+      "Bash(wc:*)",
+      "Bash(grep -n \"console\\\\.\" /c/dev/ivps/src/**/*.jsx /c/dev/ivps/src/**/*.js /c/dev/ivps/src/hooks/*.js)",
+      "Bash(git -C /c/dev/ivps log --oneline -10)",
+      "Bash(git -C /c/dev/ivps branch -a)",
+      "Bash(npm install:*)",
+      "Bash(npx vitest:*)"
+    ]
+  }
+}
