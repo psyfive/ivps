@@ -6,7 +6,8 @@ import { categoryB } from './categoryB';
 import { categoryC } from './categoryC';
 import { categoryD } from './categoryD';
 
-export { CATEGORY_META, SKILL_GROUPS } from './constants';
+import { CATEGORY_META, SKILL_GROUPS } from './constants';
+export { CATEGORY_META, SKILL_GROUPS };
 
 export const TAXONOMY = [
   ...categoryA,
