@@ -2,16 +2,14 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Before Phase 시각적 구간 오버레이
 //
-// • Canvas 기반 렌더링 (window.devicePixelRatio 고해상도 대응)
-// • Pointer Events API — 마우스/터치/펜 통합 (touch-action: none)
-// • ResizeObserver — 컨테이너 리사이즈 시 자동 리드로잉
-// • 드래그 완료 → onSegmentCreate 호출 (부모가 tempSegments 버퍼에 저장)
-// • "구간 확정" 시 tempSegments 전체가 하나의 구간(coordinates 배열)으로 커밋
-// • 확정된 구간: coordinates: [{x,y,width,height}, ...] — 다중 rect 지원
+// 크로스 페이지 구간 지원:
+//   • 각 coordinates 항목에 pageIndex 포함
+//   • currentPageIndex와 일치하는 rect만 렌더링/인터랙션
+//   • 드래그 완료 시 pageIndex를 coordinates에 자동 포함
+//   • 구간 설정 모드(isSelectingMode) 중 페이지 전환해도 tempSegments 유지
 // ─────────────────────────────────────────────────────────────────────────────
 import { useRef, useEffect, useCallback } from 'react';
 
-// ── 색상 팔레트 ───────────────────────────────────────────────────────────
 const PALETTE = {
   unmapped: { fill: 'rgba(155,127,200,0.15)', stroke: '#9b7fc8', text: '#9b7fc8' },
   mapped:   { fill: 'rgba(126,168,144,0.22)', stroke: '#7ea890', text: '#7ea890' },
@@ -24,7 +22,6 @@ function segColor(seg, isSelected) {
   return seg.mappedSkills.length > 0 ? PALETTE.mapped : PALETTE.unmapped;
 }
 
-// 단일 rect를 Canvas에 그린다 (배경 + 테두리)
 function drawRect(ctx, px, py, pw, ph, col, dashed, lineWidth) {
   ctx.fillStyle = col.fill;
   ctx.fillRect(px, py, pw, ph);
@@ -37,23 +34,24 @@ function drawRect(ctx, px, py, pw, ph, col, dashed, lineWidth) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 export function SegmentCanvas({
-  segments,          // Segment[]  — 확정된 구간 (coordinates: [{x,y,width,height}])
-  tempSegments,      // TempSeg[]  — 미확정 버퍼 (coordinates: {x,y,width,height} 단일)
-  isSelectingMode,   // bool — 드래그 구간 생성 활성
+  segments,          // Segment[]   확정 구간 (coordinates: [{pageIndex,x,y,w,h},...])
+  tempSegments,      // TempSeg[]   미확정 버퍼 (coordinates: {pageIndex,x,y,w,h} 단일)
+  isSelectingMode,   // bool
   selectedSegmentId, // string | null
-  onSegmentCreate,   // (coordinates: {x,y,width,height}) => void — 드래그 완료 시
-  onSegmentSelect,   // (id: string | null) => void — 확정 구간 클릭
-  onSegmentDelete,   // (id: string) => void — 확정 구간 삭제
-  onTempDelete,      // (id: string) => void — 미확정 구간 개별 삭제
+  currentPageIndex,  // number — 현재 표시 중인 페이지
+  onSegmentCreate,   // ({pageIndex,x,y,width,height}) => void
+  onSegmentSelect,   // (id | null) => void
+  onSegmentDelete,   // (id) => void — 구간 전체 삭제
+  onTempDelete,      // (id) => void — 미확정 rect 개별 삭제
 }) {
-  const containerRef = useRef(null);
-  const canvasRef    = useRef(null);
+  const containerRef    = useRef(null);
+  const canvasRef       = useRef(null);
 
-  // prop → ref (ResizeObserver / RAF 내에서 stale closure 없이 최신값 참조)
   const segmentsRef     = useRef(segments);
   const tempSegmentsRef = useRef(tempSegments);
   const isSelectingRef  = useRef(isSelectingMode);
   const selectedIdRef   = useRef(selectedSegmentId);
+  const pageIdxRef      = useRef(currentPageIndex);
   const onCreateRef     = useRef(onSegmentCreate);
   const onSelectRef     = useRef(onSegmentSelect);
   const onDeleteRef     = useRef(onSegmentDelete);
@@ -63,15 +61,16 @@ export function SegmentCanvas({
   useEffect(() => { tempSegmentsRef.current = tempSegments; },    [tempSegments]);
   useEffect(() => { isSelectingRef.current  = isSelectingMode; }, [isSelectingMode]);
   useEffect(() => { selectedIdRef.current   = selectedSegmentId; },[selectedSegmentId]);
+  useEffect(() => { pageIdxRef.current      = currentPageIndex; }, [currentPageIndex]);
   useEffect(() => { onCreateRef.current     = onSegmentCreate; },  [onSegmentCreate]);
   useEffect(() => { onSelectRef.current     = onSegmentSelect; },  [onSegmentSelect]);
   useEffect(() => { onDeleteRef.current     = onSegmentDelete; },  [onSegmentDelete]);
   useEffect(() => { onTempDelRef.current    = onTempDelete; },     [onTempDelete]);
 
-  const dragRef = useRef(null); // {startX, startY, currentX, currentY} 0~1
+  const dragRef = useRef(null);
   const rafRef  = useRef(null);
 
-  // ── Canvas 크기 설정 ─────────────────────────────────────────────────────
+  // ── Canvas 크기 ──────────────────────────────────────────────────────────
   const applySize = useCallback(() => {
     const canvas    = canvasRef.current;
     const container = containerRef.current;
@@ -92,26 +91,29 @@ export function SegmentCanvas({
     const W    = canvas.width  / dpr;
     const H    = canvas.height / dpr;
     const ctx  = canvas.getContext('2d');
-    const segs = segmentsRef.current;
+    const segs  = segmentsRef.current;
     const temps = tempSegmentsRef.current;
     const selId = selectedIdRef.current;
+    const curPage = pageIdxRef.current;
 
     ctx.save();
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, W, H);
 
-    // ── 확정된 구간 — coordinates는 rect 배열 ──
-    segs.forEach((seg, i) => {
-      const col     = segColor(seg, seg.id === selId);
-      const isSelected = seg.id === selId;
-      const rects   = seg.coordinates; // [{x,y,width,height}, ...]
+    // ── 확정된 구간 — 현재 페이지의 rect만 표시 ──
+    segs.forEach((seg, globalIdx) => {
+      const pageRects = seg.coordinates.filter(c => c.pageIndex === curPage);
+      if (pageRects.length === 0) return;
 
-      rects.forEach(({ x, y, width: rw, height: rh }, rectIdx) => {
+      const col        = segColor(seg, seg.id === selId);
+      const isSelected = seg.id === selId;
+
+      pageRects.forEach(({ x, y, width: rw, height: rh }, rectIdx) => {
         const px = x * W, py = y * H, pw = rw * W, ph = rh * H;
 
         drawRect(ctx, px, py, pw, ph, col, false, isSelected ? 2.5 : 1.5);
 
-        // 구간 번호 배지 (각 rect 좌상단)
+        // 구간 번호 배지 (전역 인덱스 — 페이지가 달라도 일관된 번호)
         const BADGE_W = 36, BADGE_H = 17;
         ctx.fillStyle = 'rgba(13,17,23,0.65)';
         ctx.fillRect(px, py, BADGE_W, BADGE_H);
@@ -119,20 +121,21 @@ export function SegmentCanvas({
         ctx.font = 'bold 10px ui-monospace, monospace';
         ctx.textBaseline = 'top';
         ctx.textAlign    = 'left';
-        ctx.fillText(`${i + 1}구간`, px + 4, py + 3);
+        ctx.fillText(`${globalIdx + 1}구간`, px + 4, py + 3);
 
-        // 매핑된 스킬 배지 (첫 번째 rect 좌하단만 표시)
+        // 스킬 수 배지 — 첫 rect에만
         if (rectIdx === 0 && seg.mappedSkills.length > 0) {
           const label = `× ${seg.mappedSkills.length}스킬`;
+          const BADGE_H2 = 17;
           ctx.fillStyle = 'rgba(13,17,23,0.55)';
-          ctx.fillRect(px, py + ph - BADGE_H, 52, BADGE_H);
+          ctx.fillRect(px, py + ph - BADGE_H2, 52, BADGE_H2);
           ctx.fillStyle = col.text;
           ctx.font = '9px ui-monospace, monospace';
           ctx.textBaseline = 'bottom';
           ctx.fillText(label, px + 4, py + ph - 3);
         }
 
-        // 삭제 핸들 × (각 rect 우상단 — 클릭 시 구간 전체 삭제)
+        // 삭제 × — 각 rect (클릭 시 구간 전체 삭제)
         const DX = px + pw - 18, DY = py + 1, DS = 17;
         ctx.fillStyle = 'rgba(224,112,112,0.75)';
         ctx.fillRect(DX, DY, DS, DS);
@@ -144,15 +147,15 @@ export function SegmentCanvas({
       });
     });
 
-    // ── 미확정(temp) 구간 — coordinates는 단일 rect ──
-    temps.forEach((seg, i) => {
+    // ── 미확정 구간 — 현재 페이지의 temp rect만 표시 ──
+    temps.forEach((seg, globalIdx) => {
+      if (seg.coordinates.pageIndex !== curPage) return;
       const { x, y, width: rw, height: rh } = seg.coordinates;
       const px = x * W, py = y * H, pw = rw * W, ph = rh * H;
       const col = PALETTE.pending;
 
       drawRect(ctx, px, py, pw, ph, col, true, 1.5);
 
-      // "대기" 배지 (좌상단)
       const BADGE_W = 42, BADGE_H = 17;
       ctx.fillStyle = 'rgba(13,17,23,0.55)';
       ctx.fillRect(px, py, BADGE_W, BADGE_H);
@@ -160,9 +163,8 @@ export function SegmentCanvas({
       ctx.font = 'bold 10px ui-monospace, monospace';
       ctx.textBaseline = 'top';
       ctx.textAlign    = 'left';
-      ctx.fillText(`대기 ${i + 1}`, px + 4, py + 3);
+      ctx.fillText(`대기 ${globalIdx + 1}`, px + 4, py + 3);
 
-      // 삭제 핸들 × (우상단)
       const DX = px + pw - 18, DY = py + 1, DS = 17;
       ctx.fillStyle = 'rgba(155,127,200,0.55)';
       ctx.fillRect(DX, DY, DS, DS);
@@ -203,7 +205,7 @@ export function SegmentCanvas({
     }
 
     ctx.restore();
-  }, []); // 항상 ref에서 최신값을 읽으므로 의존성 불필요
+  }, []);
 
   // ── ResizeObserver ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -216,10 +218,9 @@ export function SegmentCanvas({
     return () => ro.disconnect();
   }, [applySize, draw]);
 
-  // prop 변화 시 리드로잉
   useEffect(() => {
     draw();
-  }, [segments, tempSegments, isSelectingMode, selectedSegmentId, draw]);
+  }, [segments, tempSegments, isSelectingMode, selectedSegmentId, currentPageIndex, draw]);
 
   // ── 좌표 유틸 ─────────────────────────────────────────────────────────────
   const toRel = (clientX, clientY) => {
@@ -230,21 +231,24 @@ export function SegmentCanvas({
     };
   };
 
-  // × 핸들 히트 테스트 — 확정 구간: 배열 rects 전체 검사
+  // × 히트 테스트 — 확정 구간 (현재 페이지 rect만 검사)
   const hitDeleteCommitted = (rx, ry, seg) => {
     const canvas = canvasRef.current;
     if (!canvas) return false;
     const dpr = window.devicePixelRatio || 1;
     const W = canvas.width / dpr, H = canvas.height / dpr;
     const px = rx * W, py = ry * H;
-    return seg.coordinates.some(({ x, y, width: rw, height: rh }) => {
+    const curPage = pageIdxRef.current;
+    return seg.coordinates.some(({ pageIndex, x, y, width: rw, height: rh }) => {
+      if (pageIndex !== curPage) return false;
       const DX = (x + rw) * W - 18, DY = y * H + 1, DS = 17;
       return px >= DX && px <= DX + DS && py >= DY && py <= DY + DS;
     });
   };
 
-  // × 핸들 히트 테스트 — 미확정 구간: 단일 rect
+  // × 히트 테스트 — 미확정 구간 (단일 rect, 현재 페이지만)
   const hitDeleteTemp = (rx, ry, seg) => {
+    if (seg.coordinates.pageIndex !== pageIdxRef.current) return false;
     const canvas = canvasRef.current;
     if (!canvas) return false;
     const dpr = window.devicePixelRatio || 1;
@@ -255,42 +259,33 @@ export function SegmentCanvas({
     return px >= DX && px <= DX + DS && py >= DY && py <= DY + DS;
   };
 
-  // 확정 구간 바디 히트 테스트 — 배열 rects 전체 검사
-  const hitSegment = (rx, ry) =>
-    segmentsRef.current.find(seg =>
-      seg.coordinates.some(({ x, y, width: rw, height: rh }) =>
+  // 바디 히트 테스트 — 확정 구간 (현재 페이지 rect만)
+  const hitSegment = (rx, ry) => {
+    const curPage = pageIdxRef.current;
+    return segmentsRef.current.find(seg =>
+      seg.coordinates.some(({ pageIndex, x, y, width: rw, height: rh }) =>
+        pageIndex === curPage &&
         rx >= x && rx <= x + rw && ry >= y && ry <= y + rh
       )
     ) ?? null;
+  };
 
   // ── Pointer Events ────────────────────────────────────────────────────────
   const handlePointerDown = useCallback((e) => {
     const { rx, ry } = toRel(e.clientX, e.clientY);
 
-    // 미확정 구간 × 클릭 → 개별 삭제
     for (const seg of tempSegmentsRef.current) {
-      if (hitDeleteTemp(rx, ry, seg)) {
-        onTempDelRef.current(seg.id);
-        return;
-      }
+      if (hitDeleteTemp(rx, ry, seg)) { onTempDelRef.current(seg.id); return; }
     }
-
-    // 확정 구간 × 클릭 → 구간 전체 삭제
     for (const seg of segmentsRef.current) {
-      if (hitDeleteCommitted(rx, ry, seg)) {
-        onDeleteRef.current(seg.id);
-        return;
-      }
+      if (hitDeleteCommitted(rx, ry, seg)) { onDeleteRef.current(seg.id); return; }
     }
 
-    // 선택 모드 아닐 때: 확정 구간 클릭 → 선택/해제
     if (!isSelectingRef.current) {
-      const hit = hitSegment(rx, ry);
-      onSelectRef.current(hit?.id ?? null);
+      onSelectRef.current(hitSegment(rx, ry)?.id ?? null);
       return;
     }
 
-    // 드래그 시작
     dragRef.current = { startX: rx, startY: ry, currentX: rx, currentY: ry };
     e.currentTarget.setPointerCapture(e.pointerId);
   }, []);
@@ -304,7 +299,7 @@ export function SegmentCanvas({
     rafRef.current = requestAnimationFrame(draw);
   }, [draw]);
 
-  const handlePointerUp = useCallback((e) => {
+  const handlePointerUp = useCallback(() => {
     const drag = dragRef.current;
     if (!drag) return;
     dragRef.current = null;
@@ -314,9 +309,9 @@ export function SegmentCanvas({
     const w = Math.abs(drag.currentX - drag.startX);
     const h = Math.abs(drag.currentY - drag.startY);
 
-    // 최소 크기(3%) 이상일 때만 임시 구간 버퍼에 추가
     if (w > 0.03 && h > 0.02) {
-      onCreateRef.current({ x, y, width: w, height: h });
+      // pageIndex를 coordinates에 포함하여 크로스 페이지 구간 지원
+      onCreateRef.current({ pageIndex: pageIdxRef.current, x, y, width: w, height: h });
     }
     draw();
   }, [draw]);

@@ -696,6 +696,7 @@ export function ScoreViewer({ phase }) {
                   tempSegments={tempSegments}
                   isSelectingMode={isSelectingSegment}
                   selectedSegmentId={selectedSegmentId}
+                  currentPageIndex={activeScore?.currentPageIndex ?? 0}
                   onSegmentCreate={segmentActs.addTempSegment}
                   onSegmentSelect={segmentActs.selectSegment}
                   onSegmentDelete={segmentActs.deleteSegment}
@@ -730,8 +731,13 @@ export function ScoreViewer({ phase }) {
                       </button>
                       <div className="pointer-events-none px-2 py-1 rounded text-[10px] text-[rgba(155,127,200,0.85)] bg-[rgba(13,17,23,0.65)] backdrop-blur-sm">
                         {tempSegments.length === 0
-                          ? '악보 위를 드래그하여 구간 지정'
-                          : `${tempSegments.length}개 대기 중 · 더 추가하거나 확정하세요`}
+                          ? '악보 위를 드래그 · 페이지를 넘겨서 계속 추가 가능'
+                          : (() => {
+                              const pages = [...new Set(tempSegments.map(t => t.coordinates.pageIndex + 1))].sort();
+                              return pages.length > 1
+                                ? `${tempSegments.length}개 박스 (${pages.join(', ')}페이지) · 확정하면 하나의 구간`
+                                : `${tempSegments.length}개 박스 · 다른 페이지에도 추가 가능`;
+                            })()}
                       </div>
                     </>
                   )}
