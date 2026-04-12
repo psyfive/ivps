@@ -169,15 +169,17 @@ export function reducer(state, action) {
     // ── 악보 ────────────────────────────────────────────────────────
     case ACTIONS.ADD_SCORE: {
       const { name, pageData } = action;
+      // 각 페이지에 sessions 슬롯 보장 (segments는 score 레벨 — 페이지별 저장 불필요)
+      const normalizedPageData = pageData.map(p => ({ sessions: [], ...p }));
       const score = {
         id: uid(),
         name,
-        dataUrl: pageData[0].dataUrl,
+        dataUrl: normalizedPageData[0].dataUrl,
         uploadedAt: Date.now(),
         sessions: [],
         sections: [],
         segments: [],
-        pageData,
+        pageData: normalizedPageData,
         currentPageIndex: 0,
       };
       return {
@@ -223,7 +225,9 @@ export function reducer(state, action) {
       const newIdx = score.currentPageIndex + action.direction;
       if (newIdx < 0 || newIdx >= score.pageData.length) return state;
 
-      // 현재 페이지 sessions/dataUrl 저장 후 새 페이지로 전환
+      // 현재 페이지 sessions 저장 후 새 페이지로 전환
+      // segments는 score 레벨 — pageIndex 필드로 페이지 구분, 페이지 전환 시 보존
+      // isSelectingSegment / tempSegments도 유지 — 크로스 페이지 구간 설정 허용
       const updatedPageData = score.pageData.map((p, i) =>
         i === score.currentPageIndex
           ? { ...p, sessions: score.sessions, dataUrl: score.dataUrl }
