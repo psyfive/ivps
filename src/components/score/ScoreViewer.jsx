@@ -12,6 +12,7 @@ import { useRef, useState, useCallback, useEffect } from 'react';
 import { usePractice } from '../../context/PracticeContext';
 import { TAXONOMY } from '../../data/taxonomy';
 import { SegmentCanvas } from './SegmentCanvas';
+import { EyeAnchorOverlay } from './EyeAnchorOverlay';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // pdf.js 동적 로드 (CDN)
@@ -772,21 +773,30 @@ export function ScoreViewer({ phase }) {
               </>
             )}
 
-            {/* During 단계: Before 구간 오버레이 표시 (읽기 전용, 클릭으로 선택) */}
+            {/* During 단계: Eye-Anchor 오버레이 + 구간 선택 캔버스 */}
             {isDuring && segments.length > 0 && (
-              <SegmentCanvas
-                segments={segments}
-                tempSegments={[]}
-                isSelectingMode={false}
-                selectedSegmentId={selectedSegmentId}
-                currentPageIndex={activeScore?.currentPageIndex ?? 0}
-                onSegmentCreate={() => {}}
-                onSegmentSelect={segmentActs.selectSegment}
-                onSegmentDelete={() => {}}
-                onTempDelete={() => {}}
-                onSegmentUpdate={() => {}}
-                readOnly
-              />
+              <>
+                {/* Eye-Anchor: 스킬 체크포인트 잔상 (SegmentCanvas 아래 레이어) */}
+                <EyeAnchorOverlay
+                  segments={segments}
+                  selectedSegmentId={selectedSegmentId}
+                  currentPageIndex={activeScore?.currentPageIndex ?? 0}
+                />
+                {/* 구간 외곽선 + 클릭 선택 (읽기 전용) */}
+                <SegmentCanvas
+                  segments={segments}
+                  tempSegments={[]}
+                  isSelectingMode={false}
+                  selectedSegmentId={selectedSegmentId}
+                  currentPageIndex={activeScore?.currentPageIndex ?? 0}
+                  onSegmentCreate={() => {}}
+                  onSegmentSelect={segmentActs.selectSegment}
+                  onSegmentDelete={() => {}}
+                  onTempDelete={() => {}}
+                  onSegmentUpdate={() => {}}
+                  readOnly
+                />
+              </>
             )}
 
             {/* After 단계: 세션만 표시 (클릭 가능, 드래그 불가) */}
