@@ -148,7 +148,7 @@ export function reducer(state, action) {
         scores: [score, ...state.scores],
         activeScoreId: score.id,
         screen: 'cockpit',
-        phase: 'during',
+        phase: 'before',
       };
     }
 
