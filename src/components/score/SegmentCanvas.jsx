@@ -145,8 +145,9 @@ export function SegmentCanvas({
   onSegmentSelect,   // (id | null) => void
   onSegmentDelete,   // (id) => void — 구간 전체 삭제
   onTempDelete,      // (id) => void — 미확정 rect 개별 삭제
-  onSegmentUpdate,   // (segmentId, pageIndex, {x,y,width,height}) => void — 구간 이동/크기조정
-  readOnly,          // bool — 삭제/편집 UI 숨김, 선택만 허용
+  onSegmentUpdate,       // (segmentId, coordIndex, {x,y,width,height}) => void — 구간 이동/크기조정
+  onSegmentCoordDelete,  // (segmentId, coordIndex) => void — 특정 좌표만 삭제
+  readOnly,              // bool — 삭제/편집 UI 숨김, 선택만 허용
 }) {
   const containerRef    = useRef(null);
   const canvasRef       = useRef(null);
@@ -159,9 +160,10 @@ export function SegmentCanvas({
   const pageIdxRef      = useRef(currentPageIndex);
   const onCreateRef     = useRef(onSegmentCreate);
   const onSelectRef     = useRef(onSegmentSelect);
-  const onDeleteRef     = useRef(onSegmentDelete);
-  const onTempDelRef    = useRef(onTempDelete);
-  const onUpdateRef     = useRef(onSegmentUpdate);
+  const onDeleteRef      = useRef(onSegmentDelete);
+  const onCoordDeleteRef = useRef(onSegmentCoordDelete);
+  const onTempDelRef     = useRef(onTempDelete);
+  const onUpdateRef      = useRef(onSegmentUpdate);
 
   useEffect(() => { segmentsRef.current     = segments; },        [segments]);
   useEffect(() => { tempSegmentsRef.current = tempSegments; },    [tempSegments]);
@@ -171,9 +173,10 @@ export function SegmentCanvas({
   useEffect(() => { pageIdxRef.current      = currentPageIndex; }, [currentPageIndex]);
   useEffect(() => { onCreateRef.current     = onSegmentCreate; },  [onSegmentCreate]);
   useEffect(() => { onSelectRef.current     = onSegmentSelect; },  [onSegmentSelect]);
-  useEffect(() => { onDeleteRef.current     = onSegmentDelete; },  [onSegmentDelete]);
-  useEffect(() => { onTempDelRef.current    = onTempDelete; },     [onTempDelete]);
-  useEffect(() => { onUpdateRef.current     = onSegmentUpdate; },  [onSegmentUpdate]);
+  useEffect(() => { onDeleteRef.current      = onSegmentDelete; },       [onSegmentDelete]);
+  useEffect(() => { onCoordDeleteRef.current = onSegmentCoordDelete; }, [onSegmentCoordDelete]);
+  useEffect(() => { onTempDelRef.current     = onTempDelete; },          [onTempDelete]);
+  useEffect(() => { onUpdateRef.current      = onSegmentUpdate; },       [onSegmentUpdate]);
 
   const dragRef     = useRef(null); // 신규 박스 드래그
   const editDragRef = useRef(null); // 기존 구간 이동/크기조정 드래그
@@ -369,15 +372,18 @@ export function SegmentCanvas({
   };
 
   // × 히트 테스트 — 확정 구간 (현재 페이지 rect만 검사)
+  // 클릭된 rect의 coordIndex 반환, 없으면 -1
   const hitDeleteCommitted = (rx, ry, seg) => {
     const { W, H } = getDims();
     const px = rx * W, py = ry * H;
     const curPage = pageIdxRef.current;
-    return seg.coordinates.some(({ pageIndex, x, y, width: rw, height: rh }) => {
-      if (pageIndex !== curPage) return false;
+    for (let i = 0; i < seg.coordinates.length; i++) {
+      const { pageIndex, x, y, width: rw, height: rh } = seg.coordinates[i];
+      if (pageIndex !== curPage) continue;
       const DX = (x + rw) * W - 18, DY = y * H + 1, DS = 17;
-      return px >= DX && px <= DX + DS && py >= DY && py <= DY + DS;
-    });
+      if (px >= DX && px <= DX + DS && py >= DY && py <= DY + DS) return i;
+    }
+    return -1;
   };
 
   // × 히트 테스트 — 미확정 구간 (단일 rect, 현재 페이지만)
@@ -452,7 +458,8 @@ export function SegmentCanvas({
         if (hitDeleteTemp(rx, ry, seg)) { onTempDelRef.current(seg.id); return; }
       }
       for (const seg of segmentsRef.current) {
-        if (hitDeleteCommitted(rx, ry, seg)) { onDeleteRef.current(seg.id); return; }
+        const ci = hitDeleteCommitted(rx, ry, seg);
+        if (ci !== -1) { onCoordDeleteRef.current?.(seg.id, ci); return; }
       }
     }
 

@@ -112,6 +112,7 @@ export const ACTIONS = {
   SELECT_SEGMENT:          'SELECT_SEGMENT',
   ADD_SEGMENT:             'ADD_SEGMENT',
   DELETE_SEGMENT:          'DELETE_SEGMENT',
+  DELETE_SEGMENT_COORD:    'DELETE_SEGMENT_COORD',
   UPDATE_SEGMENT_COORD:    'UPDATE_SEGMENT_COORD',
   MAP_SKILL_TO_SEGMENT:    'MAP_SKILL_TO_SEGMENT',
   UNMAP_SKILL_FROM_SEGMENT:'UNMAP_SKILL_FROM_SEGMENT',
@@ -524,6 +525,36 @@ export function reducer(state, action) {
           state.selectedSegmentId === action.segmentId ? null : state.selectedSegmentId,
       };
 
+    case ACTIONS.DELETE_SEGMENT_COORD: {
+      const { segmentId, coordIndex } = action;
+      const segs = (
+        (state.scores.find(sc => sc.id === state.activeScoreId)?.segments) ?? []
+      );
+      const targetSeg = segs.find(s => s.id === segmentId);
+      // 좌표가 1개뿐이면 구간 전체 삭제
+      if (!targetSeg || targetSeg.coordinates.length <= 1) {
+        return {
+          ...state,
+          scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
+            segments: (s.segments ?? []).filter(seg => seg.id !== segmentId),
+          })),
+          selectedSegmentId:
+            state.selectedSegmentId === segmentId ? null : state.selectedSegmentId,
+        };
+      }
+      // 해당 좌표만 제거
+      return {
+        ...state,
+        scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
+          segments: (s.segments ?? []).map(seg =>
+            seg.id === segmentId
+              ? { ...seg, coordinates: seg.coordinates.filter((_, i) => i !== coordIndex) }
+              : seg
+          ),
+        })),
+      };
+    }
+
     case ACTIONS.UPDATE_SEGMENT_COORD: {
       const { segmentId, coordIndex, coord } = action;
       return {
@@ -749,6 +780,9 @@ export function usePracticeSession() {
   const deleteSegment = useCallback((segmentId) =>
     dispatch({ type: ACTIONS.DELETE_SEGMENT, segmentId }), []);
 
+  const deleteSegmentCoord = useCallback((segmentId, coordIndex) =>
+    dispatch({ type: ACTIONS.DELETE_SEGMENT_COORD, segmentId, coordIndex }), []);
+
   const startAddToSegment = useCallback((segmentId) =>
     dispatch({ type: ACTIONS.START_ADD_TO_SEGMENT, segmentId }), []);
 
@@ -812,7 +846,7 @@ export function usePracticeSession() {
     score: { addScore, setActiveScore, deleteScore, renameScore, changePage },
     session: { addSession, deleteSession, selectSession, assignSkill, removeSkill, toggleCheck, openPicker, closePicker },
     cart: { addToCart, removeFromCart },
-    segment: { toggleSegmentMode, startAddToSegment, selectSegment, addSegment, deleteSegment, updateSegmentCoord, mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment, commitTempSegments },
+    segment: { toggleSegmentMode, startAddToSegment, selectSegment, addSegment, deleteSegment, deleteSegmentCoord, updateSegmentCoord, mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment, commitTempSegments },
     before: { addSection, deleteSection, assignSectionSkill, setCurrentBar },
     metro: { setBpm, setMetroPlaying, setCurrentBeat },
     tuner: { setTunerActive, setTunerNote },

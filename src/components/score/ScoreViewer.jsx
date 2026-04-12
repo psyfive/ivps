@@ -701,6 +701,7 @@ export function ScoreViewer({ phase }) {
                   onSegmentCreate={segmentActs.addTempSegment}
                   onSegmentSelect={segmentActs.selectSegment}
                   onSegmentDelete={segmentActs.deleteSegment}
+                  onSegmentCoordDelete={segmentActs.deleteSegmentCoord}
                   onTempDelete={segmentActs.deleteTempSegment}
                   onSegmentUpdate={segmentActs.updateSegmentCoord}
                 />
