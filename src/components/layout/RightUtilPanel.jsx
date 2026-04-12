@@ -229,11 +229,11 @@ function Tuner() {
 // GrapeChecker UI
 // ─────────────────────────────────────────────────────────────────────────────
 function GrapeChecker() {
-  const { grapeTotal, grapeFilled, grape } = usePractice();
+  const { grapeTotal, grapeFilled, grapeBpmIncrement, bpm, grape } = usePractice();
   const pct = grapeTotal > 0 ? Math.round((grapeFilled / grapeTotal) * 100) : 0;
 
   return (
-    <UtilCard icon="🍇" title="포도 체크">
+    <UtilCard icon="🍇" title="포도송이 체크">
       {/* 헤더 정보 */}
       <div className="flex items-center justify-between mb-1.5">
         <span className="text-[11px] text-[var(--ivps-text3)]">
@@ -245,7 +245,7 @@ function GrapeChecker() {
       </div>
 
       {/* 진행 바 */}
-      <div className="h-[3px] bg-[var(--ivps-surface2)] rounded-full mb-3 overflow-hidden">
+      <div className="h-[3px] bg-[var(--ivps-surface2)] rounded-full mb-1.5 overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-300"
           style={{
@@ -256,6 +256,18 @@ function GrapeChecker() {
           }}
         />
       </div>
+
+      {/* BPM 증가 힌트 */}
+      {grapeBpmIncrement > 0 && (
+        <div className="flex items-center justify-between mb-2.5">
+          <span className="text-[9.5px] text-[var(--ivps-text4)] font-mono">
+            체크당 +{grapeBpmIncrement} BPM
+          </span>
+          <span className="text-[9.5px] text-[var(--ivps-text4)] font-mono">
+            현재 <span className="text-[var(--ivps-gold)]">{bpm}</span> BPM
+          </span>
+        </div>
+      )}
 
       {/* 포도 알갱이 */}
       <div className="flex flex-wrap gap-1.5 justify-center mb-3 min-h-[54px]">

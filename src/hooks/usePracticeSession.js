@@ -31,9 +31,10 @@ export const INITIAL_STATE = {
   tunerActive: false,
   tunerNote: null,            // { name, cents, freq } | null
 
-  // ─ 포도 체크 ─
+  // ─ 포도송이 체크 ─
   grapeTotal: 10,
   grapeFilled: 0,
+  grapeBpmIncrement: 2,   // 포도 하나 체크 시 BPM 증가량
 
   // ─ XP (세션 결과) ─
   xpLog: [],                  // [{ skillId, result, xp, timestamp }]
@@ -90,10 +91,11 @@ export const ACTIONS = {
   SET_TUNER_ACTIVE:  'SET_TUNER_ACTIVE',
   SET_TUNER_NOTE:    'SET_TUNER_NOTE',
 
-  // 포도
-  TOGGLE_GRAPE:      'TOGGLE_GRAPE',
-  RESET_GRAPES:      'RESET_GRAPES',
-  ADJUST_GRAPE_TOTAL:'ADJUST_GRAPE_TOTAL',
+  // 포도송이
+  TOGGLE_GRAPE:            'TOGGLE_GRAPE',
+  RESET_GRAPES:            'RESET_GRAPES',
+  ADJUST_GRAPE_TOTAL:      'ADJUST_GRAPE_TOTAL',
+  SET_GRAPE_BPM_INCREMENT: 'SET_GRAPE_BPM_INCREMENT',
 
   // XP
   LOG_XP:            'LOG_XP',
@@ -351,14 +353,18 @@ export function reducer(state, action) {
     case ACTIONS.SET_TUNER_NOTE:
       return { ...state, tunerNote: action.note };
 
-    // ── 포도 ─────────────────────────────────────────────────────────
-    case ACTIONS.TOGGLE_GRAPE:
+    // ── 포도송이 ──────────────────────────────────────────────────────
+    case ACTIONS.TOGGLE_GRAPE: {
+      const isChecking = action.index >= state.grapeFilled;
       return {
         ...state,
-        grapeFilled: action.index < state.grapeFilled
-          ? action.index
-          : action.index + 1,
+        grapeFilled: isChecking ? action.index + 1 : action.index,
+        // 체크 시에만 BPM 증가 (해제 시 BPM 유지)
+        bpm: isChecking
+          ? Math.min(240, state.bpm + state.grapeBpmIncrement)
+          : state.bpm,
       };
+    }
 
     case ACTIONS.RESET_GRAPES:
       return { ...state, grapeFilled: 0 };
@@ -368,6 +374,12 @@ export function reducer(state, action) {
         ...state,
         grapeTotal: Math.max(1, Math.min(20, state.grapeTotal + action.delta)),
         grapeFilled: Math.min(state.grapeFilled, state.grapeTotal + action.delta),
+      };
+
+    case ACTIONS.SET_GRAPE_BPM_INCREMENT:
+      return {
+        ...state,
+        grapeBpmIncrement: Math.max(0, Math.min(20, action.value)),
       };
 
     // ── XP ───────────────────────────────────────────────────────────
@@ -649,6 +661,9 @@ export function usePracticeSession() {
   const adjustGrapeTotal = useCallback((delta) =>
     dispatch({ type: ACTIONS.ADJUST_GRAPE_TOTAL, delta }), []);
 
+  const setGrapeBpmIncrement = useCallback((value) =>
+    dispatch({ type: ACTIONS.SET_GRAPE_BPM_INCREMENT, value: Number(value) }), []);
+
   // ── XP 액션 ──────────────────────────────────────────────────────
   const logXp = useCallback((skillId, result) =>
     dispatch({ type: ACTIONS.LOG_XP, skillId, result }), []);
@@ -725,6 +740,7 @@ export function usePracticeSession() {
     metro: { setBpm, setMetroPlaying, setCurrentBeat },
     tuner: { setTunerActive, setTunerNote },
     grape: { toggleGrape, resetGrapes, adjustGrapeTotal },
+    settings: { setGrapeBpmIncrement },
     xp: { logXp },
     ui: { toggleImmersion },
   };
