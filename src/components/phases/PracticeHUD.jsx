@@ -144,7 +144,7 @@ function SelectSegmentGuide({ segments, selectedSegmentId, onSelect }) {
 
 // ── 메인 PracticeHUD ──────────────────────────────────────────────────────
 export function PracticeHUD() {
-  const { activeScore, activeSkill, selectedSegmentId, bpm, nav, segment: segmentActs } = usePractice();
+  const { activeScore, activeSkill, selectedSegmentId, bpm, nav, ui, segment: segmentActs } = usePractice();
 
   const segments = activeScore?.segments ?? [];
   const selectedSegment = segments.find(s => s.id === selectedSegmentId) ?? null;
@@ -190,19 +190,38 @@ export function PracticeHUD() {
 
   const allChecked = duringItems.length > 0 && checkedItems.size >= duringItems.length;
 
+  // ── 전체화면 복귀 버튼 ───────────────────────────────────────────────
+  const FullscreenBtn = () => (
+    <button
+      onClick={() => ui.setPracticeFullscreen(true)}
+      className="mx-5 mt-3 mb-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border text-[11px] font-semibold transition-all flex-shrink-0 bg-[rgba(155,127,200,.07)] border-[rgba(155,127,200,.25)] text-[#9b7fc8] hover:bg-[rgba(155,127,200,.14)]"
+    >
+      <span className="text-[12px]">⛶</span>
+      악보 전체화면
+    </button>
+  );
+
   // ── 구간 없음 ──────────────────────────────────────────────────────
   if (segments.length === 0) {
-    return <NoSegmentGuide onGoBefore={() => nav.setPhase('before')} />;
+    return (
+      <div className="flex flex-col h-full overflow-hidden">
+        <FullscreenBtn />
+        <NoSegmentGuide onGoBefore={() => nav.setPhase('before')} />
+      </div>
+    );
   }
 
   // ── 구간 있으나 미선택 ──────────────────────────────────────────────
   if (!selectedSegment) {
     return (
-      <SelectSegmentGuide
-        segments={segments}
-        selectedSegmentId={selectedSegmentId}
-        onSelect={segmentActs.selectSegment}
-      />
+      <div className="flex flex-col h-full overflow-hidden">
+        <FullscreenBtn />
+        <SelectSegmentGuide
+          segments={segments}
+          selectedSegmentId={selectedSegmentId}
+          onSelect={segmentActs.selectSegment}
+        />
+      </div>
     );
   }
 
@@ -210,8 +229,11 @@ export function PracticeHUD() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
 
+      {/* 전체화면 복귀 */}
+      <FullscreenBtn />
+
       {/* 구간 탭 헤더 */}
-      <div className="px-5 pt-4 pb-2 flex-shrink-0">
+      <div className="px-5 pt-3 pb-2 flex-shrink-0">
         <div className="flex items-center gap-1.5 flex-wrap mb-3">
           {segments.map((seg, idx) => (
             <button

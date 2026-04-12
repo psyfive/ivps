@@ -35,7 +35,7 @@ const PHASES = [
 // ─────────────────────────────────────────────────────────────────────────────
 // TopBar
 // ─────────────────────────────────────────────────────────────────────────────
-function TopBar({ skill, score, phase, bpm, immersionMode, onBack, onPhaseChange, onToggleImmersion }) {
+function TopBar({ skill, score, phase, bpm, onBack, onPhaseChange }) {
   const catMeta = skill ? getCategoryMeta(skill.id) : null;
 
   return (
@@ -84,27 +84,8 @@ function TopBar({ skill, score, phase, bpm, immersionMode, onBack, onPhaseChange
         ))}
       </div>
 
-      {/* 몰입 모드 토글 */}
-      <div className="flex items-center gap-1.5 flex-shrink-0">
-        <span className="text-[10px] text-[var(--ivps-text4)]">몰입</span>
-        <button
-          onClick={onToggleImmersion}
-          className={[
-            'w-[28px] h-[16px] rounded-full border relative transition-all flex-shrink-0',
-            immersionMode
-              ? 'bg-[rgba(212,168,67,.25)] border-[#d4a843]'
-              : 'bg-[var(--ivps-surface2)] border-[var(--ivps-border2)]',
-          ].join(' ')}
-        >
-          <span
-            className={[
-              'absolute top-[1px] w-[12px] h-[12px] rounded-full transition-all',
-              immersionMode ? 'left-[13px] bg-[#d4a843]' : 'left-[1px] bg-[#4a5568]',
-            ].join(' ')}
-          />
-        </button>
-        <span className="font-mono text-[10px] text-[var(--ivps-text4)]">♩={bpm}</span>
-      </div>
+      {/* BPM 표시 */}
+      <span className="font-mono text-[10px] text-[var(--ivps-text4)] flex-shrink-0">♩={bpm}</span>
     </div>
   );
 }
@@ -298,7 +279,6 @@ export function CockpitView() {
     activeSkill,
     activeScore,
     bpm,
-    immersionMode,
     practiceFullscreen,
     selectedSegmentId,
     nav,
@@ -315,19 +295,14 @@ export function CockpitView() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
 
-      {/* TopBar — 몰입 모드 시 숨김 */}
-      {!immersionMode && (
-        <TopBar
-          skill={activeSkill}
-          score={activeScore}
-          phase={phase}
-          bpm={bpm}
-          immersionMode={immersionMode}
-          onBack={handleBack}
-          onPhaseChange={nav.setPhase}
-          onToggleImmersion={ui.toggleImmersion}
-        />
-      )}
+      <TopBar
+        skill={activeSkill}
+        score={activeScore}
+        phase={phase}
+        bpm={bpm}
+        onBack={handleBack}
+        onPhaseChange={nav.setPhase}
+      />
 
       {/* 본문 — ScoreViewer(좌) + PhasePanel(우) */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
