@@ -18,7 +18,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { useCallback } from 'react';
 import { usePractice } from '../../context/PracticeContext';
-import { getCategoryMeta } from '../../data/taxonomyData';
+import { getCategoryMeta } from '../../data/taxonomy';
 import { ScoreViewer } from '../score/ScoreViewer';
 import { CognitiveBriefing } from '../phases/CognitiveBriefing';
 import { PracticeHUD } from '../phases/PracticeHUD';

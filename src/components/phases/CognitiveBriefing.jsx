@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState } from 'react';
 import { usePractice } from '../../context/PracticeContext';
-import { getCategoryMeta } from '../../data/taxonomyData';
+import { getCategoryMeta } from '../../data/taxonomy';
 
 // ── 헬퍼: 카테고리 색상 ────────────────────────────────────────────────────
 function useCatColor(skill) {

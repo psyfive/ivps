@@ -7,7 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useCallback } from 'react';
 import { usePractice } from '../../context/PracticeContext';
-import { getSkillById, getCategoryMeta } from '../../data/taxonomyData';
+import { getSkillById, getCategoryMeta } from '../../data/taxonomy';
 
 // ── HUD 아이템 ─────────────────────────────────────────────────────────────
 function HudItem({ index, text, isFirst, checked, onToggle }) {

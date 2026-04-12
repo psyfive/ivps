@@ -7,7 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useCallback } from 'react';
 import { usePractice } from '../../context/PracticeContext';
-import { getSkillById, getCategoryMeta } from '../../data/taxonomyData';
+import { getSkillById, getCategoryMeta } from '../../data/taxonomy';
 
 // ── 진단 셀 ────────────────────────────────────────────────────────────────
 function DiagCell({ label, color, value }) {

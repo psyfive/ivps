@@ -1,6 +1,6 @@
 // src/hooks/usePracticeSession.js
 import { useReducer, useCallback, useRef } from 'react';
-import { getSkillById } from '../data/taxonomyData';
+import { getSkillById } from '../data/taxonomy';
 
 // ── 초기 상태 ──────────────────────────────────────────────────────────────
 export const INITIAL_STATE = {

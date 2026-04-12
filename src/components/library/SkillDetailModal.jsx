@@ -5,7 +5,7 @@
 // after 배열이 여러 개일 때 케이스 탭 전환.
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useCallback } from 'react';
-import { getCategoryMeta, SKILL_GROUPS, getXpPercent } from '../../data/taxonomyData';
+import { getCategoryMeta, SKILL_GROUPS, getXpPercent } from '../../data/taxonomy';
 
 // ── PhaseBlock ─────────────────────────────────────────────────────────────
 function PhaseBlock({ label, dotColor, children }) {

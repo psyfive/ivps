@@ -14,7 +14,7 @@ import {
   SKILL_GROUPS,
   getCategoryMeta,
   getXpPercent,
-} from '../../data/taxonomyData';
+} from '../../data/taxonomy';
 import { SkillDetailModal } from './SkillDetailModal';
 
 // ── 카테고리 탭 목록 ──────────────────────────────────────────────────────

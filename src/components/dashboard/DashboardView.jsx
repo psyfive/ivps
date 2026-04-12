@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { useRef, useCallback } from 'react';
 import { usePractice } from '../../context/PracticeContext';
-import { TAXONOMY, getCategoryMeta } from '../../data/taxonomyData';
+import { TAXONOMY, getCategoryMeta } from '../../data/taxonomy';
 
 // ── 파일 → pageData 변환 (ScoreViewer와 동일한 로직, 공통 util로 이동 가능) ──
 async function fileToPageData(file, onProgress) {

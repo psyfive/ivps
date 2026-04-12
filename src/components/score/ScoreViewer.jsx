@@ -10,7 +10,7 @@
 
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { usePractice } from '../../context/PracticeContext';
-import { TAXONOMY } from '../../data/taxonomyData';
+import { TAXONOMY } from '../../data/taxonomy';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // pdf.js 동적 로드 (CDN)
