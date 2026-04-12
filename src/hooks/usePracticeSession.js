@@ -109,6 +109,7 @@ export const ACTIONS = {
   SELECT_SEGMENT:          'SELECT_SEGMENT',
   ADD_SEGMENT:             'ADD_SEGMENT',
   DELETE_SEGMENT:          'DELETE_SEGMENT',
+  UPDATE_SEGMENT_COORD:    'UPDATE_SEGMENT_COORD',
   MAP_SKILL_TO_SEGMENT:    'MAP_SKILL_TO_SEGMENT',
   UNMAP_SKILL_FROM_SEGMENT:'UNMAP_SKILL_FROM_SEGMENT',
   // 임시 구간 버퍼 (드래그 완료 → 확정 전 대기)
@@ -478,6 +479,25 @@ export function reducer(state, action) {
           state.selectedSegmentId === action.segmentId ? null : state.selectedSegmentId,
       };
 
+    case ACTIONS.UPDATE_SEGMENT_COORD: {
+      const { segmentId, pageIndex, coord } = action;
+      return {
+        ...state,
+        scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
+          segments: (s.segments ?? []).map(seg =>
+            seg.id === segmentId
+              ? {
+                  ...seg,
+                  coordinates: seg.coordinates.map(c =>
+                    c.pageIndex === pageIndex ? { ...c, ...coord } : c
+                  ),
+                }
+              : seg
+          ),
+        })),
+      };
+    }
+
     case ACTIONS.MAP_SKILL_TO_SEGMENT:
       return {
         ...state,
@@ -681,6 +701,9 @@ export function usePracticeSession() {
   const deleteSegment = useCallback((segmentId) =>
     dispatch({ type: ACTIONS.DELETE_SEGMENT, segmentId }), []);
 
+  const updateSegmentCoord = useCallback((segmentId, pageIndex, coord) =>
+    dispatch({ type: ACTIONS.UPDATE_SEGMENT_COORD, segmentId, pageIndex, coord }), []);
+
   const mapSkillToSegment = useCallback((segmentId, skillId) =>
     dispatch({ type: ACTIONS.MAP_SKILL_TO_SEGMENT, segmentId, skillId }), []);
 
@@ -735,7 +758,7 @@ export function usePracticeSession() {
     score: { addScore, setActiveScore, deleteScore, renameScore, changePage },
     session: { addSession, deleteSession, selectSession, assignSkill, removeSkill, toggleCheck, openPicker, closePicker },
     cart: { addToCart, removeFromCart },
-    segment: { toggleSegmentMode, selectSegment, addSegment, deleteSegment, mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment, commitTempSegments },
+    segment: { toggleSegmentMode, selectSegment, addSegment, deleteSegment, updateSegmentCoord, mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment, commitTempSegments },
     before: { addSection, deleteSection, assignSectionSkill, setCurrentBar },
     metro: { setBpm, setMetroPlaying, setCurrentBeat },
     tuner: { setTunerActive, setTunerNote },

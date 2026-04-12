@@ -701,6 +701,7 @@ export function ScoreViewer({ phase }) {
                   onSegmentSelect={segmentActs.selectSegment}
                   onSegmentDelete={segmentActs.deleteSegment}
                   onTempDelete={segmentActs.deleteTempSegment}
+                  onSegmentUpdate={segmentActs.updateSegmentCoord}
                 />
 
                 {/* 악보 위 오버레이 버튼 */}

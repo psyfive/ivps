@@ -7,6 +7,9 @@
 //   • currentPageIndex와 일치하는 rect만 렌더링/인터랙션
 //   • 드래그 완료 시 pageIndex를 coordinates에 자동 포함
 //   • 구간 설정 모드(isSelectingMode) 중 페이지 전환해도 tempSegments 유지
+//
+// 구간 편집 지원 (v2):
+//   • 선택된 구간 → 드래그로 이동, 모서리/가장자리 핸들로 크기 조정
 // ─────────────────────────────────────────────────────────────────────────────
 import { useRef, useEffect, useCallback } from 'react';
 
@@ -16,6 +19,11 @@ const PALETTE = {
   selected: { fill: 'rgba(212,168,67,0.15)',  stroke: '#d4a843', text: '#d4a843' },
   pending:  { fill: 'rgba(155,127,200,0.07)', stroke: '#9b7fc8', text: '#9b7fc8' },
 };
+
+const HANDLE_SIZE = 7;   // 핸들 그리기 크기 (px)
+const HANDLE_HIT  = 12;  // 핸들 클릭 감지 반경 (px)
+const MIN_W = 0.03;
+const MIN_H = 0.02;
 
 function segColor(seg, isSelected) {
   if (isSelected) return PALETTE.selected;
@@ -32,10 +40,104 @@ function drawRect(ctx, px, py, pw, ph, col, dashed, lineWidth) {
   ctx.setLineDash([]);
 }
 
+// 선택된 구간의 8개 크기조정 핸들 그리기
+function drawHandles(ctx, px, py, pw, ph, col) {
+  const HS = HANDLE_SIZE;
+  const half = HS / 2;
+  const positions = [
+    [px - half,        py - half],
+    [px + pw / 2 - half, py - half],
+    [px + pw - half,   py - half],
+    [px - half,        py + ph / 2 - half],
+    [px + pw - half,   py + ph / 2 - half],
+    [px - half,        py + ph - half],
+    [px + pw / 2 - half, py + ph - half],
+    [px + pw - half,   py + ph - half],
+  ];
+  positions.forEach(([hx, hy]) => {
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(hx, hy, HS, HS);
+    ctx.strokeStyle = col.stroke;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([]);
+    ctx.strokeRect(hx, hy, HS, HS);
+  });
+}
+
+// 포인터 위치(px)와 rect(px)로부터 편집 모드 결정
+// 반환: 'move' | 'nw-resize' | 'ne-resize' | 'sw-resize' | 'se-resize'
+//       | 'n-resize' | 's-resize' | 'e-resize' | 'w-resize' | null
+function getEditMode(ptx, pty, px, py, pw, ph) {
+  const H = HANDLE_HIT;
+  if (ptx < px - H || ptx > px + pw + H || pty < py - H || pty > py + ph + H) return null;
+
+  const nearLeft   = ptx < px + H;
+  const nearRight  = ptx > px + pw - H;
+  const nearTop    = pty < py + H;
+  const nearBottom = pty > py + ph - H;
+
+  if (nearLeft  && nearTop)    return 'nw-resize';
+  if (nearRight && nearTop)    return 'ne-resize';
+  if (nearLeft  && nearBottom) return 'sw-resize';
+  if (nearRight && nearBottom) return 'se-resize';
+  if (nearLeft)                return 'w-resize';
+  if (nearRight)               return 'e-resize';
+  if (nearTop)                 return 'n-resize';
+  if (nearBottom)              return 's-resize';
+
+  if (ptx >= px && ptx <= px + pw && pty >= py && pty <= py + ph) return 'move';
+  return null;
+}
+
+// 드래그 델타(상대 좌표 단위)와 원본 coord로부터 새 coord 계산
+function applyEditDrag(mode, origCoord, dx, dy) {
+  const { x, y, width: w, height: h } = origCoord;
+
+  switch (mode) {
+    case 'move':
+      return {
+        x: Math.max(0, Math.min(1 - w, x + dx)),
+        y: Math.max(0, Math.min(1 - h, y + dy)),
+        width: w, height: h,
+      };
+    case 'nw-resize': {
+      const nw = Math.max(MIN_W, w - dx);
+      const nh = Math.max(MIN_H, h - dy);
+      return { x: x + w - nw, y: y + h - nh, width: nw, height: nh };
+    }
+    case 'ne-resize': {
+      const nw = Math.max(MIN_W, w + dx);
+      const nh = Math.max(MIN_H, h - dy);
+      return { x, y: y + h - nh, width: nw, height: nh };
+    }
+    case 'sw-resize': {
+      const nw = Math.max(MIN_W, w - dx);
+      const nh = Math.max(MIN_H, h + dy);
+      return { x: x + w - nw, y, width: nw, height: nh };
+    }
+    case 'se-resize':
+      return { x, y, width: Math.max(MIN_W, w + dx), height: Math.max(MIN_H, h + dy) };
+    case 'w-resize': {
+      const nw = Math.max(MIN_W, w - dx);
+      return { x: x + w - nw, y, width: nw, height: h };
+    }
+    case 'e-resize':
+      return { x, y, width: Math.max(MIN_W, w + dx), height: h };
+    case 'n-resize': {
+      const nh = Math.max(MIN_H, h - dy);
+      return { x, y: y + h - nh, width: w, height: nh };
+    }
+    case 's-resize':
+      return { x, y, width: w, height: Math.max(MIN_H, h + dy) };
+    default:
+      return origCoord;
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 export function SegmentCanvas({
-  segments,          // Segment[]   확정 구간 (coordinates: [{pageIndex,x,y,w,h},...])
-  tempSegments,      // TempSeg[]   미확정 버퍼 (coordinates: {pageIndex,x,y,w,h} 단일)
+  segments,          // Segment[]   확정 구간 (coordinates: [{pageIndex,x,y,width,height},...])
+  tempSegments,      // TempSeg[]   미확정 버퍼 (coordinates: {pageIndex,x,y,width,height} 단일)
   isSelectingMode,   // bool
   selectedSegmentId, // string | null
   currentPageIndex,  // number — 현재 표시 중인 페이지
@@ -43,6 +145,7 @@ export function SegmentCanvas({
   onSegmentSelect,   // (id | null) => void
   onSegmentDelete,   // (id) => void — 구간 전체 삭제
   onTempDelete,      // (id) => void — 미확정 rect 개별 삭제
+  onSegmentUpdate,   // (segmentId, pageIndex, {x,y,width,height}) => void — 구간 이동/크기조정
 }) {
   const containerRef    = useRef(null);
   const canvasRef       = useRef(null);
@@ -56,6 +159,7 @@ export function SegmentCanvas({
   const onSelectRef     = useRef(onSegmentSelect);
   const onDeleteRef     = useRef(onSegmentDelete);
   const onTempDelRef    = useRef(onTempDelete);
+  const onUpdateRef     = useRef(onSegmentUpdate);
 
   useEffect(() => { segmentsRef.current     = segments; },        [segments]);
   useEffect(() => { tempSegmentsRef.current = tempSegments; },    [tempSegments]);
@@ -66,9 +170,11 @@ export function SegmentCanvas({
   useEffect(() => { onSelectRef.current     = onSegmentSelect; },  [onSegmentSelect]);
   useEffect(() => { onDeleteRef.current     = onSegmentDelete; },  [onSegmentDelete]);
   useEffect(() => { onTempDelRef.current    = onTempDelete; },     [onTempDelete]);
+  useEffect(() => { onUpdateRef.current     = onSegmentUpdate; },  [onSegmentUpdate]);
 
-  const dragRef = useRef(null);
-  const rafRef  = useRef(null);
+  const dragRef     = useRef(null); // 신규 박스 드래그
+  const editDragRef = useRef(null); // 기존 구간 이동/크기조정 드래그
+  const rafRef      = useRef(null);
 
   // ── Canvas 크기 ──────────────────────────────────────────────────────────
   const applySize = useCallback(() => {
@@ -95,6 +201,7 @@ export function SegmentCanvas({
     const temps = tempSegmentsRef.current;
     const selId = selectedIdRef.current;
     const curPage = pageIdxRef.current;
+    const editDrag = editDragRef.current;
 
     ctx.save();
     ctx.scale(dpr, dpr);
@@ -105,15 +212,24 @@ export function SegmentCanvas({
       const pageRects = seg.coordinates.filter(c => c.pageIndex === curPage);
       if (pageRects.length === 0) return;
 
-      const col        = segColor(seg, seg.id === selId);
       const isSelected = seg.id === selId;
+      const col = segColor(seg, isSelected);
 
-      pageRects.forEach(({ x, y, width: rw, height: rh }, rectIdx) => {
-        const px = x * W, py = y * H, pw = rw * W, ph = rh * H;
+      pageRects.forEach(({ x, y, width: rw, height: rh, pageIndex }, rectIdx) => {
+        // 편집 드래그 중이면 previewCoord 사용
+        let drawX = x, drawY = y, drawW = rw, drawH = rh;
+        if (editDrag && editDrag.segmentId === seg.id && editDrag.pageIndex === pageIndex) {
+          drawX = editDrag.previewCoord.x;
+          drawY = editDrag.previewCoord.y;
+          drawW = editDrag.previewCoord.width;
+          drawH = editDrag.previewCoord.height;
+        }
+
+        const px = drawX * W, py = drawY * H, pw = drawW * W, ph = drawH * H;
 
         drawRect(ctx, px, py, pw, ph, col, false, isSelected ? 2.5 : 1.5);
 
-        // 구간 번호 배지 (전역 인덱스 — 페이지가 달라도 일관된 번호)
+        // 구간 번호 배지
         const BADGE_W = 36, BADGE_H = 17;
         ctx.fillStyle = 'rgba(13,17,23,0.65)';
         ctx.fillRect(px, py, BADGE_W, BADGE_H);
@@ -135,7 +251,7 @@ export function SegmentCanvas({
           ctx.fillText(label, px + 4, py + ph - 3);
         }
 
-        // 삭제 × — 각 rect (클릭 시 구간 전체 삭제)
+        // 삭제 × — 각 rect
         const DX = px + pw - 18, DY = py + 1, DS = 17;
         ctx.fillStyle = 'rgba(224,112,112,0.75)';
         ctx.fillRect(DX, DY, DS, DS);
@@ -144,6 +260,11 @@ export function SegmentCanvas({
         ctx.textBaseline = 'middle';
         ctx.textAlign    = 'center';
         ctx.fillText('×', DX + DS / 2, DY + DS / 2);
+
+        // 선택된 구간에 크기조정 핸들 표시 (구간 설정 모드가 아닐 때만)
+        if (isSelected && !isSelectingRef.current) {
+          drawHandles(ctx, px, py, pw, ph, col);
+        }
       });
     });
 
@@ -175,7 +296,7 @@ export function SegmentCanvas({
       ctx.fillText('×', DX + DS / 2, DY + DS / 2);
     });
 
-    // ── 드래그 미리보기 ──
+    // ── 신규 박스 드래그 미리보기 ──
     const drag = dragRef.current;
     if (drag && isSelectingRef.current) {
       const x = Math.min(drag.startX, drag.currentX);
@@ -231,12 +352,16 @@ export function SegmentCanvas({
     };
   };
 
+  const getDims = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { W: 1, H: 1 };
+    const dpr = window.devicePixelRatio || 1;
+    return { W: canvas.width / dpr, H: canvas.height / dpr };
+  };
+
   // × 히트 테스트 — 확정 구간 (현재 페이지 rect만 검사)
   const hitDeleteCommitted = (rx, ry, seg) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return false;
-    const dpr = window.devicePixelRatio || 1;
-    const W = canvas.width / dpr, H = canvas.height / dpr;
+    const { W, H } = getDims();
     const px = rx * W, py = ry * H;
     const curPage = pageIdxRef.current;
     return seg.coordinates.some(({ pageIndex, x, y, width: rw, height: rh }) => {
@@ -249,10 +374,7 @@ export function SegmentCanvas({
   // × 히트 테스트 — 미확정 구간 (단일 rect, 현재 페이지만)
   const hitDeleteTemp = (rx, ry, seg) => {
     if (seg.coordinates.pageIndex !== pageIdxRef.current) return false;
-    const canvas = canvasRef.current;
-    if (!canvas) return false;
-    const dpr = window.devicePixelRatio || 1;
-    const W = canvas.width / dpr, H = canvas.height / dpr;
+    const { W, H } = getDims();
     const { x, y, width: rw, height: rh } = seg.coordinates;
     const DX = (x + rw) * W - 18, DY = y * H + 1, DS = 17;
     const px = rx * W, py = ry * H;
@@ -270,36 +392,133 @@ export function SegmentCanvas({
     ) ?? null;
   };
 
+  // 선택된 구간에서 현재 페이지 coord를 찾아 편집 모드 반환
+  const getSelectedSegEditMode = (rx, ry) => {
+    const selId = selectedIdRef.current;
+    if (!selId) return null;
+    const seg = segmentsRef.current.find(s => s.id === selId);
+    if (!seg) return null;
+    const curPage = pageIdxRef.current;
+    const coord = seg.coordinates.find(c => c.pageIndex === curPage);
+    if (!coord) return null;
+
+    const { W, H } = getDims();
+    const ptx = rx * W, pty = ry * H;
+    const px = coord.x * W, py = coord.y * H, pw = coord.width * W, ph = coord.height * H;
+    const mode = getEditMode(ptx, pty, px, py, pw, ph);
+    if (!mode) return null;
+    return { seg, coord, mode };
+  };
+
+  // 호버 커서 업데이트
+  const updateHoverCursor = useCallback((rx, ry) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    if (isSelectingRef.current) {
+      canvas.style.cursor = 'crosshair';
+      return;
+    }
+
+    const result = getSelectedSegEditMode(rx, ry);
+    if (result) {
+      canvas.style.cursor = result.mode;
+      return;
+    }
+    canvas.style.cursor = hitSegment(rx, ry) ? 'pointer' : 'default';
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Pointer Events ────────────────────────────────────────────────────────
   const handlePointerDown = useCallback((e) => {
     const { rx, ry } = toRel(e.clientX, e.clientY);
 
+    // 미확정 × 버튼
     for (const seg of tempSegmentsRef.current) {
       if (hitDeleteTemp(rx, ry, seg)) { onTempDelRef.current(seg.id); return; }
     }
+    // 확정 × 버튼
     for (const seg of segmentsRef.current) {
       if (hitDeleteCommitted(rx, ry, seg)) { onDeleteRef.current(seg.id); return; }
     }
 
     if (!isSelectingRef.current) {
+      // 선택된 구간 위에서 편집 모드 진입
+      const result = getSelectedSegEditMode(rx, ry);
+      if (result) {
+        editDragRef.current = {
+          segmentId:   result.seg.id,
+          pageIndex:   result.coord.pageIndex,
+          mode:        result.mode,
+          startRx:     rx,
+          startRy:     ry,
+          origCoord:   {
+            x: result.coord.x,
+            y: result.coord.y,
+            width: result.coord.width,
+            height: result.coord.height,
+          },
+          previewCoord: {
+            x: result.coord.x,
+            y: result.coord.y,
+            width: result.coord.width,
+            height: result.coord.height,
+          },
+        };
+        e.currentTarget.setPointerCapture(e.pointerId);
+        return;
+      }
+
+      // 일반 클릭: 구간 선택
       onSelectRef.current(hitSegment(rx, ry)?.id ?? null);
       return;
     }
 
+    // 구간 설정 모드: 신규 박스 드래그
     dragRef.current = { startX: rx, startY: ry, currentX: rx, currentY: ry };
     e.currentTarget.setPointerCapture(e.pointerId);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handlePointerMove = useCallback((e) => {
-    if (!dragRef.current) return;
     const { rx, ry } = toRel(e.clientX, e.clientY);
-    dragRef.current.currentX = Math.max(0, Math.min(1, rx));
-    dragRef.current.currentY = Math.max(0, Math.min(1, ry));
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    rafRef.current = requestAnimationFrame(draw);
-  }, [draw]);
 
-  const handlePointerUp = useCallback(() => {
+    // 편집 드래그 중
+    if (editDragRef.current) {
+      const ed = editDragRef.current;
+      const dx = rx - ed.startRx;
+      const dy = ry - ed.startRy;
+      ed.previewCoord = applyEditDrag(ed.mode, ed.origCoord, dx, dy);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(draw);
+      return;
+    }
+
+    // 신규 박스 드래그 중
+    if (dragRef.current) {
+      dragRef.current.currentX = Math.max(0, Math.min(1, rx));
+      dragRef.current.currentY = Math.max(0, Math.min(1, ry));
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(draw);
+      return;
+    }
+
+    // 호버 커서 업데이트
+    updateHoverCursor(rx, ry);
+  }, [draw, updateHoverCursor]);
+
+  const handlePointerUp = useCallback((e) => {
+    // 편집 드래그 완료 → 상태 업데이트
+    if (editDragRef.current) {
+      const ed = editDragRef.current;
+      onUpdateRef.current?.(ed.segmentId, ed.pageIndex, ed.previewCoord);
+      editDragRef.current = null;
+      // 커서 복원
+      const { rx, ry } = toRel(e.clientX, e.clientY);
+      updateHoverCursor(rx, ry);
+      draw();
+      return;
+    }
+
+    // 신규 박스 드래그 완료
     const drag = dragRef.current;
     if (!drag) return;
     dragRef.current = null;
@@ -310,16 +529,24 @@ export function SegmentCanvas({
     const h = Math.abs(drag.currentY - drag.startY);
 
     if (w > 0.03 && h > 0.02) {
-      // pageIndex를 coordinates에 포함하여 크로스 페이지 구간 지원
       onCreateRef.current({ pageIndex: pageIdxRef.current, x, y, width: w, height: h });
     }
     draw();
-  }, [draw]);
+  }, [draw, updateHoverCursor]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handlePointerCancel = useCallback(() => {
+    editDragRef.current = null;
     dragRef.current = null;
     draw();
   }, [draw]);
+
+  // ── 커서 스타일 (동적 관리) ───────────────────────────────────────────────
+  // isSelectingMode 변경 시 기본 커서 리셋
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    canvas.style.cursor = isSelectingMode ? 'crosshair' : 'default';
+  }, [isSelectingMode]);
 
   return (
     <div
@@ -334,7 +561,6 @@ export function SegmentCanvas({
           inset: 0,
           touchAction: 'none',
           pointerEvents: 'auto',
-          cursor: isSelectingMode ? 'crosshair' : 'default',
         }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
