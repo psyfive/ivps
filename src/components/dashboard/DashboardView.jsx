@@ -3,7 +3,7 @@
 // v3의 "오늘의 연습" (스탯 카드 + 최근 스킬 + 복습 정원) +
 // v4의 "악보 갤러리" (썸네일 그리드 + 업로드)를 하나의 뷰로 통합.
 // ─────────────────────────────────────────────────────────────────────────────
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useState } from 'react';
 import { usePractice } from '../../context/PracticeContext';
 import { TAXONOMY, getCategoryMeta } from '../../data/taxonomy';
 import { PracticeHeatmap } from './PracticeHeatmap';
@@ -192,61 +192,70 @@ function ReviewRow({ skill, onStart }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ScoreThumb — 악보 썸네일 카드
+// ScoreRailCard — 가로 레일 악보 카드
 // ─────────────────────────────────────────────────────────────────────────────
-function ScoreThumb({ score, onOpen, onRename, onDelete }) {
-  const sessionCount = score.sessions?.length ?? 0;
+function ScoreRailCard({ score, onOpen, onRename, onDelete }) {
+  const segmentCount = score.segments?.length ?? score.sessions?.length ?? 0;
   const pageCount    = score.pageData?.length ?? 1;
 
   return (
-    <div className="bg-[var(--ivps-surface)] border border-[var(--ivps-border)] rounded-[10px] overflow-hidden cursor-pointer group transition-all hover:border-[rgba(212,168,67,.3)] hover:bg-[#171e2c]">
-      {/* 이미지 영역 */}
-      <div
-        className="h-[110px] bg-[var(--ivps-bg)] overflow-hidden flex items-center justify-center relative"
-        onClick={() => onOpen(score.id)}
-      >
+    <div
+      className="group relative flex-shrink-0 w-[148px] rounded-xl border border-[rgba(255,255,255,.07)] bg-[#111720] overflow-hidden cursor-pointer transition-all duration-200 hover:border-[rgba(212,168,67,.35)] hover:bg-[#14192a] hover:shadow-[0_4px_20px_rgba(212,168,67,.08)]"
+      onClick={() => onOpen(score.id)}
+    >
+      {/* 썸네일 */}
+      <div className="h-[96px] bg-[#0a0e16] overflow-hidden relative">
         <img
           src={score.dataUrl}
           alt={score.name}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
           draggable={false}
         />
-        {/* 오버레이 뱃지들 */}
-        <div className="absolute inset-0 flex flex-col justify-between p-1.5 pointer-events-none">
-          {sessionCount > 0 && (
-            <div className="self-end bg-[rgba(0,0,0,.6)] text-white text-[9px] font-mono px-1.5 py-0.5 rounded-full">
-              {sessionCount}개 세션
-            </div>
-          )}
+        {/* 그라디언트 오버레이 */}
+        <div
+          className="absolute inset-0"
+          style={{ background: 'linear-gradient(180deg, transparent 50%, rgba(10,14,22,.7) 100%)' }}
+        />
+        {/* 상단 배지들 */}
+        <div className="absolute top-1.5 right-1.5 flex flex-col items-end gap-1">
           {pageCount > 1 && (
-            <div className="self-start bg-[rgba(0,0,0,.6)] text-[var(--ivps-gold)] text-[9px] font-mono px-1.5 py-0.5 rounded-full">
+            <span className="bg-[rgba(212,168,67,.85)] text-[#0d1117] text-[8px] font-mono font-bold px-1.5 py-0.5 rounded-full">
               {pageCount}p
-            </div>
+            </span>
+          )}
+          {segmentCount > 0 && (
+            <span className="bg-[rgba(155,127,200,.85)] text-white text-[8px] font-mono px-1.5 py-0.5 rounded-full">
+              {segmentCount}구간
+            </span>
           )}
         </div>
       </div>
 
-      {/* 정보 영역 */}
-      <div className="px-3 py-2" onClick={() => onOpen(score.id)}>
-        <div className="text-[12.5px] font-medium text-[var(--ivps-text1)] truncate" title={score.name}>
+      {/* 정보 */}
+      <div className="px-2.5 pt-2 pb-1.5">
+        <div className="text-[11.5px] font-semibold text-[var(--ivps-text1)] truncate leading-tight" title={score.name}>
           {score.name}
         </div>
-        <div className="text-[10.5px] font-mono text-[var(--ivps-text4)] mt-0.5">
+        <div className="text-[9.5px] font-mono text-[var(--ivps-text4)] mt-0.5">
           {formatDate(score.uploadedAt)}
         </div>
       </div>
 
       {/* 호버 액션 */}
-      <div className="px-2.5 pb-2.5 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div
+        className="absolute inset-0 flex items-end justify-center gap-2 pb-2.5 px-2 opacity-0 group-hover:opacity-100 transition-opacity"
+        style={{ background: 'linear-gradient(180deg, transparent 40%, rgba(10,14,22,.88) 100%)' }}
+        onClick={e => e.stopPropagation()}
+      >
         <button
-          onClick={e => { e.stopPropagation(); onRename(score.id); }}
-          className="flex-1 py-1 text-[10.5px] text-[var(--ivps-text3)] bg-[var(--ivps-surface2)] border border-[var(--ivps-border2)] rounded hover:text-[var(--ivps-text2)] transition-colors"
+          onClick={() => onRename(score.id)}
+          className="flex-1 py-1 text-[9.5px] text-[rgba(255,255,255,.6)] bg-[rgba(255,255,255,.08)] border border-[rgba(255,255,255,.12)] rounded-md hover:bg-[rgba(255,255,255,.14)] transition-colors"
         >
           이름
         </button>
         <button
-          onClick={e => { e.stopPropagation(); onDelete(score.id); }}
-          className="flex-1 py-1 text-[10.5px] text-[var(--ivps-rust)] bg-[rgba(224,112,112,.06)] border border-[rgba(224,112,112,.18)] rounded hover:bg-[rgba(224,112,112,.1)] transition-colors"
+          onClick={() => onDelete(score.id)}
+          className="flex-1 py-1 text-[9.5px] text-[#e07070] bg-[rgba(224,112,112,.08)] border border-[rgba(224,112,112,.2)] rounded-md hover:bg-[rgba(224,112,112,.14)] transition-colors"
         >
           삭제
         </button>
@@ -256,17 +265,223 @@ function ScoreThumb({ score, onOpen, onRename, onDelete }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AddScoreThumb — 새 악보 추가 카드
+// ScoreSection — 최상단 악보 업로드/갤러리 섹션
 // ─────────────────────────────────────────────────────────────────────────────
-function AddScoreThumb({ onClick }) {
+function ScoreSection({ scores, onOpen, onRename, onDelete, onUpload }) {
+  const [dragOver, setDragOver] = useState(false);
+
+  const handleDragOver = useCallback(e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    setDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback(e => {
+    if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback(e => {
+    e.preventDefault();
+    setDragOver(false);
+    const f = e.dataTransfer.files[0];
+    if (f) onUpload(f);
+  }, [onUpload]);
+
+  // ── 빈 상태: 히어로 업로드 존 ─────────────────────────────────────
+  if (scores.length === 0) {
+    return (
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onClick={() => onUpload(null)}
+        className="relative cursor-pointer rounded-2xl overflow-hidden transition-all duration-300 mb-7"
+        style={{
+          border: `2px dashed ${dragOver ? 'rgba(212,168,67,.7)' : 'rgba(255,255,255,.1)'}`,
+          background: dragOver
+            ? 'rgba(212,168,67,.05)'
+            : 'linear-gradient(135deg, rgba(212,168,67,.04) 0%, rgba(155,127,200,.03) 50%, transparent 100%)',
+          transform: dragOver ? 'scale(1.005)' : 'scale(1)',
+        }}
+      >
+        {/* 배경 음표 데코 */}
+        <div
+          className="absolute top-4 right-8 text-[80px] leading-none select-none pointer-events-none"
+          style={{ color: 'rgba(212,168,67,.06)', fontFamily: 'serif' }}
+        >
+          𝄞
+        </div>
+        <div
+          className="absolute bottom-4 left-10 text-[48px] leading-none select-none pointer-events-none"
+          style={{ color: 'rgba(155,127,200,.05)', fontFamily: 'serif' }}
+        >
+          𝄢
+        </div>
+
+        <div className="flex flex-col items-center justify-center py-14 px-8 text-center relative z-10">
+          {/* 아이콘 */}
+          <div
+            className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5 transition-all"
+            style={{
+              background: dragOver ? 'rgba(212,168,67,.18)' : 'rgba(212,168,67,.1)',
+              border: '1.5px solid rgba(212,168,67,.3)',
+              boxShadow: dragOver ? '0 0 28px rgba(212,168,67,.2)' : '0 0 0 rgba(212,168,67,0)',
+            }}
+          >
+            <span className="text-[28px] leading-none">
+              {dragOver ? '⬇' : '🎼'}
+            </span>
+          </div>
+
+          <h2 className="font-serif text-[19px] font-bold text-[var(--ivps-text1)] mb-2 leading-snug">
+            {dragOver ? '파일을 놓아 업로드' : '악보를 업로드해 연습을 시작하세요'}
+          </h2>
+          <p className="text-[12px] text-[var(--ivps-text3)] mb-7 max-w-[380px] leading-relaxed">
+            악보 이미지나 PDF를 업로드하면<br />
+            구간 설정 → 스킬 매핑 → 3단계 연습 분석이 모두 시작됩니다.
+          </p>
+
+          <div
+            className="px-5 py-2.5 rounded-xl text-[#0d1117] text-[13px] font-bold transition-all"
+            style={{
+              background: 'linear-gradient(135deg, #d4a843 0%, #b8891f 100%)',
+              boxShadow: '0 4px 16px rgba(212,168,67,.3)',
+            }}
+          >
+            + 악보 업로드
+          </div>
+
+          <div className="flex items-center gap-2 mt-4">
+            {['PNG', 'JPG', 'PDF', 'WebP'].map(fmt => (
+              <span
+                key={fmt}
+                className="text-[9px] font-mono tracking-wider"
+                style={{
+                  color: 'rgba(255,255,255,.25)',
+                  background: 'rgba(255,255,255,.04)',
+                  border: '1px solid rgba(255,255,255,.07)',
+                  borderRadius: 4,
+                  padding: '2px 6px',
+                }}
+              >
+                {fmt}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── 악보 있음: 가로 스크롤 레일 ──────────────────────────────────────
   return (
     <div
-      onClick={onClick}
-      className="border-2 border-dashed border-[var(--ivps-border)] rounded-[10px] overflow-hidden cursor-pointer flex flex-col items-center justify-center gap-2 h-full min-h-[160px] text-[var(--ivps-text4)] hover:border-[rgba(212,168,67,.4)] hover:text-[var(--ivps-gold)] hover:bg-[rgba(212,168,67,.04)] transition-all"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className="mb-7 rounded-2xl border transition-all duration-200 overflow-hidden"
+      style={{
+        borderColor: dragOver ? 'rgba(212,168,67,.5)' : 'rgba(255,255,255,.07)',
+        background: dragOver
+          ? 'rgba(212,168,67,.04)'
+          : 'linear-gradient(135deg, rgba(212,168,67,.03) 0%, rgba(13,17,23,.8) 60%)',
+        boxShadow: dragOver ? '0 0 0 2px rgba(212,168,67,.25)' : 'none',
+      }}
     >
-      <div className="text-[28px] leading-none opacity-70">+</div>
-      <div className="text-[12.5px] font-medium">새 악보 추가</div>
-      <div className="text-[10.5px] text-[#2a3045]">PNG · JPG · PDF</div>
+      {/* 레일 헤더 */}
+      <div className="flex items-center justify-between px-5 pt-4 pb-3">
+        <div className="flex items-center gap-2.5">
+          <span className="text-[13px]">🎼</span>
+          <span className="text-[11px] text-[var(--ivps-text2)] font-semibold tracking-[.03em]">
+            악보 라이브러리
+          </span>
+          <span
+            className="font-mono text-[10px] px-1.5 py-0.5 rounded-md"
+            style={{
+              color: 'rgba(212,168,67,.7)',
+              background: 'rgba(212,168,67,.08)',
+              border: '1px solid rgba(212,168,67,.15)',
+            }}
+          >
+            {scores.length}개
+          </span>
+        </div>
+
+        <button
+          onClick={() => onUpload(null)}
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all"
+          style={{
+            background: 'linear-gradient(135deg, rgba(212,168,67,.15) 0%, rgba(212,168,67,.08) 100%)',
+            border: '1px solid rgba(212,168,67,.3)',
+            color: '#d4a843',
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = 'rgba(212,168,67,.2)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'linear-gradient(135deg, rgba(212,168,67,.15) 0%, rgba(212,168,67,.08) 100%)'}
+        >
+          <span className="text-[13px] leading-none">+</span>
+          악보 추가
+        </button>
+      </div>
+
+      {/* 드래그 힌트 배너 */}
+      {dragOver && (
+        <div
+          className="mx-5 mb-3 py-2 rounded-lg text-center text-[11px] font-semibold"
+          style={{
+            background: 'rgba(212,168,67,.1)',
+            border: '1.5px dashed rgba(212,168,67,.5)',
+            color: '#d4a843',
+          }}
+        >
+          ⬇ 파일을 여기에 놓아 업로드
+        </div>
+      )}
+
+      {/* 가로 스크롤 레일 */}
+      <div
+        className="flex gap-3 px-5 pb-4 overflow-x-auto"
+        style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,.08) transparent' }}
+      >
+        {scores.map(sc => (
+          <ScoreRailCard
+            key={sc.id}
+            score={sc}
+            onOpen={onOpen}
+            onRename={onRename}
+            onDelete={onDelete}
+          />
+        ))}
+
+        {/* 새 악보 추가 카드 */}
+        <div
+          onClick={() => onUpload(null)}
+          className="flex-shrink-0 w-[148px] rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-all duration-200"
+          style={{
+            height: 148,
+            borderColor: 'rgba(255,255,255,.08)',
+            color: 'rgba(255,255,255,.2)',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.borderColor = 'rgba(212,168,67,.4)';
+            e.currentTarget.style.color = '#d4a843';
+            e.currentTarget.style.background = 'rgba(212,168,67,.04)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,.08)';
+            e.currentTarget.style.color = 'rgba(255,255,255,.2)';
+            e.currentTarget.style.background = 'transparent';
+          }}
+        >
+          <span className="text-[24px] leading-none">+</span>
+          <span className="text-[11px] font-medium">새 악보</span>
+          <span
+            className="text-[9px] font-mono"
+            style={{ opacity: 0.5 }}
+          >
+            PNG · JPG · PDF
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -344,6 +559,12 @@ export function DashboardView() {
     if (f) { handleFile(f); e.target.value = ''; }
   }, [handleFile]);
 
+  // ScoreSection에서 파일을 직접 받거나, null이면 파일 피커 열기
+  const handleScoreUpload = useCallback((fileOrNull) => {
+    if (fileOrNull) handleFile(fileOrNull);
+    else fileInputRef.current?.click();
+  }, [handleFile]);
+
   // ── 악보 액션 핸들러 ──────────────────────────────────────────────
   const handleOpen = useCallback(id => {
     scoreActs.setActiveScore(id);
@@ -381,32 +602,33 @@ export function DashboardView() {
       <div className="px-7 py-6 max-w-[900px]">
 
         {/* ── 페이지 헤더 ── */}
-        <div className="mb-6">
-          <h1 className="font-serif text-[24px] font-bold text-[var(--ivps-text1)] mb-1">
-            오늘의 연습
-          </h1>
-          <div className="text-[12px] text-[var(--ivps-text3)]">{today}</div>
+        <div className="mb-5 flex items-end justify-between">
+          <div>
+            <h1 className="font-serif text-[22px] font-bold text-[var(--ivps-text1)] mb-0.5">
+              오늘의 연습
+            </h1>
+            <div className="text-[11.5px] text-[var(--ivps-text3)]">{today}</div>
+          </div>
+          <span
+            className="font-mono text-[11px] px-2.5 py-1 rounded-lg"
+            style={{
+              background: 'rgba(212,168,67,.08)',
+              border: '1px solid rgba(212,168,67,.18)',
+              color: '#d4a843',
+            }}
+          >
+            Lv.{level} · {totalXP} XP
+          </span>
         </div>
 
-        {/* ── 스탯 카드 그리드 ── */}
-        <div className="grid grid-cols-3 gap-3.5 mb-4">
-          <StatCard
-            label="전체 레벨"
-            value={`Lv. ${level}`}
-            sub={`다음 레벨까지 ${xpToNext} XP`}
-            accent
-          />
-          <StatCard
-            label="누적 XP"
-            value={`${totalXP} XP`}
-            sub={`${xpLog.length}회 연습 기록`}
-          />
-          <StatCard
-            label="등록 스킬"
-            value={`${TAXONOMY.length}개`}
-            sub={`v3.1 Taxonomy`}
-          />
-        </div>
+        {/* ── 악보 섹션 (최상단 핵심 CTA) ── */}
+        <ScoreSection
+          scores={scores}
+          onOpen={handleOpen}
+          onRename={handleRename}
+          onDelete={handleDelete}
+          onUpload={handleScoreUpload}
+        />
 
         {/* ── 레벨 진행 바 ── */}
         <div className="mb-4">
@@ -481,45 +703,6 @@ export function DashboardView() {
               + 연습 시작하기
             </button>
           </Panel>
-        </div>
-
-        {/* ── 악보 갤러리 ── */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <div className="text-[10px] text-[var(--ivps-text3)] uppercase tracking-[.08em] font-semibold">
-              🎼 최근 연습한 악보
-              {scores.length > 0 && (
-                <span className="ml-2 font-mono text-[var(--ivps-text4)]">
-                  {scores.length}개 · {totalSessions}개 세션
-                </span>
-              )}
-            </div>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="px-3 py-1.5 bg-gradient-to-r from-[#d4a843] to-[#b8891f] rounded-lg text-[#0d1117] text-[11.5px] font-semibold hover:opacity-90 transition-opacity"
-            >
-              + 악보 업로드
-            </button>
-          </div>
-
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(155px,1fr))] gap-3.5">
-            {scores.map(sc => (
-              <ScoreThumb
-                key={sc.id}
-                score={sc}
-                onOpen={handleOpen}
-                onRename={handleRename}
-                onDelete={handleDelete}
-              />
-            ))}
-            <AddScoreThumb onClick={() => fileInputRef.current?.click()} />
-          </div>
-
-          {scores.length === 0 && (
-            <div className="text-center py-4 text-[11.5px] text-[var(--ivps-text4)]">
-              악보를 업로드하면 여기에 표시됩니다.
-            </div>
-          )}
         </div>
 
       </div>{/* /max-w */}
