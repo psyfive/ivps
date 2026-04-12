@@ -5,17 +5,18 @@
 // • Canvas 기반 렌더링 (window.devicePixelRatio 고해상도 대응)
 // • Pointer Events API — 마우스/터치/펜 통합 (touch-action: none)
 // • ResizeObserver — 컨테이너 리사이즈 시 자동 리드로잉
-// • 드래그 중 실시간 점선 미리보기, 완료 시 구간 고정
+// • 드래그 중 실시간 점선 미리보기, 완료 시 tempSegments에 추가
 // • 구간 클릭 → 선택 / 우상단 × 버튼 → 삭제
+// • 확정 전(temp) 구간: 반투명 점선 / 확정 후 구간: 실선
 // ─────────────────────────────────────────────────────────────────────────────
 import { useRef, useEffect, useCallback } from 'react';
-import { getCategoryMeta, getSkillById } from '../../data/taxonomy';
 
 // ── 색상 팔레트 ───────────────────────────────────────────────────────────
 const PALETTE = {
   unmapped: { fill: 'rgba(155,127,200,0.15)', stroke: '#9b7fc8', text: '#9b7fc8' },
   mapped:   { fill: 'rgba(126,168,144,0.22)', stroke: '#7ea890', text: '#7ea890' },
   selected: { fill: 'rgba(212,168,67,0.15)',  stroke: '#d4a843', text: '#d4a843' },
+  pending:  { fill: 'rgba(155,127,200,0.07)', stroke: '#9b7fc8', text: '#9b7fc8' },
 };
 
 function segColor(seg, isSelected) {
@@ -25,30 +26,36 @@ function segColor(seg, isSelected) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 export function SegmentCanvas({
-  segments,          // Segment[]
+  segments,          // Segment[]  — 확정된 구간
+  tempSegments,      // Segment[]  — 버퍼(미확정) 구간
   isSelectingMode,   // bool — 드래그로 구간 생성 활성
   selectedSegmentId, // string | null
-  onSegmentCreate,   // (coordinates: {x,y,width,height}) => void
-  onSegmentSelect,   // (id: string | null) => void
-  onSegmentDelete,   // (id: string) => void
+  onSegmentCreate,   // (coordinates: {x,y,width,height}) => void — 드래그 완료
+  onSegmentSelect,   // (id: string | null) => void — 확정 구간 클릭
+  onSegmentDelete,   // (id: string) => void — 확정 구간 × 클릭
+  onTempDelete,      // (id: string) => void — 미확정 구간 × 클릭
 }) {
   const containerRef = useRef(null);
   const canvasRef    = useRef(null);
 
   // prop → ref (ResizeObserver 콜백·Pointer 핸들러에서 최신값 참조)
   const segmentsRef        = useRef(segments);
+  const tempSegmentsRef    = useRef(tempSegments);
   const isSelectingRef     = useRef(isSelectingMode);
   const selectedIdRef      = useRef(selectedSegmentId);
   const onCreateRef        = useRef(onSegmentCreate);
   const onSelectRef        = useRef(onSegmentSelect);
   const onDeleteRef        = useRef(onSegmentDelete);
+  const onTempDeleteRef    = useRef(onTempDelete);
 
-  useEffect(() => { segmentsRef.current        = segments; },        [segments]);
-  useEffect(() => { isSelectingRef.current     = isSelectingMode; }, [isSelectingMode]);
-  useEffect(() => { selectedIdRef.current      = selectedSegmentId; },[selectedSegmentId]);
-  useEffect(() => { onCreateRef.current        = onSegmentCreate; },  [onSegmentCreate]);
-  useEffect(() => { onSelectRef.current        = onSegmentSelect; },  [onSegmentSelect]);
-  useEffect(() => { onDeleteRef.current        = onSegmentDelete; },  [onSegmentDelete]);
+  useEffect(() => { segmentsRef.current     = segments; },        [segments]);
+  useEffect(() => { tempSegmentsRef.current = tempSegments; },    [tempSegments]);
+  useEffect(() => { isSelectingRef.current  = isSelectingMode; }, [isSelectingMode]);
+  useEffect(() => { selectedIdRef.current   = selectedSegmentId; },[selectedSegmentId]);
+  useEffect(() => { onCreateRef.current     = onSegmentCreate; },  [onSegmentCreate]);
+  useEffect(() => { onSelectRef.current     = onSegmentSelect; },  [onSegmentSelect]);
+  useEffect(() => { onDeleteRef.current     = onSegmentDelete; },  [onSegmentDelete]);
+  useEffect(() => { onTempDeleteRef.current = onTempDelete; },     [onTempDelete]);
 
   // 드래그 상태 (ref → RAF 중 재렌더링 없이 접근)
   const dragRef = useRef(null); // {startX, startY, currentX, currentY} 0~1
@@ -76,29 +83,27 @@ export function SegmentCanvas({
     const H    = canvas.height / dpr;
     const ctx  = canvas.getContext('2d');
     const segs = segmentsRef.current;
-    const selId= selectedIdRef.current;
+    const temps = tempSegmentsRef.current;
+    const selId = selectedIdRef.current;
     const selecting = isSelectingRef.current;
 
     ctx.save();
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, W, H);
 
-    // ── 기존 구간 ──
+    // ── 확정된 구간 ──
     segs.forEach((seg, i) => {
       const { x, y, width: rw, height: rh } = seg.coordinates;
       const px = x * W, py = y * H, pw = rw * W, ph = rh * H;
       const col = segColor(seg, seg.id === selId);
 
-      // 배경
       ctx.fillStyle = col.fill;
       ctx.fillRect(px, py, pw, ph);
 
-      // 테두리
       ctx.strokeStyle = col.stroke;
       ctx.lineWidth   = seg.id === selId ? 2.5 : 1.5;
-      ctx.setLineDash(selecting ? [5, 3] : []);
-      ctx.strokeRect(px, py, pw, ph);
       ctx.setLineDash([]);
+      ctx.strokeRect(px, py, pw, ph);
 
       // 구간 번호 배지 (좌상단)
       const BADGE_W = 36, BADGE_H = 17;
@@ -132,6 +137,42 @@ export function SegmentCanvas({
       ctx.fillText('×', DX + DS / 2, DY + DS / 2);
     });
 
+    // ── 미확정(temp) 구간 ──
+    temps.forEach((seg, i) => {
+      const { x, y, width: rw, height: rh } = seg.coordinates;
+      const px = x * W, py = y * H, pw = rw * W, ph = rh * H;
+      const col = PALETTE.pending;
+
+      ctx.fillStyle = col.fill;
+      ctx.fillRect(px, py, pw, ph);
+
+      ctx.strokeStyle = col.stroke;
+      ctx.lineWidth   = 1.5;
+      ctx.setLineDash([5, 4]);
+      ctx.strokeRect(px, py, pw, ph);
+      ctx.setLineDash([]);
+
+      // "대기" 배지 (좌상단)
+      const BADGE_W = 42, BADGE_H = 17;
+      ctx.fillStyle = 'rgba(13,17,23,0.55)';
+      ctx.fillRect(px, py, BADGE_W, BADGE_H);
+      ctx.fillStyle = col.text;
+      ctx.font = 'bold 10px ui-monospace, monospace';
+      ctx.textBaseline = 'top';
+      ctx.textAlign    = 'left';
+      ctx.fillText(`대기 ${i + 1}`, px + 4, py + 3);
+
+      // 삭제 핸들 × (우상단)
+      const DX = px + pw - 18, DY = py + 1, DS = 17;
+      ctx.fillStyle = 'rgba(155,127,200,0.55)';
+      ctx.fillRect(DX, DY, DS, DS);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.textBaseline = 'middle';
+      ctx.textAlign    = 'center';
+      ctx.fillText('×', DX + DS / 2, DY + DS / 2);
+    });
+
     // ── 드래그 미리보기 ──
     const drag = dragRef.current;
     if (drag && selecting) {
@@ -148,7 +189,6 @@ export function SegmentCanvas({
       ctx.strokeRect(x * W, y * H, w * W, h * H);
       ctx.setLineDash([]);
 
-      // 크기 힌트 레이블
       if (w > 0.05 && h > 0.03) {
         const label = `${(w * 100).toFixed(0)}% × ${(h * 100).toFixed(0)}%`;
         const lx = x * W + 4, ly = (y + h) * H - 18;
@@ -177,7 +217,9 @@ export function SegmentCanvas({
   }, [applySize, draw]);
 
   // prop 변화 시 리드로잉
-  useEffect(() => { draw(); }, [segments, isSelectingMode, selectedSegmentId, draw]);
+  useEffect(() => {
+    draw();
+  }, [segments, tempSegments, isSelectingMode, selectedSegmentId, draw]);
 
   // ── 좌표 유틸 ─────────────────────────────────────────────────────────────
   const toRel = (clientX, clientY) => {
@@ -200,7 +242,7 @@ export function SegmentCanvas({
     return px >= DX && px <= DX + DS && py >= DY && py <= DY + DS;
   };
 
-  // 구간 바디 히트 테스트
+  // 확정 구간 바디 히트 테스트
   const hitSegment = (rx, ry) =>
     segmentsRef.current.find(seg => {
       const { x, y, width: rw, height: rh } = seg.coordinates;
@@ -211,7 +253,15 @@ export function SegmentCanvas({
   const handlePointerDown = useCallback((e) => {
     const { rx, ry } = toRel(e.clientX, e.clientY);
 
-    // × 핸들 클릭 → 삭제
+    // 미확정 구간 × 핸들 클릭 → 개별 삭제
+    for (const seg of tempSegmentsRef.current) {
+      if (hitDelete(rx, ry, seg)) {
+        onTempDeleteRef.current(seg.id);
+        return;
+      }
+    }
+
+    // 확정 구간 × 핸들 클릭 → 삭제
     for (const seg of segmentsRef.current) {
       if (hitDelete(rx, ry, seg)) {
         onDeleteRef.current(seg.id);
@@ -219,7 +269,7 @@ export function SegmentCanvas({
       }
     }
 
-    // 선택 모드 아닐 때: 구간 클릭 → 선택/해제
+    // 선택 모드 아닐 때: 확정 구간 클릭 → 선택/해제
     if (!isSelectingRef.current) {
       const hit = hitSegment(rx, ry);
       onSelectRef.current(hit?.id ?? null);
@@ -250,7 +300,7 @@ export function SegmentCanvas({
     const w = Math.abs(drag.currentX - drag.startX);
     const h = Math.abs(drag.currentY - drag.startY);
 
-    // 최소 크기(3%) 이상일 때만 구간 생성
+    // 최소 크기(3%) 이상일 때만 임시 구간 추가
     if (w > 0.03 && h > 0.02) {
       onCreateRef.current({ x, y, width: w, height: h });
     }

@@ -569,6 +569,13 @@ export function ScoreViewer({ phase }) {
   } = usePractice();
 
   const [loading, setLoading] = useState({ active: false, current: 0, total: 0 });
+  // ── 임시(미확정) 구간 버퍼 ───────────────────────────────────────────────
+  const [tempSegments, setTempSegments] = useState([]);
+
+  // 선택 모드가 꺼지면 버퍼 초기화 (외부에서 모드가 닫힐 경우 대비)
+  useEffect(() => {
+    if (!isSelectingSegment) setTempSegments([]);
+  }, [isSelectingSegment]);
   const [globalDragOver, setGlobalDragOver] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -624,6 +631,26 @@ export function ScoreViewer({ phase }) {
   const handleAddSession = useCallback(rect => {
     sessionActs.addSession(rect);
   }, [sessionActs]);
+
+  // 드래그 완료 → 임시 버퍼에 추가 (전역 상태에는 아직 반영 안 함)
+  const handleTempCreate = useCallback((coordinates) => {
+    setTempSegments(prev => [
+      ...prev,
+      { id: `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`, coordinates, mappedSkills: [] },
+    ]);
+  }, []);
+
+  // 임시 구간 × 클릭 → 버퍼에서 제거
+  const handleTempDelete = useCallback((id) => {
+    setTempSegments(prev => prev.filter(s => s.id !== id));
+  }, []);
+
+  // "구간 확정" 버튼 → 버퍼를 전역 상태로 커밋 후 모드 종료
+  const handleCommitSegments = useCallback(() => {
+    tempSegments.forEach(tmp => segmentActs.addSegment(tmp.coordinates));
+    setTempSegments([]);
+    segmentActs.toggleSegmentMode();
+  }, [tempSegments, segmentActs]);
 
   // ── 파생 값 ─────────────────────────────────────────────────────────────
   const hasScore   = !!activeScore?.dataUrl;
@@ -688,14 +715,53 @@ export function ScoreViewer({ phase }) {
 
             {/* Before 단계: 시각적 구간 캔버스 오버레이 */}
             {isBefore && (
-              <SegmentCanvas
-                segments={segments}
-                isSelectingMode={isSelectingSegment}
-                selectedSegmentId={selectedSegmentId}
-                onSegmentCreate={segmentActs.addSegment}
-                onSegmentSelect={segmentActs.selectSegment}
-                onSegmentDelete={segmentActs.deleteSegment}
-              />
+              <>
+                <SegmentCanvas
+                  segments={segments}
+                  tempSegments={tempSegments}
+                  isSelectingMode={isSelectingSegment}
+                  selectedSegmentId={selectedSegmentId}
+                  onSegmentCreate={handleTempCreate}
+                  onSegmentSelect={segmentActs.selectSegment}
+                  onSegmentDelete={segmentActs.deleteSegment}
+                  onTempDelete={handleTempDelete}
+                />
+
+                {/* 악보 위 오버레이 버튼 */}
+                <div className="absolute top-3 left-3 z-20 flex flex-col gap-1.5 pointer-events-none">
+                  {!isSelectingSegment ? (
+                    <button
+                      onClick={segmentActs.toggleSegmentMode}
+                      className="pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold border backdrop-blur-sm transition-all bg-[rgba(13,17,23,0.72)] border-[rgba(155,127,200,0.35)] text-[#9b7fc8] hover:bg-[rgba(155,127,200,0.15)] hover:border-[rgba(155,127,200,0.6)] shadow-lg"
+                    >
+                      <span className="text-[14px] leading-none">＋</span>
+                      구간 설정
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={handleCommitSegments}
+                        className={[
+                          'pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold border backdrop-blur-sm transition-all shadow-lg',
+                          tempSegments.length > 0
+                            ? 'bg-[rgba(155,127,200,0.25)] border-[rgba(155,127,200,0.7)] text-[#c4a8ff] hover:bg-[rgba(155,127,200,0.35)]'
+                            : 'bg-[rgba(13,17,23,0.72)] border-[rgba(155,127,200,0.35)] text-[#9b7fc8] hover:bg-[rgba(155,127,200,0.12)]',
+                        ].join(' ')}
+                      >
+                        <span className="text-[13px] leading-none">✓</span>
+                        {tempSegments.length > 0
+                          ? `구간 확정 (${tempSegments.length}개)`
+                          : '구간 설정 종료'}
+                      </button>
+                      <div className="pointer-events-none px-2 py-1 rounded text-[10px] text-[rgba(155,127,200,0.85)] bg-[rgba(13,17,23,0.65)] backdrop-blur-sm">
+                        {tempSegments.length === 0
+                          ? '악보 위를 드래그하여 구간 지정'
+                          : `${tempSegments.length}개 대기 중 · 더 추가하거나 확정하세요`}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </>
             )}
 
             {/* During 단계: 드래그로 세션 생성 */}
@@ -792,38 +858,24 @@ export function ScoreViewer({ phase }) {
             </>
           )}
 
-          {/* Before: 구간 모드 토글 + 힌트 */}
+          {/* Before: 상태 힌트 (버튼은 악보 위 오버레이로 이동) */}
           {isBefore && (
-            <div className="flex w-full items-center gap-3">
-              <button
-                onClick={segmentActs.toggleSegmentMode}
-                className={[
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11.5px] font-semibold border transition-all flex-shrink-0',
-                  isSelectingSegment
-                    ? 'bg-[rgba(155,127,200,.18)] border-[rgba(155,127,200,.5)] text-[#9b7fc8]'
-                    : 'bg-[rgba(155,127,200,.07)] border-[rgba(155,127,200,.25)] text-[var(--ivps-text3)] hover:border-[rgba(155,127,200,.45)] hover:text-[#9b7fc8]',
-                ].join(' ')}
-              >
+            <div className="flex w-full items-center justify-center gap-2">
+              {segments.length > 0 && (
                 <span className={[
-                  'inline-block w-1.5 h-1.5 rounded-full',
-                  isSelectingSegment ? 'bg-[#9b7fc8] animate-pulse' : 'bg-[var(--ivps-text4)]',
+                  'inline-block w-1.5 h-1.5 rounded-full flex-shrink-0',
+                  isSelectingSegment ? 'bg-[#9b7fc8] animate-pulse' : 'bg-[#7ea890]',
                 ].join(' ')} />
-                {isSelectingSegment ? '구간 종료' : '구간 추가'}
-              </button>
-              <div className="flex-1 text-center text-[11px] text-[var(--ivps-text4)]">
+              )}
+              <div className="text-[11px] text-[var(--ivps-text4)]">
                 {isSelectingSegment
-                  ? '악보 위를 드래그하여 구간을 지정하세요'
+                  ? tempSegments.length > 0
+                    ? `${tempSegments.length}개 대기 · 악보 위 버튼으로 확정`
+                    : '악보 위 버튼으로 구간을 그리세요'
                   : segments.length === 0
-                  ? '스킬 라이브러리를 확인하고 연습을 준비하세요'
-                  : `${segments.length}개 구간 · 우측 패널에서 스킬 매핑`}
+                  ? '악보 왼쪽 상단 버튼으로 구간을 설정하세요'
+                  : `${segments.length}개 구간 확정됨 · 우측 패널에서 스킬 매핑`}
               </div>
-            </div>
-          )}
-
-          {/* Before (legacy fallback — hidden but kept for reference) */}
-          {false && phase === 'before' && (
-            <div className="flex-1 text-center text-[11px] text-[var(--ivps-text4)]">
-              스킬 라이브러리를 확인하고 연습을 준비하세요
             </div>
           )}
         </div>
