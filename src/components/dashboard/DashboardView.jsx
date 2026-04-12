@@ -6,6 +6,7 @@
 import { useRef, useCallback } from 'react';
 import { usePractice } from '../../context/PracticeContext';
 import { TAXONOMY, getCategoryMeta } from '../../data/taxonomy';
+import { PracticeHeatmap } from './PracticeHeatmap';
 
 // ── 파일 → pageData 변환 (ScoreViewer와 동일한 로직, 공통 util로 이동 가능) ──
 async function fileToPageData(file, onProgress) {
@@ -408,8 +409,15 @@ export function DashboardView() {
         </div>
 
         {/* ── 레벨 진행 바 ── */}
-        <div className="mb-6">
+        <div className="mb-4">
           <LevelBar level={level} xpPct={xpPct} xpToNext={xpToNext} />
+        </div>
+
+        {/* ── 주간 연습 히트맵 ── */}
+        <div className="mb-6">
+          <Panel title="📊 주간 연습 활동">
+            <PracticeHeatmap xpLog={xpLog} />
+          </Panel>
         </div>
 
         {/* ── 중간 2열 레이아웃 ── */}

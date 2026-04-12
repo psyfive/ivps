@@ -401,7 +401,14 @@ export function reducer(state, action) {
       return {
         ...state,
         xpLog: [
-          { skillId: action.skillId, result: action.result, xp: earned, timestamp: Date.now() },
+          {
+            skillId:   action.skillId,
+            result:    action.result,
+            xp:        earned,
+            timestamp: Date.now(),
+            scoreId:   action.scoreId   ?? null,
+            segmentId: action.segmentId ?? null,
+          },
           ...state.xpLog,
         ],
       };
@@ -764,8 +771,8 @@ export function usePracticeSession() {
     dispatch({ type: ACTIONS.SET_GRAPE_BPM_INCREMENT, value: Number(value) }), []);
 
   // ── XP 액션 ──────────────────────────────────────────────────────
-  const logXp = useCallback((skillId, result) =>
-    dispatch({ type: ACTIONS.LOG_XP, skillId, result }), []);
+  const logXp = useCallback((skillId, result, scoreId = null, segmentId = null) =>
+    dispatch({ type: ACTIONS.LOG_XP, skillId, result, scoreId, segmentId }), []);
 
   // ── 시각적 구간 액션 ─────────────────────────────────────────────
   const toggleSegmentMode = useCallback(() =>

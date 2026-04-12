@@ -188,14 +188,14 @@ function SkillDiagPanel({ skill, sessionId, checks, onToggleCheck }) {
 }
 
 // ── XP 결과 기록 ──────────────────────────────────────────────────────────
-function XpLogger({ sessionId, skills }) {
+function XpLogger({ sessionId, skills, scoreId, segmentId }) {
   const { xp, nav } = usePractice();
   const [logged, setLogged] = useState(false);
 
   const handleLog = useCallback((result) => {
-    skills.forEach(skillId => xp.logXp(skillId, result));
+    skills.forEach(skillId => xp.logXp(skillId, result, scoreId, segmentId));
     setLogged(true);
-  }, [skills, xp]);
+  }, [skills, xp, scoreId, segmentId]);
 
   const XP_MAP = { success: 30, ok: 15, hard: 5 };
   const LABELS = [
@@ -259,6 +259,7 @@ export function DiagnosticInterface() {
     activeSkill,
     activeSession,
     activeScore,
+    selectedSegmentId,
     session: sessionActs,
     nav,
   } = usePractice();
@@ -405,6 +406,8 @@ export function DiagnosticInterface() {
               <XpLogger
                 sessionId={session.id}
                 skills={session.skills}
+                scoreId={activeScore?.id ?? null}
+                segmentId={selectedSegmentId}
               />
             </div>
           )}

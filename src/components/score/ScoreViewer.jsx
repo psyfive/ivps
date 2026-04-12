@@ -13,6 +13,7 @@ import { usePractice } from '../../context/PracticeContext';
 import { TAXONOMY } from '../../data/taxonomy';
 import { SegmentCanvas } from './SegmentCanvas';
 import { EyeAnchorOverlay } from './EyeAnchorOverlay';
+import { SegmentHeatmap } from './SegmentHeatmap';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // pdf.js 동적 로드 (CDN)
@@ -565,6 +566,7 @@ export function ScoreViewer({ phase }) {
     selectedSegmentId,
     addingToSegmentId,
     tempSegments,
+    xpLog,
     score: scoreActs,
     session: sessionActs,
     segment: segmentActs,
@@ -693,6 +695,13 @@ export function ScoreViewer({ phase }) {
             {/* Before 단계: 시각적 구간 캔버스 오버레이 */}
             {isBefore && (
               <>
+                {/* 구간별 연습 이력 히트맵 (SegmentCanvas 아래 레이어) */}
+                <SegmentHeatmap
+                  segments={segments}
+                  xpLog={xpLog}
+                  selectedSegmentId={selectedSegmentId}
+                  currentPageIndex={activeScore?.currentPageIndex ?? 0}
+                />
                 <SegmentCanvas
                   segments={segments}
                   tempSegments={tempSegments}
@@ -797,6 +806,16 @@ export function ScoreViewer({ phase }) {
                   readOnly
                 />
               </>
+            )}
+
+            {/* After 단계: 구간 히트맵 + 세션 표시 */}
+            {isAfter && segments.length > 0 && (
+              <SegmentHeatmap
+                segments={segments}
+                xpLog={xpLog}
+                selectedSegmentId={selectedSegmentId}
+                currentPageIndex={activeScore?.currentPageIndex ?? 0}
+              />
             )}
 
             {/* After 단계: 세션만 표시 (클릭 가능, 드래그 불가) */}
