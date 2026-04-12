@@ -45,6 +45,7 @@ export const INITIAL_STATE = {
   // ─ 시각적 구간 선택 모드 ─
   isSelectingSegment: false,  // 캔버스 드래그 구간 생성 모드
   selectedSegmentId: null,    // 선택된 구간 ID
+  addingToSegmentId: null,    // 기존 구간에 박스 추가 중일 때 대상 구간 ID
   tempSegments: [],           // 미확정 구간 버퍼 [{id, coordinates, mappedSkills}]
 
   // ─ 현재 마디 (During Phase 연동) ─
@@ -106,6 +107,7 @@ export const ACTIONS = {
 
   // 시각적 구간 (Before Phase 드래그 매핑)
   TOGGLE_SEGMENT_MODE:     'TOGGLE_SEGMENT_MODE',
+  START_ADD_TO_SEGMENT:    'START_ADD_TO_SEGMENT',
   SELECT_SEGMENT:          'SELECT_SEGMENT',
   ADD_SEGMENT:             'ADD_SEGMENT',
   DELETE_SEGMENT:          'DELETE_SEGMENT',
@@ -403,7 +405,17 @@ export function reducer(state, action) {
         ...state,
         isSelectingSegment: !state.isSelectingSegment,
         selectedSegmentId: null,
+        addingToSegmentId: null,
         tempSegments: state.isSelectingSegment ? [] : state.tempSegments,
+      };
+
+    case ACTIONS.START_ADD_TO_SEGMENT:
+      // 선택된 기존 구간에 박스 추가 모드 진입
+      return {
+        ...state,
+        isSelectingSegment: true,
+        addingToSegmentId: action.segmentId,
+        tempSegments: [],
       };
 
     case ACTIONS.SELECT_SEGMENT:
@@ -448,10 +460,34 @@ export function reducer(state, action) {
     case ACTIONS.COMMIT_TEMP_SEGMENTS: {
       if (state.tempSegments.length === 0) {
         // 버퍼가 비어있으면 모드만 종료
-        return { ...state, isSelectingSegment: false };
+        return {
+          ...state,
+          isSelectingSegment: false,
+          addingToSegmentId: null,
+        };
       }
-      // 모든 임시 rect를 하나의 구간으로 합산
+
       const allCoords = state.tempSegments.map(t => t.coordinates);
+
+      // 기존 구간에 박스 추가 모드
+      if (state.addingToSegmentId) {
+        return {
+          ...state,
+          tempSegments: [],
+          isSelectingSegment: false,
+          addingToSegmentId: null,
+          scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
+            segments: (s.segments ?? []).map(seg =>
+              seg.id === state.addingToSegmentId
+                ? { ...seg, coordinates: [...seg.coordinates, ...allCoords] }
+                : seg
+            ),
+          })),
+          selectedSegmentId: state.addingToSegmentId,
+        };
+      }
+
+      // 신규 구간 생성 (기본 동작)
       const newSeg = {
         id: uid(),
         coordinates: allCoords,
@@ -462,6 +498,7 @@ export function reducer(state, action) {
         ...state,
         tempSegments: [],
         isSelectingSegment: false,
+        addingToSegmentId: null,
         scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
           segments: [...(s.segments ?? []), newSeg],
         })),
@@ -701,6 +738,9 @@ export function usePracticeSession() {
   const deleteSegment = useCallback((segmentId) =>
     dispatch({ type: ACTIONS.DELETE_SEGMENT, segmentId }), []);
 
+  const startAddToSegment = useCallback((segmentId) =>
+    dispatch({ type: ACTIONS.START_ADD_TO_SEGMENT, segmentId }), []);
+
   const updateSegmentCoord = useCallback((segmentId, pageIndex, coord) =>
     dispatch({ type: ACTIONS.UPDATE_SEGMENT_COORD, segmentId, pageIndex, coord }), []);
 
@@ -758,7 +798,7 @@ export function usePracticeSession() {
     score: { addScore, setActiveScore, deleteScore, renameScore, changePage },
     session: { addSession, deleteSession, selectSession, assignSkill, removeSkill, toggleCheck, openPicker, closePicker },
     cart: { addToCart, removeFromCart },
-    segment: { toggleSegmentMode, selectSegment, addSegment, deleteSegment, updateSegmentCoord, mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment, commitTempSegments },
+    segment: { toggleSegmentMode, startAddToSegment, selectSegment, addSegment, deleteSegment, updateSegmentCoord, mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment, commitTempSegments },
     before: { addSection, deleteSection, assignSectionSkill, setCurrentBar },
     metro: { setBpm, setMetroPlaying, setCurrentBeat },
     tuner: { setTunerActive, setTunerNote },

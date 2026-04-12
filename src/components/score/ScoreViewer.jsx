@@ -562,6 +562,7 @@ export function ScoreViewer({ phase }) {
     pickerSessionId,
     isSelectingSegment,
     selectedSegmentId,
+    addingToSegmentId,
     tempSegments,
     score: scoreActs,
     session: sessionActs,
@@ -707,13 +708,25 @@ export function ScoreViewer({ phase }) {
                 {/* 악보 위 오버레이 버튼 */}
                 <div className="absolute top-3 left-3 z-20 flex flex-col gap-1.5 pointer-events-none">
                   {!isSelectingSegment ? (
-                    <button
-                      onClick={segmentActs.toggleSegmentMode}
-                      className="pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold border backdrop-blur-sm transition-all bg-[rgba(13,17,23,0.72)] border-[rgba(155,127,200,0.35)] text-[#9b7fc8] hover:bg-[rgba(155,127,200,0.15)] hover:border-[rgba(155,127,200,0.6)] shadow-lg"
-                    >
-                      <span className="text-[14px] leading-none">＋</span>
-                      구간 설정
-                    </button>
+                    selectedSegmentId ? (
+                      /* 구간이 선택된 상태 → "구간 추가" 버튼 */
+                      <button
+                        onClick={() => segmentActs.startAddToSegment(selectedSegmentId)}
+                        className="pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold border backdrop-blur-sm transition-all bg-[rgba(212,168,67,0.12)] border-[rgba(212,168,67,0.5)] text-[#d4a843] hover:bg-[rgba(212,168,67,0.22)] hover:border-[rgba(212,168,67,0.75)] shadow-lg"
+                      >
+                        <span className="text-[14px] leading-none">＋</span>
+                        구간 추가
+                      </button>
+                    ) : (
+                      /* 구간 미선택 상태 → 기본 "구간 설정" 버튼 */
+                      <button
+                        onClick={segmentActs.toggleSegmentMode}
+                        className="pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold border backdrop-blur-sm transition-all bg-[rgba(13,17,23,0.72)] border-[rgba(155,127,200,0.35)] text-[#9b7fc8] hover:bg-[rgba(155,127,200,0.15)] hover:border-[rgba(155,127,200,0.6)] shadow-lg"
+                      >
+                        <span className="text-[14px] leading-none">＋</span>
+                        구간 설정
+                      </button>
+                    )
                   ) : (
                     <>
                       <button
@@ -721,23 +734,35 @@ export function ScoreViewer({ phase }) {
                         className={[
                           'pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold border backdrop-blur-sm transition-all shadow-lg',
                           tempSegments.length > 0
-                            ? 'bg-[rgba(155,127,200,0.25)] border-[rgba(155,127,200,0.7)] text-[#c4a8ff] hover:bg-[rgba(155,127,200,0.35)]'
+                            ? addingToSegmentId
+                              ? 'bg-[rgba(212,168,67,0.22)] border-[rgba(212,168,67,0.7)] text-[#d4a843] hover:bg-[rgba(212,168,67,0.32)]'
+                              : 'bg-[rgba(155,127,200,0.25)] border-[rgba(155,127,200,0.7)] text-[#c4a8ff] hover:bg-[rgba(155,127,200,0.35)]'
                             : 'bg-[rgba(13,17,23,0.72)] border-[rgba(155,127,200,0.35)] text-[#9b7fc8] hover:bg-[rgba(155,127,200,0.12)]',
                         ].join(' ')}
                       >
                         <span className="text-[13px] leading-none">✓</span>
                         {tempSegments.length > 0
-                          ? `구간 확정 (${tempSegments.length}개)`
-                          : '구간 설정 종료'}
+                          ? addingToSegmentId
+                            ? `박스 추가 확정 (${tempSegments.length}개)`
+                            : `구간 확정 (${tempSegments.length}개)`
+                          : addingToSegmentId
+                            ? '추가 종료'
+                            : '구간 설정 종료'}
                       </button>
-                      <div className="pointer-events-none px-2 py-1 rounded text-[10px] text-[rgba(155,127,200,0.85)] bg-[rgba(13,17,23,0.65)] backdrop-blur-sm">
+                      <div className="pointer-events-none px-2 py-1 rounded text-[10px] bg-[rgba(13,17,23,0.65)] backdrop-blur-sm"
+                        style={{ color: addingToSegmentId ? 'rgba(212,168,67,0.85)' : 'rgba(155,127,200,0.85)' }}
+                      >
                         {tempSegments.length === 0
-                          ? '악보 위를 드래그 · 페이지를 넘겨서 계속 추가 가능'
+                          ? addingToSegmentId
+                            ? '악보 위를 드래그하여 이 구간에 박스 추가'
+                            : '악보 위를 드래그 · 페이지를 넘겨서 계속 추가 가능'
                           : (() => {
                               const pages = [...new Set(tempSegments.map(t => t.coordinates.pageIndex + 1))].sort();
                               return pages.length > 1
-                                ? `${tempSegments.length}개 박스 (${pages.join(', ')}페이지) · 확정하면 하나의 구간`
-                                : `${tempSegments.length}개 박스 · 다른 페이지에도 추가 가능`;
+                                ? `${tempSegments.length}개 박스 (${pages.join(', ')}페이지) · 확정하면 구간에 추가`
+                                : addingToSegmentId
+                                  ? `${tempSegments.length}개 박스 · 확정하면 이 구간에 추가됨`
+                                  : `${tempSegments.length}개 박스 · 다른 페이지에도 추가 가능`;
                             })()}
                       </div>
                     </>
