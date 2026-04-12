@@ -70,7 +70,7 @@ describe('악보 관리', () => {
     expect(next.scores[0].name).toBe('바흐 파르티타');
     expect(next.activeScoreId).toBe(next.scores[0].id);
     expect(next.screen).toBe('cockpit');
-    expect(next.phase).toBe('during');
+    expect(next.phase).toBe('before'); // 업로드 후 Before 단계에서 시작
   });
 
   it('ADD_SCORE: 기존 악보 목록 앞에 새 악보가 추가된다', () => {

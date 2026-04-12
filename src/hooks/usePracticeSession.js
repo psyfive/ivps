@@ -38,6 +38,12 @@ export const INITIAL_STATE = {
   // ─ XP (세션 결과) ─
   xpLog: [],                  // [{ skillId, result, xp, timestamp }]
 
+  // ─ Skill Cart (Before Phase) ─
+  skillCart: [],              // string[] — 오늘 연습에 사용할 스킬 ID 목록
+
+  // ─ 현재 마디 (During Phase 연동) ─
+  currentBar: null,           // number | null
+
   // ─ UI ─
   immersionMode: false,
 };
@@ -86,6 +92,18 @@ export const ACTIONS = {
 
   // XP
   LOG_XP:            'LOG_XP',
+
+  // Skill Cart
+  ADD_TO_CART:       'ADD_TO_CART',
+  REMOVE_FROM_CART:  'REMOVE_FROM_CART',
+
+  // Sections (Before Phase 마디 매핑)
+  ADD_SECTION:          'ADD_SECTION',
+  DELETE_SECTION:       'DELETE_SECTION',
+  ASSIGN_SECTION_SKILL: 'ASSIGN_SECTION_SKILL',
+
+  // 현재 마디 (During Phase)
+  SET_CURRENT_BAR:   'SET_CURRENT_BAR',
 
   // UI
   TOGGLE_IMMERSION:  'TOGGLE_IMMERSION',
@@ -140,6 +158,7 @@ export function reducer(state, action) {
         dataUrl: pageData[0].dataUrl,
         uploadedAt: Date.now(),
         sessions: [],
+        sections: [],
         pageData,
         currentPageIndex: 0,
       };
@@ -342,6 +361,58 @@ export function reducer(state, action) {
       };
     }
 
+    // ── Skill Cart ────────────────────────────────────────────────────
+    case ACTIONS.ADD_TO_CART:
+      if (state.skillCart.includes(action.skillId)) return state;
+      return { ...state, skillCart: [...state.skillCart, action.skillId] };
+
+    case ACTIONS.REMOVE_FROM_CART:
+      return { ...state, skillCart: state.skillCart.filter(id => id !== action.skillId) };
+
+    // ── Sections (마디 매핑) ──────────────────────────────────────────
+    case ACTIONS.ADD_SECTION: {
+      const newSection = {
+        id: uid(),
+        range: action.range,         // [startBar, endBar]
+        activeSkillId: null,
+        p2_data: [],
+      };
+      return {
+        ...state,
+        scores: updateActiveScore(state.scores, state.activeScoreId, s => {
+          // replaceId가 있으면 기존 겹침 구간 삭제 후 추가
+          const base = action.replaceId
+            ? (s.sections ?? []).filter(sec => sec.id !== action.replaceId)
+            : (s.sections ?? []);
+          return { sections: [...base, newSection] };
+        }),
+      };
+    }
+
+    case ACTIONS.DELETE_SECTION:
+      return {
+        ...state,
+        scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
+          sections: (s.sections ?? []).filter(sec => sec.id !== action.sectionId),
+        })),
+      };
+
+    case ACTIONS.ASSIGN_SECTION_SKILL:
+      return {
+        ...state,
+        scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
+          sections: (s.sections ?? []).map(sec =>
+            sec.id === action.sectionId
+              ? { ...sec, activeSkillId: action.skillId, p2_data: action.p2Data }
+              : sec
+          ),
+        })),
+      };
+
+    // ── 현재 마디 ─────────────────────────────────────────────────────
+    case ACTIONS.SET_CURRENT_BAR:
+      return { ...state, currentBar: action.bar };
+
     // ── UI ───────────────────────────────────────────────────────────
     case ACTIONS.TOGGLE_IMMERSION:
       return { ...state, immersionMode: !state.immersionMode };
@@ -360,6 +431,7 @@ export function usePracticeSession() {
   const activeSkill = getSkillById(state.activeSkillId);
   const selectedSkill = getSkillById(state.selectedSkillId);
   const activeSession = activeScore?.sessions.find(s => s.id === state.activeSessionId) ?? null;
+  const currentSection = getSectionByBar(activeScore?.sections, state.currentBar);
 
   // ── 네비게이션 액션 ────────────────────────────────────────────────
   const navigate = useCallback((screen) =>
@@ -452,6 +524,26 @@ export function usePracticeSession() {
   const logXp = useCallback((skillId, result) =>
     dispatch({ type: ACTIONS.LOG_XP, skillId, result }), []);
 
+  // ── Skill Cart 액션 ──────────────────────────────────────────────
+  const addToCart = useCallback((skillId) =>
+    dispatch({ type: ACTIONS.ADD_TO_CART, skillId }), []);
+
+  const removeFromCart = useCallback((skillId) =>
+    dispatch({ type: ACTIONS.REMOVE_FROM_CART, skillId }), []);
+
+  // ── Section 액션 ─────────────────────────────────────────────────
+  const addSection = useCallback((range, replaceId = null) =>
+    dispatch({ type: ACTIONS.ADD_SECTION, range, replaceId }), []);
+
+  const deleteSection = useCallback((sectionId) =>
+    dispatch({ type: ACTIONS.DELETE_SECTION, sectionId }), []);
+
+  const assignSectionSkill = useCallback((sectionId, skillId, p2Data) =>
+    dispatch({ type: ACTIONS.ASSIGN_SECTION_SKILL, sectionId, skillId, p2Data }), []);
+
+  const setCurrentBar = useCallback((bar) =>
+    dispatch({ type: ACTIONS.SET_CURRENT_BAR, bar }), []);
+
   // ── UI 액션 ──────────────────────────────────────────────────────
   const toggleImmersion = useCallback(() =>
     dispatch({ type: ACTIONS.TOGGLE_IMMERSION }), []);
@@ -463,16 +555,27 @@ export function usePracticeSession() {
     activeSkill,
     selectedSkill,
     activeSession,
+    currentSection,
 
     // 액션 (그룹화)
     nav: { navigate, setPhase, goSkillPractice },
     skill: { openSkillModal, closeSkillModal, setFilterCategory },
     score: { addScore, setActiveScore, deleteScore, renameScore, changePage },
     session: { addSession, deleteSession, selectSession, assignSkill, removeSkill, toggleCheck, openPicker, closePicker },
+    cart: { addToCart, removeFromCart },
+    before: { addSection, deleteSection, assignSectionSkill, setCurrentBar },
     metro: { setBpm, setMetroPlaying, setCurrentBeat },
     tuner: { setTunerActive, setTunerNote },
     grape: { toggleGrape, resetGrapes, adjustGrapeTotal },
     xp: { logXp },
     ui: { toggleImmersion },
   };
+}
+
+// ── 셀렉터 유틸 ───────────────────────────────────────────────────────────
+
+/** 현재 마디 번호에 해당하는 Section을 반환한다. */
+export function getSectionByBar(sections, barNumber) {
+  if (!sections || barNumber == null) return null;
+  return sections.find(s => barNumber >= s.range[0] && barNumber <= s.range[1]) ?? null;
 }

@@ -2,12 +2,39 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Phase 2 — DURING
 // 실제 연습 중 집중해야 할 HUD 체크포인트 표시.
-// 활성 세션이 있을 때는 그 세션의 스킬 기준, 없으면 activeSkill 기준.
-// 어댑티브 팁 + 연속 성공 카운터.
+// 우선순위: 현재 마디의 섹션 스킬 > 세션 스킬 > activeSkill
+// 어댑티브 팁 + 연속 성공 카운터 + 마디 트래커
 // ─────────────────────────────────────────────────────────────────────────────
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { usePractice } from '../../context/PracticeContext';
 import { getSkillById, getCategoryMeta } from '../../data/taxonomy';
+
+// ── 마디 트래커 ────────────────────────────────────────────────────────────
+function BarTracker({ currentBar, currentSection, onBarChange }) {
+  return (
+    <div className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-[var(--ivps-surface)] border border-[var(--ivps-border)] mb-3">
+      <span className="text-[10px] text-[var(--ivps-text3)] font-mono flex-shrink-0">마디</span>
+      <button
+        onClick={() => onBarChange(Math.max(1, (currentBar ?? 1) - 1))}
+        className="w-6 h-6 rounded flex items-center justify-center text-[var(--ivps-text3)] hover:text-[var(--ivps-text1)] hover:bg-[var(--ivps-surface2)] transition-colors text-[14px] font-mono"
+      >‹</button>
+      <span className="font-mono text-[15px] font-semibold text-[var(--ivps-text1)] w-8 text-center">
+        {currentBar ?? '—'}
+      </span>
+      <button
+        onClick={() => onBarChange((currentBar ?? 0) + 1)}
+        className="w-6 h-6 rounded flex items-center justify-center text-[var(--ivps-text3)] hover:text-[var(--ivps-text1)] hover:bg-[var(--ivps-surface2)] transition-colors text-[14px] font-mono"
+      >›</button>
+      {currentSection ? (
+        <span className="ml-1 font-mono text-[9.5px] text-[var(--ivps-plum)] bg-[rgba(155,127,200,.12)] border border-[rgba(155,127,200,.2)] px-1.5 py-0.5 rounded truncate">
+          {currentSection.range[0]}~{currentSection.range[1]}마디 구간
+        </span>
+      ) : currentBar != null && (
+        <span className="ml-1 font-mono text-[9.5px] text-[var(--ivps-text4)]">구간 없음</span>
+      )}
+    </div>
+  );
+}
 
 // ── HUD 아이템 ─────────────────────────────────────────────────────────────
 function HudItem({ index, text, isFirst, checked, onToggle }) {
@@ -80,17 +107,32 @@ function AdaptiveTip({ streak, bpm }) {
 
 // ── PracticeHUD (메인) ────────────────────────────────────────────────────
 export function PracticeHUD() {
-  const { activeSkill, activeSession, bpm, nav } = usePractice();
+  const { activeSkill, activeSession, currentSection, currentBar, bpm, nav, before } = usePractice();
 
-  // 세션에 할당된 첫 번째 스킬 우선, 없으면 activeSkill
+  // 스킬 우선순위: 섹션 스킬 > 세션 첫 스킬 > activeSkill
+  const sectionSkill = currentSection?.activeSkillId
+    ? getSkillById(currentSection.activeSkillId)
+    : null;
   const sessionSkill = activeSession?.skills?.length
     ? getSkillById(activeSession.skills[0])
     : null;
-  const skill = sessionSkill ?? activeSkill;
+  const skill = sectionSkill ?? sessionSkill ?? activeSkill;
+
+  // 체크포인트 우선순위: 섹션 p2_data > 스킬 during
+  const duringItems = (currentSection?.p2_data?.length ? currentSection.p2_data : skill?.during) ?? [];
 
   const [checkedItems, setCheckedItems] = useState(new Set());
   const [streak, setStreak] = useState(0);
   const catMeta = skill ? getCategoryMeta(skill.id) : null;
+
+  // 마디 변경 시 체크포인트 초기화
+  const prevSectionId = useRef(currentSection?.id);
+  useEffect(() => {
+    if (currentSection?.id !== prevSectionId.current) {
+      setCheckedItems(new Set());
+      prevSectionId.current = currentSection?.id;
+    }
+  }, [currentSection?.id]);
 
   const toggleItem = useCallback((index) => {
     setCheckedItems(prev => {
@@ -109,7 +151,7 @@ export function PracticeHUD() {
     resetChecks();
   }, [resetChecks]);
 
-  const allChecked = skill && checkedItems.size >= skill.during.length;
+  const allChecked = duringItems.length > 0 && checkedItems.size >= duringItems.length;
 
   // ── 스킬 없음 ──────────────────────────────────────────────────────
   if (!skill) {
@@ -167,13 +209,27 @@ export function PracticeHUD() {
         )}
       </div>
 
+      {/* 마디 트래커 */}
+      <div className="px-5 flex-shrink-0">
+        <BarTracker
+          currentBar={currentBar}
+          currentSection={currentSection}
+          onBarChange={before.setCurrentBar}
+        />
+      </div>
+
       {/* HUD 라벨 */}
       <div className="px-5 mb-3 flex-shrink-0">
         <div className="text-[10px] text-[var(--ivps-text3)] uppercase tracking-[.08em] font-semibold flex items-center gap-1.5">
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#9b7fc8]" />
           HUD · 찰나의 체크포인트
+          {sectionSkill && (
+            <span className="font-mono text-[9px] text-[var(--ivps-plum)] bg-[rgba(155,127,200,.1)] border border-[rgba(155,127,200,.2)] px-1.5 py-0.5 rounded ml-1">
+              구간 스킬
+            </span>
+          )}
           <span className="ml-auto font-mono text-[var(--ivps-plum)]">
-            {checkedItems.size}/{skill.during.length}
+            {checkedItems.size}/{duringItems.length}
           </span>
         </div>
       </div>
@@ -186,7 +242,7 @@ export function PracticeHUD() {
 
         {/* HUD 체크포인트 목록 */}
         <div className="flex flex-col gap-2 mb-4">
-          {skill.during.map((item, i) => (
+          {duringItems.map((item, i) => (
             <HudItem
               key={i}
               index={i}
