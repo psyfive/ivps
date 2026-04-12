@@ -11,6 +11,7 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { usePractice } from '../../context/PracticeContext';
 import { TAXONOMY } from '../../data/taxonomy';
+import { SegmentCanvas } from './SegmentCanvas';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // pdf.js 동적 로드 (CDN)
@@ -559,8 +560,11 @@ export function ScoreViewer({ phase }) {
     activeScore,
     activeSessionId,
     pickerSessionId,
+    isSelectingSegment,
+    selectedSegmentId,
     score: scoreActs,
     session: sessionActs,
+    segment: segmentActs,
     nav,
   } = usePractice();
 
@@ -624,9 +628,11 @@ export function ScoreViewer({ phase }) {
   // ── 파생 값 ─────────────────────────────────────────────────────────────
   const hasScore   = !!activeScore?.dataUrl;
   const sessions   = activeScore?.sessions ?? [];
+  const segments   = activeScore?.segments ?? [];
   const activeSession = sessions.find(s => s.id === activeSessionId) ?? null;
   const pickerSession = sessions.find(s => s.id === pickerSessionId) ?? null;
 
+  const isBefore = phase === 'before';
   const isDuring = phase === 'during';
   const isAfter  = phase === 'after';
 
@@ -679,6 +685,18 @@ export function ScoreViewer({ phase }) {
               draggable={false}
               style={{ userSelect: 'none', WebkitUserDrag: 'none' }}
             />
+
+            {/* Before 단계: 시각적 구간 캔버스 오버레이 */}
+            {isBefore && (
+              <SegmentCanvas
+                segments={segments}
+                isSelectingMode={isSelectingSegment}
+                selectedSegmentId={selectedSegmentId}
+                onSegmentCreate={segmentActs.addSegment}
+                onSegmentSelect={segmentActs.selectSegment}
+                onSegmentDelete={segmentActs.deleteSegment}
+              />
+            )}
 
             {/* During 단계: 드래그로 세션 생성 */}
             {isDuring && (
@@ -774,8 +792,36 @@ export function ScoreViewer({ phase }) {
             </>
           )}
 
-          {/* Before: 이미지 교체 힌트 */}
-          {phase === 'before' && (
+          {/* Before: 구간 모드 토글 + 힌트 */}
+          {isBefore && (
+            <div className="flex w-full items-center gap-3">
+              <button
+                onClick={segmentActs.toggleSegmentMode}
+                className={[
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11.5px] font-semibold border transition-all flex-shrink-0',
+                  isSelectingSegment
+                    ? 'bg-[rgba(155,127,200,.18)] border-[rgba(155,127,200,.5)] text-[#9b7fc8]'
+                    : 'bg-[rgba(155,127,200,.07)] border-[rgba(155,127,200,.25)] text-[var(--ivps-text3)] hover:border-[rgba(155,127,200,.45)] hover:text-[#9b7fc8]',
+                ].join(' ')}
+              >
+                <span className={[
+                  'inline-block w-1.5 h-1.5 rounded-full',
+                  isSelectingSegment ? 'bg-[#9b7fc8] animate-pulse' : 'bg-[var(--ivps-text4)]',
+                ].join(' ')} />
+                {isSelectingSegment ? '구간 종료' : '구간 추가'}
+              </button>
+              <div className="flex-1 text-center text-[11px] text-[var(--ivps-text4)]">
+                {isSelectingSegment
+                  ? '악보 위를 드래그하여 구간을 지정하세요'
+                  : segments.length === 0
+                  ? '스킬 라이브러리를 확인하고 연습을 준비하세요'
+                  : `${segments.length}개 구간 · 우측 패널에서 스킬 매핑`}
+              </div>
+            </div>
+          )}
+
+          {/* Before (legacy fallback — hidden but kept for reference) */}
+          {false && phase === 'before' && (
             <div className="flex-1 text-center text-[11px] text-[var(--ivps-text4)]">
               스킬 라이브러리를 확인하고 연습을 준비하세요
             </div>

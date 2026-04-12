@@ -41,6 +41,10 @@ export const INITIAL_STATE = {
   // ─ Skill Cart (Before Phase) ─
   skillCart: [],              // string[] — 오늘 연습에 사용할 스킬 ID 목록
 
+  // ─ 시각적 구간 선택 모드 ─
+  isSelectingSegment: false,  // 캔버스 드래그 구간 생성 모드
+  selectedSegmentId: null,    // 선택된 구간 ID
+
   // ─ 현재 마디 (During Phase 연동) ─
   currentBar: null,           // number | null
 
@@ -96,6 +100,14 @@ export const ACTIONS = {
   // Skill Cart
   ADD_TO_CART:       'ADD_TO_CART',
   REMOVE_FROM_CART:  'REMOVE_FROM_CART',
+
+  // 시각적 구간 (Before Phase 드래그 매핑)
+  TOGGLE_SEGMENT_MODE:     'TOGGLE_SEGMENT_MODE',
+  SELECT_SEGMENT:          'SELECT_SEGMENT',
+  ADD_SEGMENT:             'ADD_SEGMENT',
+  DELETE_SEGMENT:          'DELETE_SEGMENT',
+  MAP_SKILL_TO_SEGMENT:    'MAP_SKILL_TO_SEGMENT',
+  UNMAP_SKILL_FROM_SEGMENT:'UNMAP_SKILL_FROM_SEGMENT',
 
   // Sections (Before Phase 마디 매핑)
   ADD_SECTION:          'ADD_SECTION',
@@ -159,6 +171,7 @@ export function reducer(state, action) {
         uploadedAt: Date.now(),
         sessions: [],
         sections: [],
+        segments: [],
         pageData,
         currentPageIndex: 0,
       };
@@ -361,6 +374,63 @@ export function reducer(state, action) {
       };
     }
 
+    // ── 시각적 구간 ───────────────────────────────────────────────────
+    case ACTIONS.TOGGLE_SEGMENT_MODE:
+      return { ...state, isSelectingSegment: !state.isSelectingSegment, selectedSegmentId: null };
+
+    case ACTIONS.SELECT_SEGMENT:
+      return { ...state, selectedSegmentId: action.segmentId };
+
+    case ACTIONS.ADD_SEGMENT: {
+      const newSegment = {
+        id: uid(),
+        coordinates: action.coordinates, // { x, y, width, height } — 0~1 상대 좌표
+        measures: { start: null, end: null },
+        mappedSkills: [],
+      };
+      return {
+        ...state,
+        scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
+          segments: [...(s.segments ?? []), newSegment],
+        })),
+        selectedSegmentId: newSegment.id,
+      };
+    }
+
+    case ACTIONS.DELETE_SEGMENT:
+      return {
+        ...state,
+        scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
+          segments: (s.segments ?? []).filter(seg => seg.id !== action.segmentId),
+        })),
+        selectedSegmentId:
+          state.selectedSegmentId === action.segmentId ? null : state.selectedSegmentId,
+      };
+
+    case ACTIONS.MAP_SKILL_TO_SEGMENT:
+      return {
+        ...state,
+        scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
+          segments: (s.segments ?? []).map(seg =>
+            seg.id === action.segmentId && !seg.mappedSkills.includes(action.skillId)
+              ? { ...seg, mappedSkills: [...seg.mappedSkills, action.skillId] }
+              : seg
+          ),
+        })),
+      };
+
+    case ACTIONS.UNMAP_SKILL_FROM_SEGMENT:
+      return {
+        ...state,
+        scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
+          segments: (s.segments ?? []).map(seg =>
+            seg.id === action.segmentId
+              ? { ...seg, mappedSkills: seg.mappedSkills.filter(id => id !== action.skillId) }
+              : seg
+          ),
+        })),
+      };
+
     // ── Skill Cart ────────────────────────────────────────────────────
     case ACTIONS.ADD_TO_CART:
       if (state.skillCart.includes(action.skillId)) return state;
@@ -524,6 +594,25 @@ export function usePracticeSession() {
   const logXp = useCallback((skillId, result) =>
     dispatch({ type: ACTIONS.LOG_XP, skillId, result }), []);
 
+  // ── 시각적 구간 액션 ─────────────────────────────────────────────
+  const toggleSegmentMode = useCallback(() =>
+    dispatch({ type: ACTIONS.TOGGLE_SEGMENT_MODE }), []);
+
+  const selectSegment = useCallback((segmentId) =>
+    dispatch({ type: ACTIONS.SELECT_SEGMENT, segmentId }), []);
+
+  const addSegment = useCallback((coordinates) =>
+    dispatch({ type: ACTIONS.ADD_SEGMENT, coordinates }), []);
+
+  const deleteSegment = useCallback((segmentId) =>
+    dispatch({ type: ACTIONS.DELETE_SEGMENT, segmentId }), []);
+
+  const mapSkillToSegment = useCallback((segmentId, skillId) =>
+    dispatch({ type: ACTIONS.MAP_SKILL_TO_SEGMENT, segmentId, skillId }), []);
+
+  const unmapSkillFromSegment = useCallback((segmentId, skillId) =>
+    dispatch({ type: ACTIONS.UNMAP_SKILL_FROM_SEGMENT, segmentId, skillId }), []);
+
   // ── Skill Cart 액션 ──────────────────────────────────────────────
   const addToCart = useCallback((skillId) =>
     dispatch({ type: ACTIONS.ADD_TO_CART, skillId }), []);
@@ -563,6 +652,7 @@ export function usePracticeSession() {
     score: { addScore, setActiveScore, deleteScore, renameScore, changePage },
     session: { addSession, deleteSession, selectSession, assignSkill, removeSkill, toggleCheck, openPicker, closePicker },
     cart: { addToCart, removeFromCart },
+    segment: { toggleSegmentMode, selectSegment, addSegment, deleteSegment, mapSkillToSegment, unmapSkillFromSegment },
     before: { addSection, deleteSection, assignSectionSkill, setCurrentBar },
     metro: { setBpm, setMetroPlaying, setCurrentBeat },
     tuner: { setTunerActive, setTunerNote },
