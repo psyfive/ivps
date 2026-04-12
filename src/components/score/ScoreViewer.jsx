@@ -771,14 +771,20 @@ export function ScoreViewer({ phase }) {
               </>
             )}
 
-            {/* During 단계: 드래그로 세션 생성 */}
-            {isDuring && (
-              <SessionLayer
-                sessions={sessions}
-                activeSessionId={activeSessionId}
-                onAdd={handleAddSession}
-                onSelect={sessionActs.selectSession}
-                onOpenPicker={sessionActs.openPicker}
+            {/* During 단계: Before 구간 오버레이 표시 (읽기 전용, 클릭으로 선택) */}
+            {isDuring && segments.length > 0 && (
+              <SegmentCanvas
+                segments={segments}
+                tempSegments={[]}
+                isSelectingMode={false}
+                selectedSegmentId={selectedSegmentId}
+                currentPageIndex={activeScore?.currentPageIndex ?? 0}
+                onSegmentCreate={() => {}}
+                onSegmentSelect={segmentActs.selectSegment}
+                onSegmentDelete={() => {}}
+                onTempDelete={() => {}}
+                onSegmentUpdate={() => {}}
+                readOnly
               />
             )}
 

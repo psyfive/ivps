@@ -146,6 +146,7 @@ export function SegmentCanvas({
   onSegmentDelete,   // (id) => void — 구간 전체 삭제
   onTempDelete,      // (id) => void — 미확정 rect 개별 삭제
   onSegmentUpdate,   // (segmentId, pageIndex, {x,y,width,height}) => void — 구간 이동/크기조정
+  readOnly,          // bool — 삭제/편집 UI 숨김, 선택만 허용
 }) {
   const containerRef    = useRef(null);
   const canvasRef       = useRef(null);
@@ -154,6 +155,7 @@ export function SegmentCanvas({
   const tempSegmentsRef = useRef(tempSegments);
   const isSelectingRef  = useRef(isSelectingMode);
   const selectedIdRef   = useRef(selectedSegmentId);
+  const readOnlyRef     = useRef(readOnly);
   const pageIdxRef      = useRef(currentPageIndex);
   const onCreateRef     = useRef(onSegmentCreate);
   const onSelectRef     = useRef(onSegmentSelect);
@@ -165,6 +167,7 @@ export function SegmentCanvas({
   useEffect(() => { tempSegmentsRef.current = tempSegments; },    [tempSegments]);
   useEffect(() => { isSelectingRef.current  = isSelectingMode; }, [isSelectingMode]);
   useEffect(() => { selectedIdRef.current   = selectedSegmentId; },[selectedSegmentId]);
+  useEffect(() => { readOnlyRef.current     = readOnly; },         [readOnly]);
   useEffect(() => { pageIdxRef.current      = currentPageIndex; }, [currentPageIndex]);
   useEffect(() => { onCreateRef.current     = onSegmentCreate; },  [onSegmentCreate]);
   useEffect(() => { onSelectRef.current     = onSegmentSelect; },  [onSegmentSelect]);
@@ -197,11 +200,12 @@ export function SegmentCanvas({
     const W    = canvas.width  / dpr;
     const H    = canvas.height / dpr;
     const ctx  = canvas.getContext('2d');
-    const segs  = segmentsRef.current;
-    const temps = tempSegmentsRef.current;
-    const selId = selectedIdRef.current;
+    const segs    = segmentsRef.current;
+    const temps   = tempSegmentsRef.current;
+    const selId   = selectedIdRef.current;
     const curPage = pageIdxRef.current;
-    const editDrag = editDragRef.current;
+    const editDrag  = editDragRef.current;
+    const isReadOnly = readOnlyRef.current;
 
     ctx.save();
     ctx.scale(dpr, dpr);
@@ -251,18 +255,20 @@ export function SegmentCanvas({
           ctx.fillText(label, px + 4, py + ph - 3);
         }
 
-        // 삭제 × — 각 rect
-        const DX = px + pw - 18, DY = py + 1, DS = 17;
-        ctx.fillStyle = 'rgba(224,112,112,0.75)';
-        ctx.fillRect(DX, DY, DS, DS);
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 11px sans-serif';
-        ctx.textBaseline = 'middle';
-        ctx.textAlign    = 'center';
-        ctx.fillText('×', DX + DS / 2, DY + DS / 2);
+        // 삭제 × — readOnly 모드에서는 숨김
+        if (!isReadOnly) {
+          const DX = px + pw - 18, DY = py + 1, DS = 17;
+          ctx.fillStyle = 'rgba(224,112,112,0.75)';
+          ctx.fillRect(DX, DY, DS, DS);
+          ctx.fillStyle = '#fff';
+          ctx.font = 'bold 11px sans-serif';
+          ctx.textBaseline = 'middle';
+          ctx.textAlign    = 'center';
+          ctx.fillText('×', DX + DS / 2, DY + DS / 2);
+        }
 
-        // 선택된 구간에 크기조정 핸들 표시 (구간 설정 모드가 아닐 때만)
-        if (isSelected && !isSelectingRef.current) {
+        // 선택된 구간에 크기조정 핸들 표시 (구간 설정 모드 OFF + readOnly 아닐 때만)
+        if (isSelected && !isSelectingRef.current && !isReadOnly) {
           drawHandles(ctx, px, py, pw, ph, col);
         }
       });
@@ -432,18 +438,19 @@ export function SegmentCanvas({
   const handlePointerDown = useCallback((e) => {
     const { rx, ry } = toRel(e.clientX, e.clientY);
 
-    // 미확정 × 버튼
-    for (const seg of tempSegmentsRef.current) {
-      if (hitDeleteTemp(rx, ry, seg)) { onTempDelRef.current(seg.id); return; }
-    }
-    // 확정 × 버튼
-    for (const seg of segmentsRef.current) {
-      if (hitDeleteCommitted(rx, ry, seg)) { onDeleteRef.current(seg.id); return; }
+    // readOnly가 아닐 때만 × 버튼 히트 테스트
+    if (!readOnlyRef.current) {
+      for (const seg of tempSegmentsRef.current) {
+        if (hitDeleteTemp(rx, ry, seg)) { onTempDelRef.current(seg.id); return; }
+      }
+      for (const seg of segmentsRef.current) {
+        if (hitDeleteCommitted(rx, ry, seg)) { onDeleteRef.current(seg.id); return; }
+      }
     }
 
     if (!isSelectingRef.current) {
-      // 선택된 구간 위에서 편집 모드 진입
-      const result = getSelectedSegEditMode(rx, ry);
+      // readOnly가 아닐 때만 편집 모드 진입
+      const result = !readOnlyRef.current ? getSelectedSegEditMode(rx, ry) : null;
       if (result) {
         editDragRef.current = {
           segmentId:   result.seg.id,

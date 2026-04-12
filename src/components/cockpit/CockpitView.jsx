@@ -16,9 +16,9 @@
 //   During  → ScoreViewer(드래그 모드)   + PracticeHUD
 //   After   → ScoreViewer(세션 클릭)     + DiagnosticInterface
 // ─────────────────────────────────────────────────────────────────────────────
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { usePractice } from '../../context/PracticeContext';
-import { getCategoryMeta } from '../../data/taxonomy';
+import { getCategoryMeta, getSkillById } from '../../data/taxonomy';
 import { ScoreViewer } from '../score/ScoreViewer';
 import { CognitiveBriefing } from '../phases/CognitiveBriefing';
 import { PracticeHUD } from '../phases/PracticeHUD';
@@ -141,6 +141,154 @@ function EmptySkillBanner({ onGoLibrary }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// FloatingSegmentHUD — 전체화면 During 모드 전용 플로팅 HUD 카드
+// ─────────────────────────────────────────────────────────────────────────────
+function FloatingSegmentHUD({ segment, segmentIndex, onClose }) {
+  const { bpm } = usePractice();
+  const skills = (segment?.mappedSkills ?? []).map(id => getSkillById(id)).filter(Boolean);
+  const [skillIdx, setSkillIdx] = useState(0);
+  const [checked, setChecked] = useState(new Set());
+  const [streak, setStreak] = useState(0);
+
+  useEffect(() => { setSkillIdx(0); setChecked(new Set()); }, [segment?.id]);
+  useEffect(() => { setChecked(new Set()); }, [skillIdx]);
+
+  const skill = skills[skillIdx] ?? null;
+  const catMeta = skill ? getCategoryMeta(skill.id) : null;
+  const items = skill?.during ?? [];
+  const allChecked = items.length > 0 && checked.size >= items.length;
+
+  const toggle = (i) => setChecked(prev => {
+    const next = new Set(prev); next.has(i) ? next.delete(i) : next.add(i); return next;
+  });
+
+  return (
+    <div
+      className="absolute top-4 right-4 z-30 w-72 rounded-2xl border shadow-2xl overflow-hidden"
+      style={{
+        background: 'rgba(13,17,23,0.92)',
+        borderColor: 'rgba(155,127,200,0.35)',
+        backdropFilter: 'blur(12px)',
+      }}
+    >
+      {/* 헤더 */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[rgba(155,127,200,.2)]">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[11px] text-[var(--ivps-plum)] bg-[rgba(155,127,200,.15)] px-2 py-0.5 rounded-md font-semibold">
+            {segmentIndex + 1}구간
+          </span>
+          {skills.length > 1 && (
+            <div className="flex gap-1">
+              {skills.map((sk, i) => {
+                const meta = getCategoryMeta(sk.id);
+                return (
+                  <button
+                    key={sk.id}
+                    onClick={() => setSkillIdx(i)}
+                    className="font-mono text-[10px] px-1.5 py-0.5 rounded border transition-all"
+                    style={i === skillIdx
+                      ? { background: `${meta.color}20`, color: meta.color, borderColor: `${meta.color}50` }
+                      : { background: 'transparent', color: '#6b7280', borderColor: 'rgba(107,114,128,.3)' }
+                    }
+                  >
+                    {sk.id}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        <button
+          onClick={onClose}
+          className="text-[var(--ivps-text4)] hover:text-[var(--ivps-text2)] text-[14px] transition-colors"
+        >
+          ×
+        </button>
+      </div>
+
+      {/* 스킬 이름 */}
+      {skill && (
+        <div className="px-4 py-2 border-b border-[rgba(155,127,200,.12)]">
+          <div className="flex items-center gap-2">
+            <span
+              className="font-mono text-[9.5px] px-1 py-0.5 rounded"
+              style={{ background: `${catMeta?.color}18`, color: catMeta?.color }}
+            >
+              {skill.id}
+            </span>
+            <span className="text-[12.5px] font-semibold text-[var(--ivps-text1)]">{skill.name}</span>
+            {streak > 0 && (
+              <span className="ml-auto text-[10px] text-[var(--ivps-gold)] font-mono">🔥×{streak}</span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 체크포인트 */}
+      <div className="px-4 py-3 max-h-52 overflow-y-auto">
+        {items.length > 0 ? (
+          <div className="flex flex-col gap-2">
+            {items.map((text, i) => (
+              <button
+                key={i}
+                onClick={() => toggle(i)}
+                className={[
+                  'flex items-start gap-2.5 text-left w-full rounded-lg px-2.5 py-2 border transition-all text-[12px]',
+                  checked.has(i)
+                    ? 'border-[rgba(155,127,200,.4)] bg-[rgba(155,127,200,.12)] line-through opacity-60'
+                    : i === 0
+                    ? 'border-[rgba(155,127,200,.25)] bg-[rgba(155,127,200,.07)] font-semibold text-[var(--ivps-text1)]'
+                    : 'border-[rgba(255,255,255,.06)] bg-[rgba(255,255,255,.03)] text-[#c8d0dc]',
+                ].join(' ')}
+              >
+                <span
+                  className={[
+                    'w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5',
+                    checked.has(i)
+                      ? 'bg-[#9b7fc8] text-white'
+                      : 'bg-[rgba(155,127,200,.2)] text-[var(--ivps-plum)]',
+                  ].join(' ')}
+                >
+                  {checked.has(i) ? '✓' : i + 1}
+                </span>
+                {text}
+              </button>
+            ))}
+          </div>
+        ) : skills.length === 0 ? (
+          <p className="text-[11px] text-[var(--ivps-text4)] text-center py-2">
+            이 구간에 매핑된 스킬이 없습니다.
+          </p>
+        ) : (
+          <p className="text-[11px] text-[var(--ivps-text4)] text-center py-2">
+            체크포인트 데이터 없음
+          </p>
+        )}
+      </div>
+
+      {/* 결과 버튼 */}
+      {items.length > 0 && (
+        <div className="px-4 pb-4 grid grid-cols-3 gap-1.5">
+          {[['🎯', '완벽', '#7ea890'], ['😐', '보통', '#d4a843'], ['😣', '어려움', '#e07070']].map(([icon, label, col]) => (
+            <button
+              key={label}
+              onClick={() => {
+                if (label === '완벽') setStreak(s => s + 1); else setStreak(0);
+                setChecked(new Set());
+              }}
+              className="py-2 rounded-lg text-[11px] font-medium border transition-all hover:scale-[1.03]"
+              style={{ background: `${col}12`, borderColor: `${col}30`, color: col }}
+            >
+              {icon} {label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // CockpitView — 메인 컴포넌트
 // ─────────────────────────────────────────────────────────────────────────────
 export function CockpitView() {
@@ -151,9 +299,15 @@ export function CockpitView() {
     bpm,
     immersionMode,
     practiceFullscreen,
+    selectedSegmentId,
     nav,
     ui,
+    segment: segmentActs,
   } = usePractice();
+
+  const segments = activeScore?.segments ?? [];
+  const selectedSegment = segments.find(s => s.id === selectedSegmentId) ?? null;
+  const selectedSegmentIndex = segments.findIndex(s => s.id === selectedSegmentId);
 
   const handleBack = useCallback(() => nav.navigate('library'), [nav]);
 
@@ -192,6 +346,15 @@ export function CockpitView() {
 
           {/* ScoreViewer */}
           <ScoreViewer phase={phase} />
+
+          {/* 전체화면 During: 구간 선택 시 플로팅 HUD 카드 */}
+          {practiceFullscreen && phase === 'during' && selectedSegment && (
+            <FloatingSegmentHUD
+              segment={selectedSegment}
+              segmentIndex={selectedSegmentIndex}
+              onClose={() => segmentActs.selectSegment(null)}
+            />
+          )}
 
           {/* 전체화면 중 패널 복귀 버튼 */}
           {practiceFullscreen && (
