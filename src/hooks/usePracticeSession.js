@@ -525,7 +525,7 @@ export function reducer(state, action) {
       };
 
     case ACTIONS.UPDATE_SEGMENT_COORD: {
-      const { segmentId, pageIndex, coord } = action;
+      const { segmentId, coordIndex, coord } = action;
       return {
         ...state,
         scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
@@ -533,8 +533,8 @@ export function reducer(state, action) {
             seg.id === segmentId
               ? {
                   ...seg,
-                  coordinates: seg.coordinates.map(c =>
-                    c.pageIndex === pageIndex ? { ...c, ...coord } : c
+                  coordinates: seg.coordinates.map((c, i) =>
+                    i === coordIndex ? { ...c, ...coord } : c
                   ),
                 }
               : seg
@@ -752,8 +752,8 @@ export function usePracticeSession() {
   const startAddToSegment = useCallback((segmentId) =>
     dispatch({ type: ACTIONS.START_ADD_TO_SEGMENT, segmentId }), []);
 
-  const updateSegmentCoord = useCallback((segmentId, pageIndex, coord) =>
-    dispatch({ type: ACTIONS.UPDATE_SEGMENT_COORD, segmentId, pageIndex, coord }), []);
+  const updateSegmentCoord = useCallback((segmentId, coordIndex, coord) =>
+    dispatch({ type: ACTIONS.UPDATE_SEGMENT_COORD, segmentId, coordIndex, coord }), []);
 
   const mapSkillToSegment = useCallback((segmentId, skillId) =>
     dispatch({ type: ACTIONS.MAP_SKILL_TO_SEGMENT, segmentId, skillId }), []);

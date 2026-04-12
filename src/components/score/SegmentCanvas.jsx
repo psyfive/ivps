@@ -213,16 +213,19 @@ export function SegmentCanvas({
 
     // ── 확정된 구간 — 현재 페이지의 rect만 표시 ──
     segs.forEach((seg, globalIdx) => {
-      const pageRects = seg.coordinates.filter(c => c.pageIndex === curPage);
+      // coordIndex를 보존하여 filter
+      const pageRects = seg.coordinates
+        .map((c, coordIndex) => ({ ...c, coordIndex }))
+        .filter(c => c.pageIndex === curPage);
       if (pageRects.length === 0) return;
 
       const isSelected = seg.id === selId;
       const col = segColor(seg, isSelected);
 
-      pageRects.forEach(({ x, y, width: rw, height: rh, pageIndex }, rectIdx) => {
-        // 편집 드래그 중이면 previewCoord 사용
+      pageRects.forEach(({ x, y, width: rw, height: rh, coordIndex }, rectIdx) => {
+        // 편집 드래그 중이면 해당 coordIndex의 previewCoord 사용
         let drawX = x, drawY = y, drawW = rw, drawH = rh;
-        if (editDrag && editDrag.segmentId === seg.id && editDrag.pageIndex === pageIndex) {
+        if (editDrag && editDrag.segmentId === seg.id && editDrag.coordIndex === coordIndex) {
           drawX = editDrag.previewCoord.x;
           drawY = editDrag.previewCoord.y;
           drawW = editDrag.previewCoord.width;
@@ -398,22 +401,27 @@ export function SegmentCanvas({
     ) ?? null;
   };
 
-  // 선택된 구간에서 현재 페이지 coord를 찾아 편집 모드 반환
+  // 선택된 구간에서 현재 페이지의 모든 coord를 검사하여 편집 모드 반환
+  // → 여러 박스가 있을 때 각각 독립적으로 hit 테스트 (coordIndex 기반)
   const getSelectedSegEditMode = (rx, ry) => {
     const selId = selectedIdRef.current;
     if (!selId) return null;
     const seg = segmentsRef.current.find(s => s.id === selId);
     if (!seg) return null;
     const curPage = pageIdxRef.current;
-    const coord = seg.coordinates.find(c => c.pageIndex === curPage);
-    if (!coord) return null;
 
     const { W, H } = getDims();
     const ptx = rx * W, pty = ry * H;
-    const px = coord.x * W, py = coord.y * H, pw = coord.width * W, ph = coord.height * H;
-    const mode = getEditMode(ptx, pty, px, py, pw, ph);
-    if (!mode) return null;
-    return { seg, coord, mode };
+
+    // 현재 페이지의 모든 좌표를 순서대로 검사 (coordIndex 보존)
+    for (let coordIndex = 0; coordIndex < seg.coordinates.length; coordIndex++) {
+      const coord = seg.coordinates[coordIndex];
+      if (coord.pageIndex !== curPage) continue;
+      const px = coord.x * W, py = coord.y * H, pw = coord.width * W, ph = coord.height * H;
+      const mode = getEditMode(ptx, pty, px, py, pw, ph);
+      if (mode) return { seg, coord, coordIndex, mode };
+    }
+    return null;
   };
 
   // 호버 커서 업데이트
@@ -454,7 +462,7 @@ export function SegmentCanvas({
       if (result) {
         editDragRef.current = {
           segmentId:   result.seg.id,
-          pageIndex:   result.coord.pageIndex,
+          coordIndex:  result.coordIndex,
           mode:        result.mode,
           startRx:     rx,
           startRy:     ry,
@@ -516,7 +524,7 @@ export function SegmentCanvas({
     // 편집 드래그 완료 → 상태 업데이트
     if (editDragRef.current) {
       const ed = editDragRef.current;
-      onUpdateRef.current?.(ed.segmentId, ed.pageIndex, ed.previewCoord);
+      onUpdateRef.current?.(ed.segmentId, ed.coordIndex, ed.previewCoord);
       editDragRef.current = null;
       // 커서 복원
       const { rx, ry } = toRel(e.clientX, e.clientY);
