@@ -562,6 +562,7 @@ export function ScoreViewer({ phase }) {
     pickerSessionId,
     isSelectingSegment,
     selectedSegmentId,
+    tempSegments,
     score: scoreActs,
     session: sessionActs,
     segment: segmentActs,
@@ -569,13 +570,6 @@ export function ScoreViewer({ phase }) {
   } = usePractice();
 
   const [loading, setLoading] = useState({ active: false, current: 0, total: 0 });
-  // ── 임시(미확정) 구간 버퍼 ───────────────────────────────────────────────
-  const [tempSegments, setTempSegments] = useState([]);
-
-  // 선택 모드가 꺼지면 버퍼 초기화 (외부에서 모드가 닫힐 경우 대비)
-  useEffect(() => {
-    if (!isSelectingSegment) setTempSegments([]);
-  }, [isSelectingSegment]);
   const [globalDragOver, setGlobalDragOver] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -632,25 +626,6 @@ export function ScoreViewer({ phase }) {
     sessionActs.addSession(rect);
   }, [sessionActs]);
 
-  // 드래그 완료 → 임시 버퍼에 추가 (전역 상태에는 아직 반영 안 함)
-  const handleTempCreate = useCallback((coordinates) => {
-    setTempSegments(prev => [
-      ...prev,
-      { id: `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`, coordinates, mappedSkills: [] },
-    ]);
-  }, []);
-
-  // 임시 구간 × 클릭 → 버퍼에서 제거
-  const handleTempDelete = useCallback((id) => {
-    setTempSegments(prev => prev.filter(s => s.id !== id));
-  }, []);
-
-  // "구간 확정" 버튼 → 버퍼를 전역 상태로 커밋 후 모드 종료
-  const handleCommitSegments = useCallback(() => {
-    tempSegments.forEach(tmp => segmentActs.addSegment(tmp.coordinates));
-    setTempSegments([]);
-    segmentActs.toggleSegmentMode();
-  }, [tempSegments, segmentActs]);
 
   // ── 파생 값 ─────────────────────────────────────────────────────────────
   const hasScore   = !!activeScore?.dataUrl;
@@ -721,10 +696,10 @@ export function ScoreViewer({ phase }) {
                   tempSegments={tempSegments}
                   isSelectingMode={isSelectingSegment}
                   selectedSegmentId={selectedSegmentId}
-                  onSegmentCreate={handleTempCreate}
+                  onSegmentCreate={segmentActs.addTempSegment}
                   onSegmentSelect={segmentActs.selectSegment}
                   onSegmentDelete={segmentActs.deleteSegment}
-                  onTempDelete={handleTempDelete}
+                  onTempDelete={segmentActs.deleteTempSegment}
                 />
 
                 {/* 악보 위 오버레이 버튼 */}
@@ -740,7 +715,7 @@ export function ScoreViewer({ phase }) {
                   ) : (
                     <>
                       <button
-                        onClick={handleCommitSegments}
+                        onClick={segmentActs.commitTempSegments}
                         className={[
                           'pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold border backdrop-blur-sm transition-all shadow-lg',
                           tempSegments.length > 0

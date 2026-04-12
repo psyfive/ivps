@@ -44,6 +44,7 @@ export const INITIAL_STATE = {
   // ─ 시각적 구간 선택 모드 ─
   isSelectingSegment: false,  // 캔버스 드래그 구간 생성 모드
   selectedSegmentId: null,    // 선택된 구간 ID
+  tempSegments: [],           // 미확정 구간 버퍼 [{id, coordinates, mappedSkills}]
 
   // ─ 현재 마디 (During Phase 연동) ─
   currentBar: null,           // number | null
@@ -108,6 +109,10 @@ export const ACTIONS = {
   DELETE_SEGMENT:          'DELETE_SEGMENT',
   MAP_SKILL_TO_SEGMENT:    'MAP_SKILL_TO_SEGMENT',
   UNMAP_SKILL_FROM_SEGMENT:'UNMAP_SKILL_FROM_SEGMENT',
+  // 임시 구간 버퍼 (드래그 완료 → 확정 전 대기)
+  ADD_TEMP_SEGMENT:        'ADD_TEMP_SEGMENT',
+  DELETE_TEMP_SEGMENT:     'DELETE_TEMP_SEGMENT',
+  COMMIT_TEMP_SEGMENTS:    'COMMIT_TEMP_SEGMENTS',
 
   // Sections (Before Phase 마디 매핑)
   ADD_SECTION:          'ADD_SECTION',
@@ -376,15 +381,25 @@ export function reducer(state, action) {
 
     // ── 시각적 구간 ───────────────────────────────────────────────────
     case ACTIONS.TOGGLE_SEGMENT_MODE:
-      return { ...state, isSelectingSegment: !state.isSelectingSegment, selectedSegmentId: null };
+      // 모드 종료 시 미확정 버퍼를 초기화 (확정 없이 취소)
+      return {
+        ...state,
+        isSelectingSegment: !state.isSelectingSegment,
+        selectedSegmentId: null,
+        tempSegments: state.isSelectingSegment ? [] : state.tempSegments,
+      };
 
     case ACTIONS.SELECT_SEGMENT:
       return { ...state, selectedSegmentId: action.segmentId };
 
     case ACTIONS.ADD_SEGMENT: {
+      // coordinates: 단일 rect 또는 rect[] — 항상 배열로 저장
+      const coordsArr = Array.isArray(action.coordinates)
+        ? action.coordinates
+        : [action.coordinates];
       const newSegment = {
         id: uid(),
-        coordinates: action.coordinates, // { x, y, width, height } — 0~1 상대 좌표
+        coordinates: coordsArr, // [{ x, y, width, height }, ...] — 0~1 상대 좌표
         measures: { start: null, end: null },
         mappedSkills: [],
       };
@@ -394,6 +409,46 @@ export function reducer(state, action) {
           segments: [...(s.segments ?? []), newSegment],
         })),
         selectedSegmentId: newSegment.id,
+      };
+    }
+
+    // ── 임시 구간 버퍼 ────────────────────────────────────────────────
+    case ACTIONS.ADD_TEMP_SEGMENT: {
+      const tmp = {
+        id: `tmp-${uid()}`,
+        coordinates: action.coordinates, // 단일 rect {x,y,width,height}
+        mappedSkills: [],
+      };
+      return { ...state, tempSegments: [...state.tempSegments, tmp] };
+    }
+
+    case ACTIONS.DELETE_TEMP_SEGMENT:
+      return {
+        ...state,
+        tempSegments: state.tempSegments.filter(s => s.id !== action.id),
+      };
+
+    case ACTIONS.COMMIT_TEMP_SEGMENTS: {
+      if (state.tempSegments.length === 0) {
+        // 버퍼가 비어있으면 모드만 종료
+        return { ...state, isSelectingSegment: false };
+      }
+      // 모든 임시 rect를 하나의 구간으로 합산
+      const allCoords = state.tempSegments.map(t => t.coordinates);
+      const newSeg = {
+        id: uid(),
+        coordinates: allCoords,
+        measures: { start: null, end: null },
+        mappedSkills: [],
+      };
+      return {
+        ...state,
+        tempSegments: [],
+        isSelectingSegment: false,
+        scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
+          segments: [...(s.segments ?? []), newSeg],
+        })),
+        selectedSegmentId: newSeg.id,
       };
     }
 
@@ -613,6 +668,15 @@ export function usePracticeSession() {
   const unmapSkillFromSegment = useCallback((segmentId, skillId) =>
     dispatch({ type: ACTIONS.UNMAP_SKILL_FROM_SEGMENT, segmentId, skillId }), []);
 
+  const addTempSegment = useCallback((coordinates) =>
+    dispatch({ type: ACTIONS.ADD_TEMP_SEGMENT, coordinates }), []);
+
+  const deleteTempSegment = useCallback((id) =>
+    dispatch({ type: ACTIONS.DELETE_TEMP_SEGMENT, id }), []);
+
+  const commitTempSegments = useCallback(() =>
+    dispatch({ type: ACTIONS.COMMIT_TEMP_SEGMENTS }), []);
+
   // ── Skill Cart 액션 ──────────────────────────────────────────────
   const addToCart = useCallback((skillId) =>
     dispatch({ type: ACTIONS.ADD_TO_CART, skillId }), []);
@@ -652,7 +716,7 @@ export function usePracticeSession() {
     score: { addScore, setActiveScore, deleteScore, renameScore, changePage },
     session: { addSession, deleteSession, selectSession, assignSkill, removeSkill, toggleCheck, openPicker, closePicker },
     cart: { addToCart, removeFromCart },
-    segment: { toggleSegmentMode, selectSegment, addSegment, deleteSegment, mapSkillToSegment, unmapSkillFromSegment },
+    segment: { toggleSegmentMode, selectSegment, addSegment, deleteSegment, mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment, commitTempSegments },
     before: { addSection, deleteSection, assignSectionSkill, setCurrentBar },
     metro: { setBpm, setMetroPlaying, setCurrentBeat },
     tuner: { setTunerActive, setTunerNote },

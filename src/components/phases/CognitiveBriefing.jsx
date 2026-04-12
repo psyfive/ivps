@@ -322,6 +322,7 @@ export function CognitiveBriefing() {
     skillCart,
     isSelectingSegment,
     selectedSegmentId,
+    tempSegments,
     nav,
     cart,
     segment: segmentActs,
@@ -430,9 +431,28 @@ export function CognitiveBriefing() {
                     <span className="font-mono text-[9px] text-[var(--ivps-text4)] ml-1">({segments.length})</span>
                   )}
                 </div>
-                <span className="text-[9.5px] text-[var(--ivps-text4)]">
-                  악보에서 드래그
-                </span>
+                {/* 구간 설정 토글 버튼 (ScoreViewer 오버레이와 동일 기능) */}
+                {!isSelectingSegment ? (
+                  <button
+                    onClick={segmentActs.toggleSegmentMode}
+                    className="flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-semibold transition-all bg-[rgba(155,127,200,.07)] border-[rgba(155,127,200,.3)] text-[#9b7fc8] hover:bg-[rgba(155,127,200,.15)]"
+                  >
+                    <span className="text-[11px] leading-none">＋</span>
+                    구간 설정
+                  </button>
+                ) : tempSegments.length > 0 ? (
+                  <button
+                    onClick={segmentActs.commitTempSegments}
+                    className="flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-semibold transition-all bg-[rgba(155,127,200,.2)] border-[rgba(155,127,200,.6)] text-[#c4a8ff] animate-pulse hover:animate-none hover:bg-[rgba(155,127,200,.3)]"
+                  >
+                    <span className="text-[11px] leading-none">✓</span>
+                    확정 {tempSegments.length}개
+                  </button>
+                ) : (
+                  <span className="text-[9.5px] text-[#9b7fc8] animate-pulse">
+                    그리는 중…
+                  </span>
+                )}
               </div>
 
               {segments.length === 0 ? (
@@ -444,7 +464,7 @@ export function CognitiveBriefing() {
                 ].join(' ')}>
                   {isSelectingSegment
                     ? '악보 위를 드래그하여 구간을 그리세요'
-                    : '하단의 "구간 추가"를 눌러 악보에서 구간을 드래그하세요'}
+                    : '"구간 설정" 버튼을 눌러 악보에서 구간을 드래그하세요'}
                 </div>
               ) : (
                 segments.map((seg, i) => (
