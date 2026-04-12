@@ -326,6 +326,7 @@ export function CognitiveBriefing() {
     nav,
     cart,
     segment: segmentActs,
+    ui,
   } = usePractice();
 
   const [tab, setTab] = useState('setup');
@@ -513,7 +514,7 @@ export function CognitiveBriefing() {
         {/* ── 하단 CTA ── */}
         <div className="px-5 pb-5 pt-3 flex-shrink-0">
           <button
-            onClick={() => nav.setPhase('during')}
+            onClick={() => { nav.setPhase('during'); ui.setPracticeFullscreen(true); }}
             className="w-full py-3 rounded-xl text-[#0d1117] font-semibold text-[13.5px] flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
             style={{ background: 'linear-gradient(135deg,#7ea890,#5a8070)' }}
           >

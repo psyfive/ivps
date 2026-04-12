@@ -53,6 +53,7 @@ export const INITIAL_STATE = {
 
   // ─ UI ─
   immersionMode: false,
+  practiceFullscreen: false, // During 진입 시 양 사이드 패널 접기
 };
 
 // ── 액션 타입 ──────────────────────────────────────────────────────────────
@@ -128,7 +129,8 @@ export const ACTIONS = {
   SET_CURRENT_BAR:   'SET_CURRENT_BAR',
 
   // UI
-  TOGGLE_IMMERSION:  'TOGGLE_IMMERSION',
+  TOGGLE_IMMERSION:       'TOGGLE_IMMERSION',
+  SET_PRACTICE_FULLSCREEN:'SET_PRACTICE_FULLSCREEN',
 };
 
 // ── 유틸 ───────────────────────────────────────────────────────────────────
@@ -153,7 +155,13 @@ export function reducer(state, action) {
       return { ...state, screen: action.screen, selectedSkillId: null };
 
     case ACTIONS.SET_PHASE:
-      return { ...state, phase: action.phase, activeSessionId: null };
+      return {
+        ...state,
+        phase: action.phase,
+        activeSessionId: null,
+        // During이 아닌 phase로 전환 시 fullscreen 자동 해제
+        practiceFullscreen: action.phase === 'during' ? state.practiceFullscreen : false,
+      };
 
     // ── 스킬 ────────────────────────────────────────────────────────
     case ACTIONS.SET_ACTIVE_SKILL:
@@ -615,6 +623,9 @@ export function reducer(state, action) {
     case ACTIONS.TOGGLE_IMMERSION:
       return { ...state, immersionMode: !state.immersionMode };
 
+    case ACTIONS.SET_PRACTICE_FULLSCREEN:
+      return { ...state, practiceFullscreen: action.value };
+
     default:
       return state;
   }
@@ -783,6 +794,9 @@ export function usePracticeSession() {
   const toggleImmersion = useCallback(() =>
     dispatch({ type: ACTIONS.TOGGLE_IMMERSION }), []);
 
+  const setPracticeFullscreen = useCallback((value) =>
+    dispatch({ type: ACTIONS.SET_PRACTICE_FULLSCREEN, value }), []);
+
   return {
     // 상태
     ...state,
@@ -805,7 +819,7 @@ export function usePracticeSession() {
     grape: { toggleGrape, resetGrapes, adjustGrapeTotal },
     settings: { setGrapeBpmIncrement },
     xp: { logXp },
-    ui: { toggleImmersion },
+    ui: { toggleImmersion, setPracticeFullscreen },
   };
 }
 

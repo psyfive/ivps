@@ -150,6 +150,7 @@ export function CockpitView() {
     activeScore,
     bpm,
     immersionMode,
+    practiceFullscreen,
     nav,
     ui,
   } = usePractice();
@@ -177,8 +178,12 @@ export function CockpitView() {
       <div className="flex flex-1 min-h-0 overflow-hidden">
 
         {/* ── 악보 영역 ── */}
-        <div className="relative flex flex-col overflow-hidden border-r border-[var(--ivps-border)]"
-          style={{ flex: '1.7' }}
+        <div
+          className={[
+            'relative flex flex-col overflow-hidden',
+            practiceFullscreen ? '' : 'border-r border-[var(--ivps-border)]',
+          ].join(' ')}
+          style={{ flex: practiceFullscreen ? '1' : '1.7' }}
         >
           {/* 스킬 없음 배너 */}
           {!activeSkill && (
@@ -187,12 +192,33 @@ export function CockpitView() {
 
           {/* ScoreViewer */}
           <ScoreViewer phase={phase} />
+
+          {/* 전체화면 중 패널 복귀 버튼 */}
+          {practiceFullscreen && (
+            <button
+              onClick={() => ui.setPracticeFullscreen(false)}
+              className={[
+                'absolute bottom-5 right-5 z-30',
+                'flex items-center gap-1.5 px-3 py-2 rounded-lg',
+                'text-[11.5px] font-semibold border backdrop-blur-sm shadow-lg',
+                'bg-[rgba(13,17,23,0.75)] border-[rgba(155,127,200,0.4)]',
+                'text-[#9b7fc8] hover:bg-[rgba(155,127,200,0.15)] hover:border-[rgba(155,127,200,0.65)]',
+                'transition-all',
+              ].join(' ')}
+              title="패널 열기"
+            >
+              <span className="text-[13px] leading-none">◧</span>
+              패널 열기
+            </button>
+          )}
         </div>
 
-        {/* ── Phase 패널 ── */}
-        <div className="flex flex-col overflow-hidden" style={{ flex: '1', minWidth: 0 }}>
-          <PhasePanel phase={phase} />
-        </div>
+        {/* ── Phase 패널 — 전체화면 시 숨김 ── */}
+        {!practiceFullscreen && (
+          <div className="flex flex-col overflow-hidden" style={{ flex: '1', minWidth: 0 }}>
+            <PhasePanel phase={phase} />
+          </div>
+        )}
 
       </div>
     </div>
