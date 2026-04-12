@@ -134,7 +134,7 @@ function SkillDragPreview({ skillId }) {
 // ════════════════════════════════════════════════════════════════════════════
 // 3. Droppable Segment Row (dnd-kit)
 // ════════════════════════════════════════════════════════════════════════════
-function DroppableSegmentRow({ segment, index, onDelete, onUnmap, isSelected, onSelect }) {
+function DroppableSegmentRow({ segment, index, onDelete, onUnmap, isSelected, onSelect, onSetMeta }) {
   const { isOver, setNodeRef } = useDroppable({ id: segment.id });
   const mappedSkills = segment.mappedSkills.map(id => getSkillById(id)).filter(Boolean);
 
@@ -198,6 +198,45 @@ function DroppableSegmentRow({ segment, index, onDelete, onUnmap, isSelected, on
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* 목표 메타 — 선택 시만 표시 */}
+      {isSelected && (
+        <div
+          className="flex items-center gap-2 mt-2 pt-2 border-t border-[rgba(212,168,67,.12)]"
+          onClick={e => e.stopPropagation()}
+          onPointerDown={e => e.stopPropagation()}
+        >
+          <span className="text-[9.5px] text-[var(--ivps-text4)] font-mono flex-shrink-0">목표</span>
+          <div className="flex items-center gap-1">
+            <span className="text-[9.5px] text-[var(--ivps-gold)]">♩</span>
+            <input
+              type="number"
+              min="20" max="240"
+              value={segment.targetBpm ?? ''}
+              placeholder="BPM"
+              className="w-14 px-1.5 py-0.5 rounded text-[10.5px] font-mono bg-[rgba(212,168,67,.06)] border border-[rgba(212,168,67,.2)] text-[var(--ivps-gold)] placeholder-[rgba(212,168,67,.3)] outline-none focus:border-[rgba(212,168,67,.5)] text-center"
+              onChange={e => {
+                const v = e.target.value === '' ? null : Number(e.target.value);
+                onSetMeta(segment.id, { targetBpm: v });
+              }}
+            />
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-[9.5px] text-[var(--ivps-text3)]">×</span>
+            <input
+              type="number"
+              min="1" max="100"
+              value={segment.targetReps ?? ''}
+              placeholder="회"
+              className="w-12 px-1.5 py-0.5 rounded text-[10.5px] font-mono bg-[rgba(155,127,200,.06)] border border-[rgba(155,127,200,.2)] text-[var(--ivps-plum)] placeholder-[rgba(155,127,200,.3)] outline-none focus:border-[rgba(155,127,200,.5)] text-center"
+              onChange={e => {
+                const v = e.target.value === '' ? null : Number(e.target.value);
+                onSetMeta(segment.id, { targetReps: v });
+              }}
+            />
+          </div>
         </div>
       )}
     </div>
@@ -477,6 +516,7 @@ export function CognitiveBriefing() {
                     onSelect={segmentActs.selectSegment}
                     onDelete={segmentActs.deleteSegment}
                     onUnmap={segmentActs.unmapSkillFromSegment}
+                    onSetMeta={segmentActs.setSegmentMeta}
                   />
                 ))
               )}

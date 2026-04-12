@@ -249,6 +249,19 @@ export function SegmentCanvas({
         ctx.textAlign    = 'left';
         ctx.fillText(`${globalIdx + 1}구간`, px + 4, py + 3);
 
+        // targetBpm 배지 — 설정된 경우만
+        if (seg.targetBpm) {
+          const bpmLabel = `♩${seg.targetBpm}`;
+          const BPM_W = bpmLabel.length * 6 + 10;
+          ctx.fillStyle = 'rgba(13,17,23,0.65)';
+          ctx.fillRect(px + BADGE_W + 2, py, BPM_W, BADGE_H);
+          ctx.fillStyle = '#d4a843';
+          ctx.font = 'bold 9px ui-monospace, monospace';
+          ctx.textBaseline = 'top';
+          ctx.textAlign    = 'left';
+          ctx.fillText(bpmLabel, px + BADGE_W + 6, py + 4);
+        }
+
         // 스킬 수 배지 — 첫 rect에만
         if (rectIdx === 0 && seg.mappedSkills.length > 0) {
           const label = `× ${seg.mappedSkills.length}스킬`;

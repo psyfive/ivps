@@ -114,6 +114,7 @@ export const ACTIONS = {
   DELETE_SEGMENT:          'DELETE_SEGMENT',
   DELETE_SEGMENT_COORD:    'DELETE_SEGMENT_COORD',
   UPDATE_SEGMENT_COORD:    'UPDATE_SEGMENT_COORD',
+  SET_SEGMENT_META:        'SET_SEGMENT_META',
   MAP_SKILL_TO_SEGMENT:    'MAP_SKILL_TO_SEGMENT',
   UNMAP_SKILL_FROM_SEGMENT:'UNMAP_SKILL_FROM_SEGMENT',
   // 임시 구간 버퍼 (드래그 완료 → 확정 전 대기)
@@ -509,6 +510,8 @@ export function reducer(state, action) {
         coordinates: allCoords,
         measures: { start: null, end: null },
         mappedSkills: [],
+        targetBpm: null,
+        targetReps: null,
       };
       return {
         ...state,
@@ -574,6 +577,24 @@ export function reducer(state, action) {
                   coordinates: seg.coordinates.map((c, i) =>
                     i === coordIndex ? { ...c, ...coord } : c
                   ),
+                }
+              : seg
+          ),
+        })),
+      };
+    }
+
+    case ACTIONS.SET_SEGMENT_META: {
+      const { segmentId, targetBpm, targetReps } = action;
+      return {
+        ...state,
+        scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
+          segments: (s.segments ?? []).map(seg =>
+            seg.id === segmentId
+              ? {
+                  ...seg,
+                  ...(targetBpm  !== undefined ? { targetBpm  } : {}),
+                  ...(targetReps !== undefined ? { targetReps } : {}),
                 }
               : seg
           ),
@@ -790,6 +811,9 @@ export function usePracticeSession() {
   const deleteSegmentCoord = useCallback((segmentId, coordIndex) =>
     dispatch({ type: ACTIONS.DELETE_SEGMENT_COORD, segmentId, coordIndex }), []);
 
+  const setSegmentMeta = useCallback((segmentId, meta) =>
+    dispatch({ type: ACTIONS.SET_SEGMENT_META, segmentId, ...meta }), []);
+
   const startAddToSegment = useCallback((segmentId) =>
     dispatch({ type: ACTIONS.START_ADD_TO_SEGMENT, segmentId }), []);
 
@@ -853,7 +877,7 @@ export function usePracticeSession() {
     score: { addScore, setActiveScore, deleteScore, renameScore, changePage },
     session: { addSession, deleteSession, selectSession, assignSkill, removeSkill, toggleCheck, openPicker, closePicker },
     cart: { addToCart, removeFromCart },
-    segment: { toggleSegmentMode, startAddToSegment, selectSegment, addSegment, deleteSegment, deleteSegmentCoord, updateSegmentCoord, mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment, commitTempSegments },
+    segment: { toggleSegmentMode, startAddToSegment, selectSegment, addSegment, deleteSegment, deleteSegmentCoord, setSegmentMeta, updateSegmentCoord, mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment, commitTempSegments },
     before: { addSection, deleteSection, assignSectionSkill, setCurrentBar },
     metro: { setBpm, setMetroPlaying, setCurrentBeat },
     tuner: { setTunerActive, setTunerNote },

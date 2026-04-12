@@ -5,7 +5,7 @@
 // after 배열이 여러 개일 때 케이스 탭 전환.
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useCallback } from 'react';
-import { getCategoryMeta, SKILL_GROUPS, getXpPercent } from '../../data/taxonomy';
+import { getCategoryMeta, SKILL_GROUPS, getXpPercent, getPrerequisites, getSynergies } from '../../data/taxonomy';
 
 // ── PhaseBlock ─────────────────────────────────────────────────────────────
 function PhaseBlock({ label, dotColor, children }) {
@@ -211,6 +211,75 @@ export function SkillDetailModal({ skill, onClose, onStartPractice }) {
               </div>
             )}
           </PhaseBlock>
+
+          {/* 스킬 연결망 섹션 */}
+          {(() => {
+            const prereqs = getPrerequisites(skill.id);
+            const syners  = getSynergies(skill.id);
+            if (prereqs.length === 0 && syners.length === 0) return null;
+
+            return (
+              <div
+                className="rounded-[10px] p-4 mb-3.5 border"
+                style={{ background: 'rgba(107,144,184,0.05)', borderColor: 'rgba(107,144,184,0.18)' }}
+              >
+                <div
+                  className="text-[10.5px] font-semibold uppercase tracking-[.07em] mb-3 flex items-center gap-1.5"
+                  style={{ color: '#6b90b8' }}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-[#6b90b8]" />
+                  스킬 연결망
+                </div>
+
+                {prereqs.length > 0 && (
+                  <div className="mb-3">
+                    <div className="text-[9.5px] text-[var(--ivps-text4)] uppercase tracking-[.06em] mb-2">
+                      선행 스킬 — 먼저 익혀두면 좋아요
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {prereqs.map(sk => {
+                        const m = getCategoryMeta(sk.id);
+                        return (
+                          <div
+                            key={sk.id}
+                            className="flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[10.5px]"
+                            style={{ background: `${m.color}0d`, borderColor: `${m.color}28`, color: m.color }}
+                          >
+                            <span className="font-mono text-[9.5px]">{sk.id}</span>
+                            <span className="text-[var(--ivps-text2)]">{sk.name}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {syners.length > 0 && (
+                  <div>
+                    <div className="text-[9.5px] text-[var(--ivps-text4)] uppercase tracking-[.06em] mb-2">
+                      시너지 스킬 — 함께 연습하면 효과적
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {syners.map(sk => {
+                        const m = getCategoryMeta(sk.id);
+                        return (
+                          <div
+                            key={sk.id}
+                            className="flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[10.5px]"
+                            style={{ background: `${m.color}0d`, borderColor: `${m.color}35`, color: m.color }}
+                          >
+                            <span className="font-mono text-[9.5px]">{sk.id}</span>
+                            <span className="text-[var(--ivps-text2)]">{sk.name}</span>
+                            <span style={{ fontSize: 9, opacity: 0.6 }}>⟷</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
         </div>
 

@@ -9,6 +9,8 @@ import { categoryD } from './categoryD';
 import { CATEGORY_META, SKILL_GROUPS } from './constants';
 export { CATEGORY_META, SKILL_GROUPS };
 
+import { PREREQUISITES, SYNERGIES } from './connections';
+
 export const TAXONOMY = [
   ...categoryA,
   ...categoryB,
@@ -48,3 +50,13 @@ export function getXpPercent(skill) {
 
 /** 모든 카테고리 목록 (필터용) */
 export const ALL_CATEGORIES = ['전체', ...Object.keys(CATEGORY_META)];
+
+/** 선행 스킬 ID 목록 반환 */
+export function getPrerequisites(skillId) {
+  return (PREREQUISITES[skillId] ?? []).map(id => getSkillById(id)).filter(Boolean);
+}
+
+/** 시너지 스킬 ID 목록 반환 */
+export function getSynergies(skillId) {
+  return (SYNERGIES[skillId] ?? []).map(id => getSkillById(id)).filter(Boolean);
+}

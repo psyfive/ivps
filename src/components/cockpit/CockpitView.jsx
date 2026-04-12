@@ -23,6 +23,7 @@ import { ScoreViewer } from '../score/ScoreViewer';
 import { CognitiveBriefing } from '../phases/CognitiveBriefing';
 import { PracticeHUD } from '../phases/PracticeHUD';
 import { DiagnosticInterface } from '../phases/DiagnosticInterface';
+import { DuringMiniControls } from '../phases/DuringMiniControls';
 
 // ── 위상(Phase) 메타 ──────────────────────────────────────────────────────
 const PHASES = [
@@ -347,17 +348,13 @@ export function CockpitView() {
           {/* ScoreViewer */}
           <ScoreViewer phase={phase} />
 
-          {/* 전체화면 During: 구간 선택 시 플로팅 HUD 카드 */}
-          {practiceFullscreen && phase === 'during' && selectedSegment && (
-            <FloatingSegmentHUD
-              segment={selectedSegment}
-              segmentIndex={selectedSegmentIndex}
-              onClose={() => segmentActs.selectSegment(null)}
-            />
+          {/* 전체화면 During: 하단 미니 컨트롤 바 */}
+          {practiceFullscreen && phase === 'during' && (
+            <DuringMiniControls onOpenPanel={() => ui.setPracticeFullscreen(false)} />
           )}
 
-          {/* 전체화면 중 패널 복귀 버튼 */}
-          {practiceFullscreen && (
+          {/* 전체화면 중 패널 복귀 버튼 — During 이외 페이즈 */}
+          {practiceFullscreen && phase !== 'during' && (
             <button
               onClick={() => ui.setPracticeFullscreen(false)}
               className={[
