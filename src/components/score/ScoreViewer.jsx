@@ -818,31 +818,22 @@ export function ScoreViewer({ phase }) {
               />
             )}
 
-            {/* After 단계: 세션만 표시 (클릭 가능, 드래그 불가) */}
-            {isAfter && sessions.length > 0 && (
-              <div className="absolute inset-0">
-                {sessions.map((sess, idx) => {
-                  const { x, y, w, h } = sess.rect;
-                  const isActive = sess.id === activeSessionId;
-                  return (
-                    <div
-                      key={sess.id}
-                      className={[
-                        'absolute rounded-sm cursor-pointer border transition-all',
-                        isActive
-                          ? 'border-[rgba(126,168,144,0.85)] bg-[rgba(126,168,144,0.18)]'
-                          : 'border-[rgba(126,168,144,0.45)] bg-[rgba(126,168,144,0.08)] hover:bg-[rgba(126,168,144,0.15)]',
-                      ].join(' ')}
-                      style={{ left: `${x}%`, top: `${y}%`, width: `${w}%`, height: `${h}%` }}
-                      onClick={() => sessionActs.selectSession(sess.id)}
-                    >
-                      <div className="absolute -top-3.5 -left-1 text-[9px] font-mono bg-[rgba(126,168,144,0.9)] text-[#0d1117] px-1 rounded">
-                        {idx + 1}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+            {/* After 단계: 구간 외곽선 + 클릭 선택 (읽기 전용, segments 기준) */}
+            {isAfter && segments.length > 0 && (
+              <SegmentCanvas
+                segments={segments}
+                tempSegments={[]}
+                isSelectingMode={false}
+                selectedSegmentId={selectedSegmentId}
+                currentPageIndex={activeScore?.currentPageIndex ?? 0}
+                onSegmentCreate={() => {}}
+                onSegmentSelect={segmentActs.selectSegment}
+                onSegmentDelete={() => {}}
+                onSegmentCoordDelete={() => {}}
+                onTempDelete={() => {}}
+                onSegmentUpdate={() => {}}
+                readOnly
+              />
             )}
 
             {/* PDF 페이지네이션 */}
