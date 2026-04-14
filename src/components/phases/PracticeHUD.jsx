@@ -143,7 +143,7 @@ function SelectSegmentGuide({ segments, selectedSegmentId, onSelect }) {
 }
 
 // ── 메인 PracticeHUD ──────────────────────────────────────────────────────
-export function PracticeHUD() {
+export function PracticeHUD({ onOpenAfterSheet }) {
   const { activeScore, activeSkill, selectedSegmentId, bpm, nav, ui, segment: segmentActs } = usePractice();
 
   const segments = activeScore?.segments ?? [];
@@ -380,7 +380,7 @@ export function PracticeHUD() {
       {/* 하단 CTA */}
       <div className="px-5 pb-5 flex-shrink-0">
         <button
-          onClick={() => nav.setPhase('after')}
+          onClick={() => onOpenAfterSheet ? onOpenAfterSheet() : nav.setPhase('after')}
           className="w-full py-3 rounded-xl text-[#0d1117] font-semibold text-[13.5px] flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
           style={{ background: 'linear-gradient(135deg,#9b7fc8,#7b5fa8)' }}
         >

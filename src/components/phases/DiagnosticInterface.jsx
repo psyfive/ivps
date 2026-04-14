@@ -508,3 +508,87 @@ export function DiagnosticInterface() {
     </div>
   );
 }
+
+// ── DiagnosticContent — AfterBottomSheet 재사용용 ─────────────────────────
+// 현재 선택된 세션의 스킬별 진단(증상/원인/처방) + 통계 + XP 기록.
+// 스크롤 래퍼 없이 컨텐츠만 렌더링 — 호출 측에서 스크롤 컨테이너 제공.
+export function DiagnosticContent() {
+  const {
+    activeSession,
+    activeScore,
+    selectedSegmentId,
+    session: sessionActs,
+  } = usePractice();
+
+  const session = activeSession;
+
+  if (!session) {
+    return (
+      <div className="flex flex-col items-center justify-center py-10 gap-3 text-center">
+        <div className="text-[32px] opacity-20">🔍</div>
+        <div className="text-[12px] text-[var(--ivps-text3)] leading-relaxed">
+          악보에서 구간을 선택하면<br />진단/처방을 확인할 수 있습니다.
+        </div>
+      </div>
+    );
+  }
+
+  const sessionSkills = (session.skills ?? [])
+    .map(id => getSkillById(id))
+    .filter(Boolean);
+  const checks = session.checks ?? [];
+
+  return (
+    <>
+      {sessionSkills.length === 0 ? (
+        <div className="text-center py-8 text-[12px] text-[var(--ivps-text4)]">
+          이 세션에 할당된 스킬이 없습니다.
+        </div>
+      ) : (
+        <div className="flex flex-col gap-6">
+          {sessionSkills.map((sk, idx) => (
+            <div key={sk.id}>
+              {idx > 0 && <div className="h-px bg-[var(--ivps-surface2)] mb-6" />}
+              <SkillDiagPanel
+                skill={sk}
+                sessionId={session.id}
+                checks={checks}
+                onToggleCheck={sessionActs.toggleCheck}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-2.5 mt-5">
+        {[
+          { label: '완성 체크', value: `${session.checks?.length ?? 0}`, color: '#9b7fc8' },
+          { label: '할당 스킬', value: `${session.skills?.length ?? 0}개`, color: '#d4a843' },
+        ].map(({ label, value, color }) => (
+          <div
+            key={label}
+            className="bg-[var(--ivps-surface)] rounded-lg p-3 border border-[var(--ivps-border)]"
+          >
+            <div className="text-[9.5px] text-[var(--ivps-text3)] uppercase tracking-[.07em] mb-1.5">
+              {label}
+            </div>
+            <div className="font-mono text-[22px] font-semibold leading-none" style={{ color }}>
+              {value}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {sessionSkills.length > 0 && (
+        <div className="mt-4">
+          <XpLogger
+            sessionId={session.id}
+            skills={session.skills}
+            scoreId={activeScore?.id ?? null}
+            segmentId={selectedSegmentId}
+          />
+        </div>
+      )}
+    </>
+  );
+}

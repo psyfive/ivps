@@ -24,6 +24,8 @@ import { CognitiveBriefing } from '../phases/CognitiveBriefing';
 import { PracticeHUD } from '../phases/PracticeHUD';
 import { DiagnosticInterface } from '../phases/DiagnosticInterface';
 import { DuringMiniControls } from '../phases/DuringMiniControls';
+import { AfterBottomSheet } from './AfterBottomSheet';
+import { FloatingDiagHandle } from './FloatingDiagHandle';
 
 // ── 위상(Phase) 메타 ──────────────────────────────────────────────────────
 const PHASES = [
@@ -93,11 +95,11 @@ function TopBar({ skill, score, phase, bpm, onBack, onPhaseChange }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // PhasePanel — 우측 Phase 컴포넌트 래퍼
 // ─────────────────────────────────────────────────────────────────────────────
-function PhasePanel({ phase }) {
+function PhasePanel({ phase, onOpenAfterSheet }) {
   return (
     <div className="flex flex-col h-full overflow-hidden bg-[var(--ivps-bg)]">
       {phase === 'before' && <CognitiveBriefing />}
-      {phase === 'during' && <PracticeHUD />}
+      {phase === 'during' && <PracticeHUD onOpenAfterSheet={onOpenAfterSheet} />}
       {phase === 'after'  && <DiagnosticInterface />}
     </div>
   );
@@ -292,6 +294,19 @@ export function CockpitView() {
 
   const handleBack = useCallback(() => nav.navigate('library'), [nav]);
 
+  const [afterSheetOpen, setAfterSheetOpen] = useState(false);
+
+  // During Phase 이탈 시 시트 자동 닫기
+  useEffect(() => {
+    if (phase !== 'during') setAfterSheetOpen(false);
+  }, [phase]);
+
+  // 비전체화면에서 CTA 클릭 시 전체화면 전환 + 시트 열기
+  const handleOpenAfterSheet = useCallback(() => {
+    ui.setPracticeFullscreen(true);
+    setAfterSheetOpen(true);
+  }, [ui]);
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
 
@@ -328,6 +343,22 @@ export function CockpitView() {
             <DuringMiniControls onOpenPanel={() => ui.setPracticeFullscreen(false)} />
           )}
 
+          {/* During 전체화면: 플로팅 진단 핸들 (시트 닫혀있을 때만 표시) */}
+          {practiceFullscreen && phase === 'during' && !afterSheetOpen && (
+            <FloatingDiagHandle
+              onClick={() => setAfterSheetOpen(true)}
+              skillLabel={selectedSegment?.mappedSkills?.[0] ?? null}
+            />
+          )}
+
+          {/* During 전체화면: After Bottom Sheet 오버레이 */}
+          {practiceFullscreen && phase === 'during' && (
+            <AfterBottomSheet
+              isOpen={afterSheetOpen}
+              onClose={() => setAfterSheetOpen(false)}
+            />
+          )}
+
           {/* 전체화면 중 패널 복귀 버튼 — During 이외 페이즈 */}
           {practiceFullscreen && phase !== 'during' && (
             <button
@@ -351,7 +382,7 @@ export function CockpitView() {
         {/* ── Phase 패널 — 전체화면 시 숨김 ── */}
         {!practiceFullscreen && (
           <div className="flex flex-col overflow-hidden" style={{ flex: '1', minWidth: 0 }}>
-            <PhasePanel phase={phase} />
+            <PhasePanel phase={phase} onOpenAfterSheet={handleOpenAfterSheet} />
           </div>
         )}
 
