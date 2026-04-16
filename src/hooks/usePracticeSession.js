@@ -108,6 +108,7 @@ export const ACTIONS = {
   REMOVE_FROM_CART:  'REMOVE_FROM_CART',
 
   // 시각적 구간 (Before Phase 드래그 매핑)
+  TOGGLE_SEGMENT_CHECK:    'TOGGLE_SEGMENT_CHECK',
   TOGGLE_SEGMENT_MODE:     'TOGGLE_SEGMENT_MODE',
   START_ADD_TO_SEGMENT:    'START_ADD_TO_SEGMENT',
   SELECT_SEGMENT:          'SELECT_SEGMENT',
@@ -446,6 +447,25 @@ export function reducer(state, action) {
     }
 
     // ── 시각적 구간 ───────────────────────────────────────────────────
+    case ACTIONS.TOGGLE_SEGMENT_CHECK: {
+      return {
+        ...state,
+        scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
+          segments: (s.segments ?? []).map(seg => {
+            if (seg.id !== action.segmentId) return seg;
+            const checks = seg.checks ?? [];
+            const idx = checks.indexOf(action.key);
+            return {
+              ...seg,
+              checks: idx >= 0
+                ? checks.filter(k => k !== action.key)
+                : [...checks, action.key],
+            };
+          }),
+        })),
+      };
+    }
+
     case ACTIONS.TOGGLE_SEGMENT_MODE:
       // 모드 종료 시 미확정 버퍼를 초기화 (확정 없이 취소)
       return {
@@ -478,6 +498,7 @@ export function reducer(state, action) {
         coordinates: coordsArr, // [{ x, y, width, height }, ...] — 0~1 상대 좌표
         measures: { start: null, end: null },
         mappedSkills: [],
+        checks: [],
       };
       return {
         ...state,
@@ -546,6 +567,7 @@ export function reducer(state, action) {
         coordinates: allCoords,
         measures: { start: null, end: null },
         mappedSkills: [],
+        checks: [],
         targetBpm: null,
         targetReps: null,
         pageIndex: activeScoreForSeg?.currentPageIndex ?? 0,
@@ -736,6 +758,7 @@ export function usePracticeSession() {
   const activeSkill = getSkillById(state.activeSkillId);
   const selectedSkill = getSkillById(state.selectedSkillId);
   const activeSession = activeScore?.sessions.find(s => s.id === state.activeSessionId) ?? null;
+  const selectedSegment = activeScore?.segments?.find(s => s.id === state.selectedSegmentId) ?? null;
   const currentSection = getSectionByBar(activeScore?.sections, state.currentBar);
 
   // ── 네비게이션 액션 ────────────────────────────────────────────────
@@ -836,6 +859,9 @@ export function usePracticeSession() {
     dispatch({ type: ACTIONS.LOG_XP, skillId, result, scoreId, segmentId }), []);
 
   // ── 시각적 구간 액션 ─────────────────────────────────────────────
+  const toggleSegmentCheck = useCallback((segmentId, key) =>
+    dispatch({ type: ACTIONS.TOGGLE_SEGMENT_CHECK, segmentId, key }), []);
+
   const toggleSegmentMode = useCallback(() =>
     dispatch({ type: ACTIONS.TOGGLE_SEGMENT_MODE }), []);
 
@@ -909,6 +935,7 @@ export function usePracticeSession() {
     activeSkill,
     selectedSkill,
     activeSession,
+    selectedSegment,
     currentSection,
 
     // 액션 (그룹화)
@@ -917,7 +944,7 @@ export function usePracticeSession() {
     score: { addScore, setActiveScore, deleteScore, renameScore, changePage, setPage },
     session: { addSession, deleteSession, selectSession, assignSkill, removeSkill, toggleCheck, openPicker, closePicker },
     cart: { addToCart, removeFromCart },
-    segment: { toggleSegmentMode, startAddToSegment, selectSegment, addSegment, deleteSegment, deleteSegmentCoord, setSegmentMeta, updateSegmentCoord, mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment, commitTempSegments },
+    segment: { toggleSegmentCheck, toggleSegmentMode, startAddToSegment, selectSegment, addSegment, deleteSegment, deleteSegmentCoord, setSegmentMeta, updateSegmentCoord, mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment, commitTempSegments },
     before: { addSection, deleteSection, assignSectionSkill, setCurrentBar },
     metro: { setBpm, setMetroPlaying, setCurrentBeat },
     tuner: { setTunerActive, setTunerNote },

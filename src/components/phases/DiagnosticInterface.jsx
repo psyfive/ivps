@@ -2,7 +2,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Phase 3 — AFTER
 // 연습 후 자가 진단 인터페이스.
-// 세션 클릭 → 해당 세션 스킬의 증상/원인/처방 표시 + 체크리스트.
+// 선택된 구간(segment)의 mappedSkills 기반으로 증상/원인/처방 표시 + 체크리스트.
 // XP 결과 기록.
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useCallback } from 'react';
@@ -62,14 +62,13 @@ function CheckItem({ text, checked, onToggle }) {
 }
 
 // ── 단일 스킬 진단 패널 ────────────────────────────────────────────────────
-function SkillDiagPanel({ skill, sessionId, checks, onToggleCheck }) {
+function SkillDiagPanel({ skill, segmentId, checks, onToggleCheck }) {
   const [activeDiagIdx, setActiveDiagIdx] = useState(0);
   const catMeta = getCategoryMeta(skill.id);
 
   const afterArr = Array.isArray(skill.after) ? skill.after : [skill.after];
   const activeDiag = afterArr[activeDiagIdx] ?? afterArr[0];
 
-  // 체크리스트 키 = during 항목 인덱스
   const checkKeys = skill.during.map((_, i) => `during_${i}`);
   const checkedCount = checkKeys.filter(k => checks.includes(k)).length;
   const total = checkKeys.length;
@@ -100,9 +99,7 @@ function SkillDiagPanel({ skill, sessionId, checks, onToggleCheck }) {
             <span className="text-[10px] text-[var(--ivps-text3)] uppercase tracking-[.07em] font-semibold">
               During 체크리스트
             </span>
-            <div
-              className="h-1 rounded-full overflow-hidden w-20 bg-[var(--ivps-surface2)]"
-            >
+            <div className="h-1 rounded-full overflow-hidden w-20 bg-[var(--ivps-surface2)]">
               <div
                 className="h-full rounded-full transition-all duration-300"
                 style={{
@@ -118,14 +115,14 @@ function SkillDiagPanel({ skill, sessionId, checks, onToggleCheck }) {
                 key={i}
                 text={item}
                 checked={checks.includes(checkKeys[i])}
-                onToggle={() => onToggleCheck(sessionId, checkKeys[i])}
+                onToggle={() => onToggleCheck(segmentId, checkKeys[i])}
               />
             ))}
           </div>
         </div>
       </div>
 
-      {/* 진단 케이스 탭 (여러 개일 때) */}
+      {/* 진단 케이스 탭 */}
       {afterArr.length > 1 && (
         <div className="flex gap-1.5 mb-3 flex-wrap">
           {afterArr.map((_, i) => (
@@ -159,7 +156,7 @@ function SkillDiagPanel({ skill, sessionId, checks, onToggleCheck }) {
               color: allOk ? '#7ea890' : '#e07070',
             }}
           >
-            {allOk ? '✓ 체크 완료 — 잘 되고 있습니다!' : `⚠ 트러블슈팅`}
+            {allOk ? '✓ 체크 완료 — 잘 되고 있습니다!' : '⚠ 트러블슈팅'}
           </div>
           <div className="grid grid-cols-3 gap-2 p-2.5">
             <DiagCell label="증상" color="#e07070" value={activeDiag.symptom} />
@@ -188,7 +185,7 @@ function SkillDiagPanel({ skill, sessionId, checks, onToggleCheck }) {
 }
 
 // ── XP 결과 기록 ──────────────────────────────────────────────────────────
-function XpLogger({ sessionId, skills, scoreId, segmentId }) {
+function XpLogger({ skills, scoreId, segmentId }) {
   const { xp, nav } = usePractice();
   const [logged, setLogged] = useState(false);
 
@@ -207,10 +204,7 @@ function XpLogger({ sessionId, skills, scoreId, segmentId }) {
   return (
     <div
       className="rounded-xl border p-4"
-      style={{
-        background: 'rgba(212,168,67,.05)',
-        borderColor: 'rgba(212,168,67,.18)',
-      }}
+      style={{ background: 'rgba(212,168,67,.05)', borderColor: 'rgba(212,168,67,.18)' }}
     >
       <div className="text-[10.5px] text-[var(--ivps-gold)] font-semibold uppercase tracking-[.07em] mb-3 flex items-center gap-1.5">
         🏆 연습 결과 기록
@@ -228,11 +222,7 @@ function XpLogger({ sessionId, skills, scoreId, segmentId }) {
               'py-2.5 rounded-lg text-[11.5px] font-medium border transition-all',
               logged ? 'opacity-40 cursor-default' : 'hover:scale-[1.02]',
             ].join(' ')}
-            style={{
-              background: `${color}12`,
-              borderColor: `${color}30`,
-              color,
-            }}
+            style={{ background: `${color}12`, borderColor: `${color}30`, color }}
           >
             {label}
             <div className="text-[9px] opacity-70 mt-0.5">+{xpVal} XP</div>
@@ -257,36 +247,33 @@ function XpLogger({ sessionId, skills, scoreId, segmentId }) {
 export function DiagnosticInterface() {
   const {
     activeSkill,
-    activeSession,
     activeScore,
     selectedSegmentId,
-    session: sessionActs,
+    selectedSegment,
+    segment: segmentActs,
     nav,
   } = usePractice();
 
-  // 선택된 세션이 있으면 그걸 우선, 없으면 activeSkill로 단독 진단
-  const sessions = activeScore?.sessions ?? [];
-  const session  = activeSession;
+  const segments = activeScore?.segments ?? [];
+  const segmentIndex = segments.findIndex(s => s.id === selectedSegmentId);
 
-  // 세션의 스킬들
-  const sessionSkills = (session?.skills ?? [])
+  const segmentSkills = (selectedSegment?.mappedSkills ?? [])
     .map(id => getSkillById(id))
     .filter(Boolean);
 
-  // 세션도 없고 activeSkill도 없는 경우
-  const hasContent = session || activeSkill;
+  const hasContent = selectedSegment || activeSkill;
 
   if (!hasContent) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4 px-8 text-center">
         <div className="text-[38px] opacity-20">🔍</div>
         <div className="text-[13px] text-[var(--ivps-text3)] leading-relaxed">
-          악보 위의 빨간 구간을 클릭하면<br />해당 세션의 자가 평가를 할 수 있어요.
-          {sessions.length === 0 && (
+          During 단계에서 구간을 선택하면<br />해당 구간의 자가 평가를 할 수 있어요.
+          {segments.length === 0 && (
             <>
               <br />
               <span className="text-[11px] text-[var(--ivps-text4)]">
-                During 탭에서 구간을 먼저 설정하세요.
+                Before 탭에서 구간을 먼저 설정하세요.
               </span>
             </>
           )}
@@ -301,39 +288,31 @@ export function DiagnosticInterface() {
     );
   }
 
-  // ── 세션 선택 시 세션 기반 진단 ─────────────────────────────────────
-  if (session) {
-    const checks = session.checks ?? [];
+  // ── 구간 선택 시: segment 기반 진단 ────────────────────────────────
+  if (selectedSegment) {
+    const checks = selectedSegment.checks ?? [];
 
     return (
       <div className="flex flex-col h-full overflow-hidden">
-        {/* 세션 헤더 */}
+        {/* 구간 헤더 */}
         <div className="px-5 pt-4 pb-3 flex-shrink-0 border-b border-[var(--ivps-border)]">
           <div className="flex items-center justify-between">
             <div className="text-[10.5px] text-[var(--ivps-text3)] uppercase tracking-[.07em] font-semibold">
-              ✓ 자가 평가
+              ✓ 자가 평가 · {segmentIndex + 1}구간
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => nav.setPhase('during')}
-                className="text-[10px] text-[var(--ivps-text3)] hover:text-[var(--ivps-text2)] transition-colors"
-              >
-                ← 다시 연습
-              </button>
-              <button
-                onClick={() => sessionActs.deleteSession(session.id)}
-                className="text-[10px] text-[var(--ivps-rust)] hover:underline transition-colors"
-              >
-                세션 삭제
-              </button>
-            </div>
+            <button
+              onClick={() => nav.setPhase('during')}
+              className="text-[10px] text-[var(--ivps-text3)] hover:text-[var(--ivps-text2)] transition-colors"
+            >
+              ← 다시 연습
+            </button>
           </div>
-          {/* 할당 스킬 태그 */}
+          {/* 매핑 스킬 태그 */}
           <div className="flex gap-1.5 flex-wrap mt-2">
-            {sessionSkills.length === 0 ? (
+            {segmentSkills.length === 0 ? (
               <span className="text-[11px] text-[var(--ivps-text4)]">스킬 없음</span>
             ) : (
-              sessionSkills.map(sk => {
+              segmentSkills.map(sk => {
                 const meta = getCategoryMeta(sk.id);
                 return (
                   <span
@@ -351,21 +330,21 @@ export function DiagnosticInterface() {
 
         {/* 스크롤 본문 */}
         <div className="flex-1 overflow-y-auto px-5 py-4">
-          {/* 스킬별 진단 패널 */}
-          {sessionSkills.length === 0 ? (
+          {segmentSkills.length === 0 ? (
             <div className="text-center py-8 text-[12px] text-[var(--ivps-text4)]">
-              이 세션에 할당된 스킬이 없습니다.
+              이 구간에 매핑된 스킬이 없습니다.<br />
+              <span className="text-[11px]">Before 탭에서 구간에 스킬을 매핑하세요.</span>
             </div>
           ) : (
             <div className="flex flex-col gap-6">
-              {sessionSkills.map((sk, idx) => (
+              {segmentSkills.map((sk, idx) => (
                 <div key={sk.id}>
                   {idx > 0 && <div className="h-px bg-[var(--ivps-surface2)] mb-6" />}
                   <SkillDiagPanel
                     skill={sk}
-                    sessionId={session.id}
+                    segmentId={selectedSegment.id}
                     checks={checks}
-                    onToggleCheck={sessionActs.toggleCheck}
+                    onToggleCheck={segmentActs.toggleSegmentCheck}
                   />
                 </div>
               ))}
@@ -375,25 +354,14 @@ export function DiagnosticInterface() {
           {/* 통계 요약 */}
           <div className="grid grid-cols-2 gap-2.5 mt-5">
             {[
-              {
-                label: '완성 체크',
-                value: `${session.checks?.length ?? 0}`,
-                color: '#9b7fc8',
-              },
-              {
-                label: '할당 스킬',
-                value: `${session.skills?.length ?? 0}개`,
-                color: '#d4a843',
-              },
+              { label: '완성 체크', value: `${checks.length}`, color: '#9b7fc8' },
+              { label: '매핑 스킬', value: `${selectedSegment.mappedSkills?.length ?? 0}개`, color: '#d4a843' },
             ].map(({ label, value, color }) => (
               <div key={label} className="bg-[var(--ivps-surface)] rounded-lg p-3 border border-[var(--ivps-border)]">
                 <div className="text-[9.5px] text-[var(--ivps-text3)] uppercase tracking-[.07em] mb-1.5">
                   {label}
                 </div>
-                <div
-                  className="font-mono text-[22px] font-semibold leading-none"
-                  style={{ color }}
-                >
+                <div className="font-mono text-[22px] font-semibold leading-none" style={{ color }}>
                   {value}
                 </div>
               </div>
@@ -401,11 +369,10 @@ export function DiagnosticInterface() {
           </div>
 
           {/* XP 기록 */}
-          {sessionSkills.length > 0 && (
+          {segmentSkills.length > 0 && (
             <div className="mt-4">
               <XpLogger
-                sessionId={session.id}
-                skills={session.skills}
+                skills={selectedSegment.mappedSkills}
                 scoreId={activeScore?.id ?? null}
                 segmentId={selectedSegmentId}
               />
@@ -416,8 +383,8 @@ export function DiagnosticInterface() {
     );
   }
 
-  // ── 세션 없음: activeSkill 단독 진단 ──────────────────────────────────
-  const skill  = activeSkill;
+  // ── 구간 없음: activeSkill 단독 진단 ──────────────────────────────────
+  const skill = activeSkill;
   const diagArr = Array.isArray(skill.after) ? skill.after : [skill.after];
   const [activeDiagIdx, setActiveDiagIdx] = useState(0);
   const activeDiag = diagArr[activeDiagIdx];
@@ -431,8 +398,6 @@ export function DiagnosticInterface() {
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 pb-5">
-
-        {/* 스킬 헤더 */}
         <div className="flex items-center gap-2 mb-4">
           <span
             className="font-mono text-[10px] px-1.5 py-0.5 rounded"
@@ -448,7 +413,6 @@ export function DiagnosticInterface() {
           </span>
         </div>
 
-        {/* 케이스 탭 */}
         {diagArr.length > 1 && (
           <div className="flex gap-1.5 mb-3">
             {diagArr.map((_, i) => (
@@ -468,7 +432,6 @@ export function DiagnosticInterface() {
           </div>
         )}
 
-        {/* 진단 그리드 */}
         {activeDiag && (
           <div
             className="rounded-xl border overflow-hidden mb-4"
@@ -476,10 +439,7 @@ export function DiagnosticInterface() {
           >
             <div
               className="px-3 py-2 border-b text-[10.5px] font-semibold text-[var(--ivps-rust)]"
-              style={{
-                background: 'rgba(224,112,112,.06)',
-                borderColor: 'rgba(224,112,112,.15)',
-              }}
+              style={{ background: 'rgba(224,112,112,.06)', borderColor: 'rgba(224,112,112,.15)' }}
             >
               ⚠ 트러블슈팅
             </div>
@@ -491,7 +451,6 @@ export function DiagnosticInterface() {
           </div>
         )}
 
-        {/* 처방 강조 */}
         {activeDiag?.prescription && (
           <div className="flex items-start gap-2.5 px-3.5 py-3 rounded-xl bg-[rgba(212,168,67,.06)] border border-[rgba(212,168,67,.15)] mb-4">
             <span className="text-[14px] flex-shrink-0">💊</span>
@@ -502,58 +461,53 @@ export function DiagnosticInterface() {
           </div>
         )}
 
-        {/* XP 기록 */}
-        <XpLogger sessionId={null} skills={[skill.id]} />
+        <XpLogger skills={[skill.id]} scoreId={null} segmentId={null} />
       </div>
     </div>
   );
 }
 
 // ── DiagnosticContent — AfterBottomSheet 재사용용 ─────────────────────────
-// 현재 선택된 세션의 스킬별 진단(증상/원인/처방) + 통계 + XP 기록.
-// 스크롤 래퍼 없이 컨텐츠만 렌더링 — 호출 측에서 스크롤 컨테이너 제공.
 export function DiagnosticContent() {
   const {
-    activeSession,
     activeScore,
     selectedSegmentId,
-    session: sessionActs,
+    selectedSegment,
+    segment: segmentActs,
   } = usePractice();
 
-  const session = activeSession;
-
-  if (!session) {
+  if (!selectedSegment) {
     return (
       <div className="flex flex-col items-center justify-center py-10 gap-3 text-center">
         <div className="text-[32px] opacity-20">🔍</div>
         <div className="text-[12px] text-[var(--ivps-text3)] leading-relaxed">
-          악보에서 구간을 선택하면<br />진단/처방을 확인할 수 있습니다.
+          During 단계에서 구간을 선택하면<br />진단/처방을 확인할 수 있습니다.
         </div>
       </div>
     );
   }
 
-  const sessionSkills = (session.skills ?? [])
+  const segmentSkills = (selectedSegment.mappedSkills ?? [])
     .map(id => getSkillById(id))
     .filter(Boolean);
-  const checks = session.checks ?? [];
+  const checks = selectedSegment.checks ?? [];
 
   return (
     <>
-      {sessionSkills.length === 0 ? (
+      {segmentSkills.length === 0 ? (
         <div className="text-center py-8 text-[12px] text-[var(--ivps-text4)]">
-          이 세션에 할당된 스킬이 없습니다.
+          이 구간에 매핑된 스킬이 없습니다.
         </div>
       ) : (
         <div className="flex flex-col gap-6">
-          {sessionSkills.map((sk, idx) => (
+          {segmentSkills.map((sk, idx) => (
             <div key={sk.id}>
               {idx > 0 && <div className="h-px bg-[var(--ivps-surface2)] mb-6" />}
               <SkillDiagPanel
                 skill={sk}
-                sessionId={session.id}
+                segmentId={selectedSegment.id}
                 checks={checks}
-                onToggleCheck={sessionActs.toggleCheck}
+                onToggleCheck={segmentActs.toggleSegmentCheck}
               />
             </div>
           ))}
@@ -562,28 +516,20 @@ export function DiagnosticContent() {
 
       <div className="grid grid-cols-2 gap-2.5 mt-5">
         {[
-          { label: '완성 체크', value: `${session.checks?.length ?? 0}`, color: '#9b7fc8' },
-          { label: '할당 스킬', value: `${session.skills?.length ?? 0}개`, color: '#d4a843' },
+          { label: '완성 체크', value: `${checks.length}`, color: '#9b7fc8' },
+          { label: '매핑 스킬', value: `${selectedSegment.mappedSkills?.length ?? 0}개`, color: '#d4a843' },
         ].map(({ label, value, color }) => (
-          <div
-            key={label}
-            className="bg-[var(--ivps-surface)] rounded-lg p-3 border border-[var(--ivps-border)]"
-          >
-            <div className="text-[9.5px] text-[var(--ivps-text3)] uppercase tracking-[.07em] mb-1.5">
-              {label}
-            </div>
-            <div className="font-mono text-[22px] font-semibold leading-none" style={{ color }}>
-              {value}
-            </div>
+          <div key={label} className="bg-[var(--ivps-surface)] rounded-lg p-3 border border-[var(--ivps-border)]">
+            <div className="text-[9.5px] text-[var(--ivps-text3)] uppercase tracking-[.07em] mb-1.5">{label}</div>
+            <div className="font-mono text-[22px] font-semibold leading-none" style={{ color }}>{value}</div>
           </div>
         ))}
       </div>
 
-      {sessionSkills.length > 0 && (
+      {segmentSkills.length > 0 && (
         <div className="mt-4">
           <XpLogger
-            sessionId={session.id}
-            skills={session.skills}
+            skills={selectedSegment.mappedSkills}
             scoreId={activeScore?.id ?? null}
             segmentId={selectedSegmentId}
           />
