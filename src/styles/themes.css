@@ -433,10 +433,6 @@ input[type="range"] {
 ══════════════════════════════════════════════════════════════════════════════ */
 
 .ivps-theme-toggle {
-  position: fixed;
-  bottom: 16px;
-  left: 16px;
-  z-index: 900;
   display: flex;
   align-items: center;
   gap: 7px;

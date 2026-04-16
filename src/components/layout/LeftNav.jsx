@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { usePractice } from '../../context/PracticeContext';
+import { ThemeToggle } from './ThemeToggle';
 
 const NAV_ITEMS = [
   { id: 'dashboard', icon: '📊', label: '대시보드' },
@@ -63,6 +64,14 @@ function SettingsPanel({ onClose }) {
             0으로 설정하면 BPM이 변경되지 않습니다.
           </div>
         )}
+      </div>
+
+      {/* 설정 항목: 테마 */}
+      <div className="px-3.5 py-3 border-t border-[var(--ivps-border)]">
+        <div className="text-[10px] text-[var(--ivps-text3)] mb-2 leading-tight">
+          🎨 화면 테마
+        </div>
+        <ThemeToggle />
       </div>
     </div>
   );
