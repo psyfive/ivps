@@ -73,6 +73,7 @@ export const ACTIONS = {
   DELETE_SCORE:      'DELETE_SCORE',
   RENAME_SCORE:      'RENAME_SCORE',
   CHANGE_PAGE:       'CHANGE_PAGE',
+  SET_PAGE:          'SET_PAGE',
 
   // 세션
   ADD_SESSION:       'ADD_SESSION',
@@ -243,6 +244,35 @@ export function reducer(state, action) {
       // 현재 페이지 sessions 저장 후 새 페이지로 전환
       // segments는 score 레벨 — pageIndex 필드로 페이지 구분, 페이지 전환 시 보존
       // isSelectingSegment / tempSegments도 유지 — 크로스 페이지 구간 설정 허용
+      const updatedPageData = score.pageData.map((p, i) =>
+        i === score.currentPageIndex
+          ? { ...p, sessions: score.sessions, dataUrl: score.dataUrl }
+          : p
+      );
+      const newPage = updatedPageData[newIdx];
+
+      return {
+        ...state,
+        scores: state.scores.map(s =>
+          s.id === state.activeScoreId
+            ? {
+                ...s,
+                currentPageIndex: newIdx,
+                pageData: updatedPageData,
+                sessions: newPage.sessions ?? [],
+                dataUrl: newPage.dataUrl,
+              }
+            : s
+        ),
+      };
+    }
+
+    case ACTIONS.SET_PAGE: {
+      const score = getActiveScore(state);
+      if (!score?.pageData) return state;
+      const newIdx = action.pageIndex;
+      if (newIdx < 0 || newIdx >= score.pageData.length || newIdx === score.currentPageIndex) return state;
+
       const updatedPageData = score.pageData.map((p, i) =>
         i === score.currentPageIndex
           ? { ...p, sessions: score.sessions, dataUrl: score.dataUrl }
@@ -505,6 +535,7 @@ export function reducer(state, action) {
       }
 
       // 신규 구간 생성 (기본 동작)
+      const activeScoreForSeg = getActiveScore(state);
       const newSeg = {
         id: uid(),
         coordinates: allCoords,
@@ -512,6 +543,7 @@ export function reducer(state, action) {
         mappedSkills: [],
         targetBpm: null,
         targetReps: null,
+        pageIndex: activeScoreForSeg?.currentPageIndex ?? 0,
       };
       return {
         ...state,
@@ -736,6 +768,9 @@ export function usePracticeSession() {
   const changePage = useCallback((direction) =>
     dispatch({ type: ACTIONS.CHANGE_PAGE, direction }), []);
 
+  const setPage = useCallback((pageIndex) =>
+    dispatch({ type: ACTIONS.SET_PAGE, pageIndex }), []);
+
   // ── 세션 액션 ─────────────────────────────────────────────────────
   const addSession = useCallback((rect) =>
     dispatch({ type: ACTIONS.ADD_SESSION, rect }), []);
@@ -874,7 +909,7 @@ export function usePracticeSession() {
     // 액션 (그룹화)
     nav: { navigate, setPhase, goSkillPractice },
     skill: { openSkillModal, closeSkillModal, setFilterCategory },
-    score: { addScore, setActiveScore, deleteScore, renameScore, changePage },
+    score: { addScore, setActiveScore, deleteScore, renameScore, changePage, setPage },
     session: { addSession, deleteSession, selectSession, assignSkill, removeSkill, toggleCheck, openPicker, closePicker },
     cart: { addToCart, removeFromCart },
     segment: { toggleSegmentMode, startAddToSegment, selectSegment, addSegment, deleteSegment, deleteSegmentCoord, setSegmentMeta, updateSegmentCoord, mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment, commitTempSegments },

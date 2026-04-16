@@ -144,7 +144,7 @@ function SelectSegmentGuide({ segments, selectedSegmentId, onSelect }) {
 
 // ── 메인 PracticeHUD ──────────────────────────────────────────────────────
 export function PracticeHUD({ onOpenAfterSheet }) {
-  const { activeScore, activeSkill, selectedSegmentId, bpm, nav, ui, segment: segmentActs } = usePractice();
+  const { activeScore, activeSkill, selectedSegmentId, bpm, nav, ui, score: scoreActs, segment: segmentActs } = usePractice();
 
   const segments = activeScore?.segments ?? [];
   const selectedSegment = segments.find(s => s.id === selectedSegmentId) ?? null;
@@ -219,7 +219,13 @@ export function PracticeHUD({ onOpenAfterSheet }) {
         <SelectSegmentGuide
           segments={segments}
           selectedSegmentId={selectedSegmentId}
-          onSelect={segmentActs.selectSegment}
+          onSelect={(id) => {
+            segmentActs.selectSegment(id);
+            const seg = segments.find(s => s.id === id);
+            if (seg?.pageIndex != null && seg.pageIndex !== activeScore?.currentPageIndex) {
+              scoreActs.setPage(seg.pageIndex);
+            }
+          }}
         />
       </div>
     );
@@ -238,7 +244,12 @@ export function PracticeHUD({ onOpenAfterSheet }) {
           {segments.map((seg, idx) => (
             <button
               key={seg.id}
-              onClick={() => segmentActs.selectSegment(seg.id)}
+              onClick={() => {
+                segmentActs.selectSegment(seg.id);
+                if (seg.pageIndex != null && seg.pageIndex !== activeScore?.currentPageIndex) {
+                  scoreActs.setPage(seg.pageIndex);
+                }
+              }}
               className={[
                 'px-2.5 py-1 rounded-lg text-[11px] font-mono font-semibold border transition-all',
                 seg.id === selectedSegmentId

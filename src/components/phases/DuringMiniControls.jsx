@@ -52,6 +52,7 @@ export function DuringMiniControls({ onOpenPanel }) {
     selectedSegmentId,
     metro,
     grape,
+    score: scoreActs,
     segment: segmentActs,
   } = usePractice();
 
@@ -72,18 +73,38 @@ export function DuringMiniControls({ onOpenPanel }) {
     return () => clearInterval(timerRef.current);
   }, [selectedSegmentId]); // 구간 바뀌면 리셋
 
+  // ── BPM 직접 입력 ─────────────────────────────────────────────────
+  const [bpmInput, setBpmInput] = useState(String(bpm));
+  useEffect(() => { setBpmInput(String(bpm)); }, [bpm]);
+
+  const commitBpm = useCallback(() => {
+    const v = Number(bpmInput);
+    if (!isNaN(v) && v >= 20 && v <= 240) metro.setBpm(v);
+    else setBpmInput(String(bpm));
+  }, [bpmInput, bpm, metro]);
+
   // ── BPM 조정 ─────────────────────────────────────────────────────
   const incBpm = useCallback(() => metro.setBpm(Math.min(240, bpm + 5)), [metro, bpm]);
   const decBpm = useCallback(() => metro.setBpm(Math.max(20,  bpm - 5)), [metro, bpm]);
 
-  // ── 구간 이동 ────────────────────────────────────────────────────
+  // ── 구간 이동 (페이지 자동 점프 포함) ───────────────────────────────
   const goPrev = useCallback(() => {
-    if (hasPrev) segmentActs.selectSegment(segments[selIdx - 1].id);
-  }, [hasPrev, selIdx, segments, segmentActs]);
+    if (!hasPrev) return;
+    const target = segments[selIdx - 1];
+    segmentActs.selectSegment(target.id);
+    if (target.pageIndex != null && target.pageIndex !== activeScore?.currentPageIndex) {
+      scoreActs.setPage(target.pageIndex);
+    }
+  }, [hasPrev, selIdx, segments, segmentActs, scoreActs, activeScore]);
 
   const goNext = useCallback(() => {
-    if (hasNext) segmentActs.selectSegment(segments[selIdx + 1].id);
-  }, [hasNext, selIdx, segments, segmentActs]);
+    if (!hasNext) return;
+    const target = segments[selIdx + 1];
+    segmentActs.selectSegment(target.id);
+    if (target.pageIndex != null && target.pageIndex !== activeScore?.currentPageIndex) {
+      scoreActs.setPage(target.pageIndex);
+    }
+  }, [hasNext, selIdx, segments, segmentActs, scoreActs, activeScore]);
 
   return (
     <div
@@ -105,7 +126,7 @@ export function DuringMiniControls({ onOpenPanel }) {
       <div className="flex items-center gap-1">
         <MiniBtn onClick={decBpm} title="BPM -5">–5</MiniBtn>
         <div
-          className="flex items-center gap-1.5 px-3 h-[34px] rounded-lg border font-mono text-[12px] font-bold"
+          className="flex items-center gap-1.5 px-2 h-[34px] rounded-lg border font-mono text-[12px] font-bold"
           style={{
             background: 'rgba(212,168,67,.08)',
             borderColor: 'rgba(212,168,67,.25)',
@@ -115,9 +136,20 @@ export function DuringMiniControls({ onOpenPanel }) {
           }}
         >
           <span style={{ fontSize: 10, opacity: 0.7 }}>♩</span>
-          {bpm}
+          <input
+            type="number"
+            min="20"
+            max="240"
+            value={bpmInput}
+            onChange={e => setBpmInput(e.target.value)}
+            onBlur={commitBpm}
+            onKeyDown={e => { if (e.key === 'Enter') { commitBpm(); e.target.blur(); } }}
+            onFocus={e => e.target.select()}
+            className="font-mono font-bold text-[12px] bg-transparent border-none outline-none text-center"
+            style={{ color: '#d4a843', width: 36, appearance: 'textfield', MozAppearance: 'textfield' }}
+          />
           {targetBpm && bpm < targetBpm && (
-            <span style={{ fontSize: 8, opacity: 0.5, marginLeft: 2 }}>/{targetBpm}</span>
+            <span style={{ fontSize: 8, opacity: 0.5 }}>/{targetBpm}</span>
           )}
         </div>
         <MiniBtn onClick={incBpm} title="BPM +5" accent>+5</MiniBtn>
@@ -127,13 +159,19 @@ export function DuringMiniControls({ onOpenPanel }) {
 
       {/* ── 포도 체크 ── */}
       <div className="flex items-center gap-1.5">
-        <div
-          className="flex items-center gap-1 px-2.5 h-[34px] rounded-lg border font-mono text-[11px]"
+        <button
+          onClick={() => { if (grapeFilled < grapeTotal) grape.toggleGrape(grapeFilled); }}
+          disabled={grapeFilled >= grapeTotal}
+          title={grapeFilled < grapeTotal ? `포도 +1 (${grapeFilled + 1}/${grapeTotal})` : '모두 완료'}
+          className="flex items-center gap-1 px-2.5 h-[34px] rounded-lg border font-mono text-[11px] transition-colors"
           style={{
             background: 'rgba(155,127,200,.07)',
             borderColor: 'rgba(155,127,200,.2)',
             color: '#9b7fc8',
+            cursor: grapeFilled < grapeTotal ? 'pointer' : 'default',
           }}
+          onMouseEnter={e => { if (grapeFilled < grapeTotal) e.currentTarget.style.background = 'rgba(155,127,200,.18)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(155,127,200,.07)'; }}
         >
           <span style={{ fontSize: 12 }}>🍇</span>
           <span className="font-bold">{grapeFilled}</span>
@@ -141,7 +179,7 @@ export function DuringMiniControls({ onOpenPanel }) {
           {targetReps && (
             <span style={{ opacity: 0.4, fontSize: 9 }}> (목표 {targetReps})</span>
           )}
-        </div>
+        </button>
         <MiniBtn onClick={grape.resetGrapes} title="포도 초기화">↺</MiniBtn>
       </div>
 

@@ -3,7 +3,7 @@
 // useMetronome / useTuner 훅을 사용하는 리팩터링 버전.
 // AudioContext 로직이 훅으로 이동되어 이 파일은 순수 UI만 담당.
 // ─────────────────────────────────────────────────────────────────────────────
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { usePractice } from '../../context/PracticeContext';
 import { useMetronome } from '../../hooks/useMetronome';
 import { useTuner, centsColor, VIOLIN_OPEN_STRINGS } from '../../hooks/useTuner';
@@ -26,6 +26,15 @@ function UtilCard({ icon, title, children }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function Metronome() {
   const { bpm, beatsPerBar, metroPlaying, currentBeat, metro } = usePractice();
+
+  const [bpmInput, setBpmInput] = useState(String(bpm));
+  useEffect(() => { setBpmInput(String(bpm)); }, [bpm]);
+
+  const commitBpm = useCallback(() => {
+    const v = Number(bpmInput);
+    if (!isNaN(v) && v >= 20 && v <= 240) metro.setBpm(v);
+    else setBpmInput(String(bpm));
+  }, [bpmInput, bpm, metro]);
 
   // 훅 연결 — 비트 tick 시 Context에 현재 박자 저장
   useMetronome({
@@ -59,9 +68,18 @@ function Metronome() {
 
       {/* BPM 디스플레이 */}
       <div className="text-center mb-3">
-        <div className="font-serif text-[34px] font-bold text-[var(--ivps-text1)] leading-none">
-          {bpm}
-        </div>
+        <input
+          type="number"
+          min="20"
+          max="240"
+          value={bpmInput}
+          onChange={e => setBpmInput(e.target.value)}
+          onBlur={commitBpm}
+          onKeyDown={e => { if (e.key === 'Enter') { commitBpm(); e.target.blur(); } }}
+          onFocus={e => e.target.select()}
+          className="font-serif text-[34px] font-bold text-[var(--ivps-text1)] leading-none bg-transparent border-none outline-none text-center w-full"
+          style={{ appearance: 'textfield', MozAppearance: 'textfield' }}
+        />
         <div className="font-mono text-[10px] text-[var(--ivps-text3)] mt-0.5">BPM</div>
       </div>
 
