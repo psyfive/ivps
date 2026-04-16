@@ -42,6 +42,13 @@ function Sep() {
   return <div className="w-px h-4 bg-[rgba(255,255,255,.08)] flex-shrink-0" />;
 }
 
+// ── 구간의 가장 빠른 페이지 인덱스 ────────────────────────────────────────
+function getSegmentMinPage(seg) {
+  if (!seg) return 0;
+  const pages = (seg.coordinates ?? []).map(c => c.pageIndex).filter(p => p != null);
+  return pages.length > 0 ? Math.min(...pages) : (seg.pageIndex ?? 0);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 export function DuringMiniControls({ onOpenPanel }) {
   const {
@@ -92,8 +99,9 @@ export function DuringMiniControls({ onOpenPanel }) {
     if (!hasPrev) return;
     const target = segments[selIdx - 1];
     segmentActs.selectSegment(target.id);
-    if (target.pageIndex != null && target.pageIndex !== activeScore?.currentPageIndex) {
-      scoreActs.setPage(target.pageIndex);
+    const targetPage = getSegmentMinPage(target);
+    if (targetPage !== activeScore?.currentPageIndex) {
+      scoreActs.setPage(targetPage);
     }
   }, [hasPrev, selIdx, segments, segmentActs, scoreActs, activeScore]);
 
@@ -101,8 +109,9 @@ export function DuringMiniControls({ onOpenPanel }) {
     if (!hasNext) return;
     const target = segments[selIdx + 1];
     segmentActs.selectSegment(target.id);
-    if (target.pageIndex != null && target.pageIndex !== activeScore?.currentPageIndex) {
-      scoreActs.setPage(target.pageIndex);
+    const targetPage = getSegmentMinPage(target);
+    if (targetPage !== activeScore?.currentPageIndex) {
+      scoreActs.setPage(targetPage);
     }
   }, [hasNext, selIdx, segments, segmentActs, scoreActs, activeScore]);
 

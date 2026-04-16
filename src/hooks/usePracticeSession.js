@@ -490,9 +490,14 @@ export function reducer(state, action) {
 
     // ── 임시 구간 버퍼 ────────────────────────────────────────────────
     case ACTIONS.ADD_TEMP_SEGMENT: {
+      const activeScoreForTemp = getActiveScore(state);
+      const coordWithPage = {
+        ...action.coordinates,
+        pageIndex: activeScoreForTemp?.currentPageIndex ?? 0,
+      };
       const tmp = {
         id: `tmp-${uid()}`,
-        coordinates: action.coordinates, // 단일 rect {x,y,width,height}
+        coordinates: coordWithPage,
         mappedSkills: [],
       };
       return { ...state, tempSegments: [...state.tempSegments, tmp] };

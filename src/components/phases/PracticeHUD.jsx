@@ -222,8 +222,12 @@ export function PracticeHUD({ onOpenAfterSheet }) {
           onSelect={(id) => {
             segmentActs.selectSegment(id);
             const seg = segments.find(s => s.id === id);
-            if (seg?.pageIndex != null && seg.pageIndex !== activeScore?.currentPageIndex) {
-              scoreActs.setPage(seg.pageIndex);
+            if (seg) {
+              const pages = (seg.coordinates ?? []).map(c => c.pageIndex).filter(p => p != null);
+              const targetPage = pages.length > 0 ? Math.min(...pages) : (seg.pageIndex ?? 0);
+              if (targetPage !== activeScore?.currentPageIndex) {
+                scoreActs.setPage(targetPage);
+              }
             }
           }}
         />
@@ -246,8 +250,10 @@ export function PracticeHUD({ onOpenAfterSheet }) {
               key={seg.id}
               onClick={() => {
                 segmentActs.selectSegment(seg.id);
-                if (seg.pageIndex != null && seg.pageIndex !== activeScore?.currentPageIndex) {
-                  scoreActs.setPage(seg.pageIndex);
+                const pages = (seg.coordinates ?? []).map(c => c.pageIndex).filter(p => p != null);
+                const targetPage = pages.length > 0 ? Math.min(...pages) : (seg.pageIndex ?? 0);
+                if (targetPage !== activeScore?.currentPageIndex) {
+                  scoreActs.setPage(targetPage);
                 }
               }}
               className={[
