@@ -664,6 +664,7 @@ export function ScoreViewer({ phase }) {
                   onSegmentCoordDelete={segmentActs.deleteSegmentCoord}
                   onTempDelete={segmentActs.deleteTempSegment}
                   onSegmentUpdate={segmentActs.updateSegmentCoord}
+                  phase="before"
                 />
 
                 {/* 악보 위 오버레이 버튼 */}
@@ -754,6 +755,7 @@ export function ScoreViewer({ phase }) {
                   onTempDelete={() => {}}
                   onSegmentUpdate={() => {}}
                   readOnly
+                  phase="during"
                 />
               </>
             )}
@@ -783,6 +785,7 @@ export function ScoreViewer({ phase }) {
                 onTempDelete={() => {}}
                 onSegmentUpdate={() => {}}
                 readOnly
+                phase="after"
               />
             )}
 

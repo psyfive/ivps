@@ -14,10 +14,15 @@
 import { useRef, useEffect, useCallback } from 'react';
 
 const PALETTE = {
-  unmapped: { fill: 'rgba(155,127,200,0.15)', stroke: '#9b7fc8', text: '#9b7fc8' },
-  mapped:   { fill: 'rgba(126,168,144,0.22)', stroke: '#7ea890', text: '#7ea890' },
-  selected: { fill: 'rgba(212,168,67,0.15)',  stroke: '#d4a843', text: '#d4a843' },
-  pending:  { fill: 'rgba(155,127,200,0.07)', stroke: '#9b7fc8', text: '#9b7fc8' },
+  // Before / After 공통
+  unmapped:  { fill: 'rgba(155,127,200,0.15)', stroke: '#9b7fc8',               text: '#9b7fc8'               },
+  mapped:    { fill: 'rgba(126,168,144,0.22)', stroke: '#7ea890',               text: '#7ea890'               },
+  selected:  { fill: 'rgba(59,130,246,0.18)',  stroke: '#3B82F6',               text: '#3B82F6'               }, // Blue — Affordance
+  // During 전용
+  practice:  { fill: 'rgba(16,185,129,0.17)',  stroke: '#10B981',               text: '#10B981'               }, // Mint Green — Reduced Load
+  faint:     { fill: 'rgba(255,255,255,0.04)', stroke: 'rgba(255,255,255,0.2)', text: 'rgba(255,255,255,0.35)' }, // 비선택 구간 — 존재만 표시
+  // 공통
+  pending:   { fill: 'rgba(155,127,200,0.07)', stroke: '#9b7fc8',               text: '#9b7fc8'               },
 };
 
 const HANDLE_SIZE = 7;   // 핸들 그리기 크기 (px)
@@ -25,8 +30,13 @@ const HANDLE_HIT  = 12;  // 핸들 클릭 감지 반경 (px)
 const MIN_W = 0.03;
 const MIN_H = 0.02;
 
-function segColor(seg, isSelected) {
-  if (isSelected) return PALETTE.selected;
+function segColor(seg, isSelected, phase) {
+  if (phase === 'during') {
+    if (isSelected) return PALETTE.practice; // Mint Green — 연습 집중, 악보 가리지 않음
+    return PALETTE.faint;                    // 비선택 구간 — 위치만 표시
+  }
+  // Before / After
+  if (isSelected) return PALETTE.selected;  // Blue — "선택됨" 즉각 인지
   return seg.mappedSkills.length > 0 ? PALETTE.mapped : PALETTE.unmapped;
 }
 
@@ -148,6 +158,7 @@ export function SegmentCanvas({
   onSegmentUpdate,       // (segmentId, coordIndex, {x,y,width,height}) => void — 구간 이동/크기조정
   onSegmentCoordDelete,  // (segmentId, coordIndex) => void — 특정 좌표만 삭제
   readOnly,              // bool — 삭제/편집 UI 숨김, 선택만 허용
+  phase = 'before',      // 'before' | 'during' | 'after' — 색상 팔레트 선택
 }) {
   const containerRef    = useRef(null);
   const canvasRef       = useRef(null);
@@ -177,6 +188,9 @@ export function SegmentCanvas({
   useEffect(() => { onCoordDeleteRef.current = onSegmentCoordDelete; }, [onSegmentCoordDelete]);
   useEffect(() => { onTempDelRef.current     = onTempDelete; },          [onTempDelete]);
   useEffect(() => { onUpdateRef.current      = onSegmentUpdate; },       [onSegmentUpdate]);
+
+  const phaseRef = useRef(phase);
+  useEffect(() => { phaseRef.current = phase; }, [phase]);
 
   const dragRef     = useRef(null); // 신규 박스 드래그
   const editDragRef = useRef(null); // 기존 구간 이동/크기조정 드래그
@@ -209,6 +223,7 @@ export function SegmentCanvas({
     const curPage = pageIdxRef.current;
     const editDrag  = editDragRef.current;
     const isReadOnly = readOnlyRef.current;
+    const curPhase   = phaseRef.current;
 
     ctx.save();
     ctx.scale(dpr, dpr);
@@ -223,7 +238,7 @@ export function SegmentCanvas({
       if (pageRects.length === 0) return;
 
       const isSelected = seg.id === selId;
-      const col = segColor(seg, isSelected);
+      const col = segColor(seg, isSelected, curPhase);
 
       pageRects.forEach(({ x, y, width: rw, height: rh, coordIndex }, rectIdx) => {
         // 편집 드래그 중이면 해당 coordIndex의 previewCoord 사용
