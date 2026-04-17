@@ -50,6 +50,27 @@ function drawRect(ctx, px, py, pw, ph, col, dashed, lineWidth) {
   ctx.setLineDash([]);
 }
 
+// During phase 비선택 구간 — 「 」 코너 브라켓만 그리기
+function drawCornerBrackets(ctx, px, py, pw, ph) {
+  const arm = Math.min(pw, ph) * 0.22; // 코너 길이: 짧은 변의 22%
+  const lw  = 2;
+  ctx.strokeStyle = 'rgba(255,255,255,0.52)';
+  ctx.lineWidth   = lw;
+  ctx.setLineDash([]);
+  ctx.lineCap     = 'square';
+
+  ctx.beginPath();
+  // 「 — 좌상단
+  ctx.moveTo(px,        py + arm);
+  ctx.lineTo(px,        py);
+  ctx.lineTo(px + arm,  py);
+  // 」 — 우하단
+  ctx.moveTo(px + pw - arm, py + ph);
+  ctx.lineTo(px + pw,       py + ph);
+  ctx.lineTo(px + pw,       py + ph - arm);
+  ctx.stroke();
+}
+
 // 선택된 구간의 8개 크기조정 핸들 그리기
 function drawHandles(ctx, px, py, pw, ph, col) {
   const HS = HANDLE_SIZE;
@@ -252,9 +273,16 @@ export function SegmentCanvas({
 
         const px = drawX * W, py = drawY * H, pw = drawW * W, ph = drawH * H;
 
-        drawRect(ctx, px, py, pw, ph, col, false, isSelected ? 2.5 : 1.5);
+        const isFaint = (col === PALETTE.faint);
+        if (isFaint) {
+          // During 비선택 구간: 「 」 코너 브라켓만 — 채움/전체 외곽선 없음
+          drawCornerBrackets(ctx, px, py, pw, ph);
+        } else {
+          drawRect(ctx, px, py, pw, ph, col, false, isSelected ? 2.5 : 1.5);
+        }
 
-        // 구간 번호 배지
+        // 구간 번호 배지 — faint 구간은 생략 (시인성 우선)
+        if (isFaint) return;
         const BADGE_W = 36, BADGE_H = 17;
         ctx.fillStyle = 'rgba(13,17,23,0.65)';
         ctx.fillRect(px, py, BADGE_W, BADGE_H);

@@ -733,15 +733,9 @@ export function ScoreViewer({ phase }) {
               </>
             )}
 
-            {/* During 단계: Eye-Anchor 오버레이 + 구간 선택 캔버스 */}
+            {/* During 단계: 구간 선택 캔버스 (EyeAnchorOverlay 제거 — TopHUD로 대체) */}
             {isDuring && segments.length > 0 && (
               <>
-                {/* Eye-Anchor: 스킬 체크포인트 잔상 (SegmentCanvas 아래 레이어) */}
-                <EyeAnchorOverlay
-                  segments={segments}
-                  selectedSegmentId={selectedSegmentId}
-                  currentPageIndex={activeScore?.currentPageIndex ?? 0}
-                />
                 {/* 구간 외곽선 + 클릭 선택 (읽기 전용) */}
                 <SegmentCanvas
                   segments={segments}
