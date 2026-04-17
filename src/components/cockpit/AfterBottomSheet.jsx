@@ -55,16 +55,15 @@ export function AfterBottomSheet({ isOpen, onClose }) {
       {/* ── Bottom Sheet ── */}
       <div
         ref={sheetRef}
-        className="relative flex flex-col"
+        className="relative flex flex-col bg-[var(--ivps-surface)]"
         style={{
           maxHeight: '62vh',
           minHeight: '42vh',
-          background: 'rgba(13,17,23,0.87)',
           backdropFilter: 'blur(18px)',
           WebkitBackdropFilter: 'blur(18px)',
-          borderTop: '1px solid rgba(155,127,200,0.28)',
+          borderTop: '1px solid var(--ivps-plum-border)',
           borderRadius: '20px 20px 0 0',
-          boxShadow: '0 -4px 32px rgba(0,0,0,0.30)',
+          boxShadow: '0 -4px 32px rgba(0,0,0,0.18)',
           transform: isOpen ? 'translateY(0)' : 'translateY(100%)',
           transition: 'transform 300ms cubic-bezier(0.16,1,0.3,1)',
         }}
@@ -81,29 +80,17 @@ export function AfterBottomSheet({ isOpen, onClose }) {
           onMouseMove={onDragMove}
           onMouseUp={onDragEnd}
         >
-          <div
-            className="w-10 h-1 rounded-full"
-            style={{ background: 'rgba(155,127,200,0.38)' }}
-          />
+          <div className="w-10 h-1 rounded-full bg-[var(--ivps-plum-border)]" />
         </div>
 
         {/* ── 헤더 ── */}
-        <div
-          className="flex-shrink-0 flex items-center justify-between px-5 py-2"
-          style={{ borderBottom: '1px solid rgba(155,127,200,0.13)' }}
-        >
-          <span
-            className="text-[11px] font-semibold uppercase tracking-[.08em]"
-            style={{ color: 'rgba(155,127,200,0.85)' }}
-          >
+        <div className="flex-shrink-0 flex items-center justify-between px-5 py-2 border-b border-[var(--ivps-border)]">
+          <span className="text-[11px] font-semibold uppercase tracking-[.08em] text-[var(--ivps-plum)]">
             진단 · 처방
           </span>
           <button
             onClick={onClose}
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-[17px] transition-colors"
-            style={{ color: 'var(--ivps-text4)' }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-[17px] text-[var(--ivps-text4)] hover:bg-[var(--ivps-surface2)] transition-colors"
           >
             ×
           </button>

@@ -319,48 +319,6 @@ function SessionLayer({ sessions, activeSessionId, onAdd, onSelect, onOpenPicker
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ScoreToolbar
-// ─────────────────────────────────────────────────────────────────────────────
-
-function ScoreToolbar({ score, onReplace, onRename, onDelete }) {
-  return (
-    <div className="h-9 flex items-center gap-2 px-3.5 bg-[var(--ivps-nav)] border-b border-[var(--ivps-border)] flex-shrink-0">
-      <span className="font-mono text-[10px] text-[var(--ivps-text4)] uppercase tracking-wider">SCORE</span>
-      <div className="w-px h-3.5 bg-[var(--ivps-surface2)]" />
-      <span
-        className="text-[12px] text-[var(--ivps-text3)] truncate max-w-[180px]"
-        title={score?.name}
-      >
-        {score?.name ?? '악보 없음'}
-      </span>
-      <div className="flex-1" />
-
-      {score && (
-        <>
-          <button
-            onClick={onRename}
-            className="px-2 py-1 text-[10.5px] text-[var(--ivps-text3)] hover:text-[var(--ivps-text2)] rounded transition-colors"
-          >
-            이름
-          </button>
-          <button
-            onClick={onDelete}
-            className="px-2 py-1 text-[10.5px] text-[var(--ivps-rust)] hover:bg-[rgba(224,112,112,.08)] rounded transition-colors"
-          >
-            삭제
-          </button>
-        </>
-      )}
-      <button
-        onClick={onReplace}
-        className="px-2 py-1 text-[10.5px] bg-[var(--ivps-surface2)] border border-[var(--ivps-border2)] text-[var(--ivps-text2)] hover:bg-[#222b3d] rounded transition-colors"
-      >
-        ↑ 교체
-      </button>
-    </div>
-  );
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PdfPager — PDF 페이지 넘기기
@@ -644,14 +602,6 @@ export function ScoreViewer({ phase }) {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-
-      {/* 툴바 */}
-      <ScoreToolbar
-        score={activeScore}
-        onReplace={() => fileInputRef.current?.click()}
-        onRename={handleRenameScore}
-        onDelete={handleDeleteScore}
-      />
 
       {/* 숨겨진 파일 인풋 */}
       <input
