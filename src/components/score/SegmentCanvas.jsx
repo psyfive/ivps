@@ -274,14 +274,12 @@ export function SegmentCanvas({
         const px = drawX * W, py = drawY * H, pw = drawW * W, ph = drawH * H;
 
         const isFaint = (col === PALETTE.faint);
-        if (isFaint) {
-          // During 비선택 구간: 「 」 코너 브라켓만 — 채움/전체 외곽선 없음
-          drawCornerBrackets(ctx, px, py, pw, ph);
-        } else {
-          drawRect(ctx, px, py, pw, ph, col, false, isSelected ? 2.5 : 1.5);
-        }
+        // 모든 구간: fill + stroke 먼저 그리기
+        drawRect(ctx, px, py, pw, ph, col, false, isSelected ? 2.5 : 1.5);
+        // During 비선택 구간: 코너 브라켓을 추가로 강조
+        if (isFaint) drawCornerBrackets(ctx, px, py, pw, ph);
 
-        // 구간 번호 배지 — faint 구간은 생략 (시인성 우선)
+        // 구간 번호 배지 — faint 구간은 생략 (코너 브라켓으로 충분)
         if (isFaint) return;
         const BADGE_W = 36, BADGE_H = 17;
         ctx.fillStyle = 'rgba(13,17,23,0.65)';
