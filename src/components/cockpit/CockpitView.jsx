@@ -107,25 +107,6 @@ function PhasePanel({ phase, onOpenAfterSheet }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// EmptySkillBanner — 스킬 미선택 시 ScoreViewer 위에 안내 배너
-// ─────────────────────────────────────────────────────────────────────────────
-function EmptySkillBanner({ onGoLibrary }) {
-  return (
-    <div className="absolute top-3 left-3 right-3 z-10 flex items-center gap-3 px-4 py-2.5 bg-[rgba(212,168,67,.08)] border border-[rgba(212,168,67,.22)] rounded-lg">
-      <span className="text-[12px] text-[var(--ivps-gold)]">
-        스킬을 선택하지 않았습니다. 라이브러리에서 먼저 스킬을 선택하세요.
-      </span>
-      <button
-        onClick={onGoLibrary}
-        className="ml-auto text-[11px] text-[var(--ivps-gold)] border border-[rgba(212,168,67,.3)] px-2.5 py-1 rounded hover:bg-[rgba(212,168,67,.1)] transition-colors flex-shrink-0"
-      >
-        라이브러리 가기
-      </button>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // CockpitView — 메인 컴포넌트
 // ─────────────────────────────────────────────────────────────────────────────
 export function CockpitView() {
@@ -186,11 +167,6 @@ export function CockpitView() {
           ].join(' ')}
           style={{ flex: practiceFullscreen ? '1' : '1.7' }}
         >
-          {/* 스킬 없음 배너 */}
-          {!activeSkill && (
-            <EmptySkillBanner onGoLibrary={handleBack} />
-          )}
-
           {/* ScoreViewer */}
           <ScoreViewer phase={phase} />
 
