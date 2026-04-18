@@ -49,13 +49,14 @@ function getSegmentMinPage(seg) {
   return pages.length > 0 ? Math.min(...pages) : (seg.pageIndex ?? 0);
 }
 
-// ── Ghost Train HUD 텍스트 ────────────────────────────────────────────────
+// ── Ghost Train HUD 콘텐츠 ────────────────────────────────────────────────
+// showBeats=true 이면 박자 도트를 함께 표시 (countIn/break 전용)
 function ghostHudContent(ghostPhase, ghostSetIdx) {
   if (!ghostPhase) return null;
   switch (ghostPhase) {
-    case 'countIn': return { text: '♩  COUNT IN...', color: '#d4a843' };
+    case 'countIn': return { text: '♩  COUNT IN', color: '#d4a843', showBeats: true };
     case 'break1':
-    case 'break2':  return { text: '·  ·  READY  ·  ·', color: 'rgba(255,255,255,.4)', pulse: true };
+    case 'break2':  return { text: 'READY', color: 'rgba(255,255,255,.5)', showBeats: true, pulse: true };
     case 'done':    return null;
     default: {
       const setNum = { set1: 1, set2: 2, set3: 3 }[ghostPhase] ?? 0;
@@ -79,6 +80,7 @@ export function DuringMiniControls() {
     selectedSegmentId,
     subdivision,
     ghostTrainBars,
+    currentBeat,
     metro,
     grape,
     nav,
@@ -96,8 +98,8 @@ export function DuringMiniControls() {
 
   // ── Ghost Train 로컬 상태 ────────────────────────────────────────
   const [ghostActive,    setGhostActive]    = useState(false);
-  const [ghostSetIdx,    setGhostSetIdx]    = useState(1);
   const [ghostPhase,     setGhostPhase]     = useState('');
+  const ghostSetIdx = 2; // Set 2 항상 Ghost (Set 1, Set 3은 Normal)
   const [panelGhostBars, setPanelGhostBars] = useState(ghostTrainBars);
   const [showGhostInfo,  setShowGhostInfo]  = useState(false);
 
@@ -193,9 +195,7 @@ export function DuringMiniControls() {
   // ── Ghost Train 시작 ─────────────────────────────────────────────
   const startGhostTrain = useCallback(() => {
     if (!metroPlaying) return;
-    const newIdx = Math.floor(Math.random() * 3) + 1; // 1|2|3
     metro.setGhostTrainBars(Math.max(1, Math.min(32, panelGhostBars)));
-    setGhostSetIdx(newIdx);
     setGhostPhase('countIn');
     setGhostActive(true);
     setMetroOpen(false);
@@ -227,19 +227,45 @@ export function DuringMiniControls() {
       {ghostActive && hudContent && (
         <div
           className="absolute left-0 right-0 z-30 flex items-center justify-center pointer-events-none"
-          style={{ bottom: 52, height: 28 }}
+          style={{ bottom: 52, height: 32 }}
         >
-          <span
-            className={`text-[11px] font-bold tracking-widest px-4 py-1 rounded-full ${hudContent.pulse ? 'animate-pulse' : ''}`}
+          <div
+            className="flex items-center gap-2.5 px-4 py-1.5 rounded-full"
             style={{
-              color: hudContent.color,
-              background: 'rgba(13,17,23,0.75)',
+              background: 'rgba(13,17,23,0.82)',
               border: `1px solid ${hudContent.color}40`,
               backdropFilter: 'blur(6px)',
             }}
           >
-            {hudContent.text}
-          </span>
+            {/* 라벨 텍스트 */}
+            <span
+              className={`text-[11px] font-bold tracking-widest ${hudContent.pulse ? 'animate-pulse' : ''}`}
+              style={{ color: hudContent.color }}
+            >
+              {hudContent.text}
+            </span>
+
+            {/* 박자 도트 — countIn / break 에서만 표시 */}
+            {hudContent.showBeats && (
+              <div className="flex items-center gap-1">
+                {Array.from({ length: beatsPerBar }, (_, i) => {
+                  const isActive = currentBeat === i;
+                  return (
+                    <div
+                      key={i}
+                      className="rounded-full transition-all duration-75"
+                      style={{
+                        width:  isActive ? 8 : 5,
+                        height: isActive ? 8 : 5,
+                        background: isActive ? hudContent.color : `${hudContent.color}40`,
+                        boxShadow: isActive ? `0 0 6px ${hudContent.color}` : 'none',
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
