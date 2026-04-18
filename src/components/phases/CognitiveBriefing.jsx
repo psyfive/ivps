@@ -141,7 +141,7 @@ function DroppableSegmentRow({ segment, index, onDelete, onUnmap, isSelected, on
   return (
     <div
       ref={setNodeRef}
-      onClick={() => onSelect(isSelected ? null : segment.id)}
+      onClick={(e) => { e.stopPropagation(); onSelect(isSelected ? null : segment.id); }}
       className={[
         'rounded-xl border p-2.5 mb-2 transition-all cursor-pointer',
         isOver
@@ -508,6 +508,7 @@ export function CognitiveBriefing() {
                 )}
               </div>
 
+              {/* 구간 행 외부 클릭 시 선택 해제 */}
               {segments.length === 0 ? (
                 <div className={[
                   'text-[11px] text-center py-5 rounded-xl border border-dashed transition-colors',
@@ -520,18 +521,20 @@ export function CognitiveBriefing() {
                     : '"구간 설정" 버튼을 눌러 악보에서 구간을 드래그하세요'}
                 </div>
               ) : (
-                segments.map((seg, i) => (
-                  <DroppableSegmentRow
-                    key={seg.id}
-                    segment={seg}
-                    index={i}
-                    isSelected={seg.id === selectedSegmentId}
-                    onSelect={segmentActs.selectSegment}
-                    onDelete={segmentActs.deleteSegment}
-                    onUnmap={segmentActs.unmapSkillFromSegment}
-                    onSetMeta={segmentActs.setSegmentMeta}
-                  />
-                ))
+                <div onClick={() => segmentActs.selectSegment(null)}>
+                  {segments.map((seg, i) => (
+                    <DroppableSegmentRow
+                      key={seg.id}
+                      segment={seg}
+                      index={i}
+                      isSelected={seg.id === selectedSegmentId}
+                      onSelect={segmentActs.selectSegment}
+                      onDelete={segmentActs.deleteSegment}
+                      onUnmap={segmentActs.unmapSkillFromSegment}
+                      onSetMeta={segmentActs.setSegmentMeta}
+                    />
+                  ))}
+                </div>
               )}
 
               {/* 안내: 스킬 드래그 힌트 */}
