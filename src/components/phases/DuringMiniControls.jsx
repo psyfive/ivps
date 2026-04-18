@@ -51,20 +51,14 @@ function getSegmentMinPage(seg) {
 
 // ── Ghost Train HUD 콘텐츠 ────────────────────────────────────────────────
 // showBeats=true 이면 박자 도트를 함께 표시 (countIn/break 전용)
-function ghostHudContent(ghostPhase, ghostSetIdx) {
+function ghostHudContent(ghostPhase) {
   if (!ghostPhase) return null;
   switch (ghostPhase) {
     case 'countIn': return { text: '♩  COUNT IN', color: '#d4a843', showBeats: true };
-    case 'break1':
-    case 'break2':  return { text: 'READY', color: 'rgba(255,255,255,.5)', showBeats: true, pulse: true };
-    case 'done':    return null;
-    default: {
-      const setNum = { set1: 1, set2: 2, set3: 3 }[ghostPhase] ?? 0;
-      const isGhost = setNum === ghostSetIdx;
-      return isGhost
-        ? { text: `SET ${setNum}/3  ·  INTERNAL CLOCK TEST`, color: '#9b7fc8' }
-        : { text: `SET ${setNum}/3  ·  NORMAL CLOCK TEST`,   color: '#10B981' };
-    }
+    case 'break':   return { text: 'READY', color: 'rgba(255,255,255,.5)', showBeats: true, pulse: true };
+    case 'normal':  return { text: 'NORMAL CLOCK TEST',   color: '#10B981' };
+    case 'ghost':   return { text: 'INTERNAL CLOCK TEST', color: '#9b7fc8' };
+    default:        return null;
   }
 }
 
@@ -113,7 +107,6 @@ export function DuringMiniControls() {
 
   const onGhostPhaseChange = useCallback((phase) => {
     setGhostPhase(phase);
-    if (phase === 'done') setGhostActive(false);
   }, []);
 
   // 전체화면 During phase 전용 메트로놈 엔진
@@ -219,7 +212,7 @@ export function DuringMiniControls() {
   }, [hasNext, selIdx, segments, segmentActs, scoreActs, activeScore]);
 
   // ── Ghost Train HUD ──────────────────────────────────────────────
-  const hudContent = ghostHudContent(ghostPhase, ghostSetIdx);
+  const hudContent = ghostHudContent(ghostPhase);
 
   return (
     <>
@@ -415,21 +408,35 @@ export function DuringMiniControls() {
                     </div>
                   </div>
 
-                  {/* Ghost Train 시작 버튼 */}
-                  <button
-                    onClick={startGhostTrain}
-                    disabled={!metroPlaying || ghostActive}
-                    className="w-full h-8 rounded-lg text-[11.5px] font-semibold transition-all"
-                    style={{
-                      background: (!metroPlaying || ghostActive) ? 'rgba(155,127,200,.06)' : 'rgba(155,127,200,.18)',
-                      border: `1px solid ${(!metroPlaying || ghostActive) ? 'rgba(155,127,200,.15)' : 'rgba(155,127,200,.45)'}`,
-                      color: (!metroPlaying || ghostActive) ? 'rgba(155,127,200,.35)' : '#9b7fc8',
-                      cursor: (!metroPlaying || ghostActive) ? 'not-allowed' : 'pointer',
-                    }}
-                  >
-                    {ghostActive ? '▷ 진행 중...' : '▶ Ghost Train 시작'}
-                  </button>
-                  {!metroPlaying && (
+                  {/* Ghost Train 시작 / 중지 버튼 */}
+                  {ghostActive ? (
+                    <button
+                      onClick={() => { setGhostActive(false); setGhostPhase(''); }}
+                      className="w-full h-8 rounded-lg text-[11.5px] font-semibold transition-all"
+                      style={{
+                        background: 'rgba(224,112,112,.12)',
+                        border: '1px solid rgba(224,112,112,.35)',
+                        color: '#e07070',
+                      }}
+                    >
+                      ■ Ghost Train 중지
+                    </button>
+                  ) : (
+                    <button
+                      onClick={startGhostTrain}
+                      disabled={!metroPlaying}
+                      className="w-full h-8 rounded-lg text-[11.5px] font-semibold transition-all"
+                      style={{
+                        background: !metroPlaying ? 'rgba(155,127,200,.06)' : 'rgba(155,127,200,.18)',
+                        border: `1px solid ${!metroPlaying ? 'rgba(155,127,200,.15)' : 'rgba(155,127,200,.45)'}`,
+                        color: !metroPlaying ? 'rgba(155,127,200,.35)' : '#9b7fc8',
+                        cursor: !metroPlaying ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      ▶ Ghost Train 시작
+                    </button>
+                  )}
+                  {!metroPlaying && !ghostActive && (
                     <p className="text-[9px] text-center mt-1" style={{ color: 'rgba(255,255,255,.25)' }}>
                       메트로놈을 먼저 켜주세요
                     </p>

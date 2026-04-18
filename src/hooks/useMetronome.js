@@ -62,30 +62,21 @@ export function useMetronome({
   useEffect(() => { ghostSetIdxRef.current   = ghostTrain.ghostSetIdx   ?? 1;     }, [ghostTrain.ghostSetIdx]);
   useEffect(() => { onPhaseChangeRef.current = ghostTrain.onPhaseChange ?? null;  }, [ghostTrain.onPhaseChange]);
 
-  // ── Ghost Train 페이즈 계산 (순수 함수) ─────────────────────────────────
-  // N = bars
-  // barIdx 0       → countIn
-  //        1..N    → set1
-  //        N+1     → break1
-  //        N+2..2N+1 → set2
-  //        2N+2    → break2
-  //        2N+3..3N+2 → set3
-  //        ≥3N+3   → done
+  // ── Ghost Train 페이즈 계산 (무한반복) ──────────────────────────────────
+  // bar 0 → countIn
+  // 이후 (2N+2) 마디 주기로 반복:
+  //   pos 0..N-1   → normal (홀수 세트)
+  //   pos N        → break
+  //   pos N+1..2N  → ghost  (짝수 세트, 무음)
+  //   pos 2N+1     → break
   function computeGhostPhase(barIdx, N) {
-    if (barIdx === 0)           return 'countIn';
-    if (barIdx <= N)            return 'set1';
-    if (barIdx === N + 1)       return 'break1';
-    if (barIdx <= 2 * N + 1)    return 'set2';
-    if (barIdx === 2 * N + 2)   return 'break2';
-    if (barIdx <= 3 * N + 2)    return 'set3';
-    return 'done';
-  }
-
-  function phaseSetNumber(phase) {
-    if (phase === 'set1') return 1;
-    if (phase === 'set2') return 2;
-    if (phase === 'set3') return 3;
-    return 0;
+    if (barIdx === 0) return 'countIn';
+    const cycleLen = 2 * N + 2;
+    const pos = (barIdx - 1) % cycleLen;
+    if (pos < N)          return 'normal';
+    if (pos === N)        return 'break';
+    if (pos < 2 * N + 1)  return 'ghost';
+    return 'break';
   }
 
   // ── 단일 오실레이터 스케줄 ───────────────────────────────────────────────
@@ -127,25 +118,14 @@ export function useMetronome({
           const delay    = Math.max(0, (time - ctx.currentTime) * 1000);
           const captured = phase;
           setTimeout(() => { onPhaseChangeRef.current?.(captured); }, delay);
-
-          if (phase === 'done') {
-            ghostEnabledRef.current = false;
-          }
         }
       }
 
-      // ── Ghost Train: 뮤트 여부 결정 ──────────────────────────────
+      // ── Ghost Train: 뮤트 여부 결정 (ghost 세트만 무음) ─────────────
       let muted = false;
       if (ghostEnabledRef.current) {
-        const N      = ghostBarsRef.current;
-        const phase  = computeGhostPhase(barIndexRef.current, N);
-        const setNum = phaseSetNumber(phase);
-
-        if (phase === 'break1' || phase === 'break2') {
-          muted = true;
-        } else if (setNum > 0 && setNum === ghostSetIdxRef.current) {
-          muted = true;
-        }
+        const phase = computeGhostPhase(barIndexRef.current, ghostBarsRef.current);
+        if (phase === 'ghost') muted = true;
       }
 
       // ── 오디오 스케줄 ────────────────────────────────────────────
