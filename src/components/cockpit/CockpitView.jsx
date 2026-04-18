@@ -129,9 +129,6 @@ export function CockpitView() {
 
   const handleBack = useCallback(() => nav.navigate('library'), [nav]);
 
-  // Last After Phase — 악보/패널 전체 대체
-  if (phase === 'last-after') return <LastAfterPhase />;
-
   const [afterSheetOpen, setAfterSheetOpen] = useState(false);
 
   // During Phase 이탈 시 시트 자동 닫기
@@ -144,6 +141,9 @@ export function CockpitView() {
     ui.setPracticeFullscreen(true);
     setAfterSheetOpen(true);
   }, [ui]);
+
+  // 모든 hook 선언 이후 조기 리턴 (Rules of Hooks 준수)
+  if (phase === 'last-after') return <LastAfterPhase />;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
