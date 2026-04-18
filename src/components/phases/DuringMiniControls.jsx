@@ -2,7 +2,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // During Phase Fullscreen — 하단 고정 미니 컨트롤 바
 //
-//   [↩ Before]  |  [← 이전구간]  [BPM]  [🍇]  [⏱]  [다음구간 →]  |  [⏹ 연습종료]
+//   [↩ Before]  |  [← 이전구간]  [♩BPM]  [🍇]  [⏱]  [다음구간 →]  |  [⏹ 연습종료]
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePractice } from '../../context/PracticeContext';
@@ -80,18 +80,24 @@ export function DuringMiniControls() {
     return () => clearInterval(timerRef.current);
   }, [selectedSegmentId]);
 
-  // ── BPM 직접 입력 ─────────────────────────────────────────────────
-  const [bpmInput, setBpmInput] = useState(String(bpm));
-  useEffect(() => { setBpmInput(String(bpm)); }, [bpm]);
+  // ── 확장 메트로놈 패널 토글 ──────────────────────────────────────
+  const [metroOpen, setMetroOpen] = useState(false);
+  const metroPanelRef = useRef(null);
+  const metroBtnRef   = useRef(null);
 
-  const commitBpm = useCallback(() => {
-    const v = Number(bpmInput);
-    if (!isNaN(v) && v >= 20 && v <= 240) metro.setBpm(v);
-    else setBpmInput(String(bpm));
-  }, [bpmInput, bpm, metro]);
-
-  const incBpm = useCallback(() => metro.setBpm(Math.min(240, bpm + 5)), [metro, bpm]);
-  const decBpm = useCallback(() => metro.setBpm(Math.max(20,  bpm - 5)), [metro, bpm]);
+  useEffect(() => {
+    if (!metroOpen) return;
+    const onDown = (e) => {
+      if (
+        metroPanelRef.current && !metroPanelRef.current.contains(e.target) &&
+        metroBtnRef.current   && !metroBtnRef.current.contains(e.target)
+      ) {
+        setMetroOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [metroOpen]);
 
   // ── 구간 이동 (페이지 자동 점프 포함) ───────────────────────────────
   const goPrev = useCallback(() => {
@@ -136,37 +142,49 @@ export function DuringMiniControls() {
 
         <Sep />
 
-        {/* BPM 컨트롤 */}
-        <div className="flex items-center gap-1">
-          <MiniBtn onClick={decBpm} title="BPM -5">–5</MiniBtn>
-          <div
-            className="flex items-center gap-1.5 px-2 h-[34px] rounded-lg border font-mono text-[12px] font-bold"
+        {/* BPM 버튼 + 확장 패널 */}
+        <div className="relative">
+          <button
+            ref={metroBtnRef}
+            onClick={() => setMetroOpen(o => !o)}
+            title="메트로놈 설정"
+            className="flex items-center gap-1.5 px-3 h-[34px] rounded-lg border font-mono text-[12px] font-bold transition-all"
             style={{
-              background: 'rgba(212,168,67,.08)',
-              borderColor: 'rgba(212,168,67,.25)',
+              background: metroOpen ? 'rgba(212,168,67,.18)' : 'rgba(212,168,67,.08)',
+              borderColor: metroOpen ? 'rgba(212,168,67,.55)' : 'rgba(212,168,67,.25)',
               color: '#d4a843',
-              minWidth: 68,
-              justifyContent: 'center',
             }}
           >
             <span style={{ fontSize: 10, opacity: 0.7 }}>♩</span>
-            <input
-              type="number"
-              min="20"
-              max="240"
-              value={bpmInput}
-              onChange={e => setBpmInput(e.target.value)}
-              onBlur={commitBpm}
-              onKeyDown={e => { if (e.key === 'Enter') { commitBpm(); e.target.blur(); } }}
-              onFocus={e => e.target.select()}
-              className="font-mono font-bold text-[12px] bg-transparent border-none outline-none text-center"
-              style={{ color: '#d4a843', width: 36, appearance: 'textfield', MozAppearance: 'textfield' }}
-            />
+            {bpm}
             {targetBpm && bpm < targetBpm && (
               <span style={{ fontSize: 8, opacity: 0.5 }}>/{targetBpm}</span>
             )}
-          </div>
-          <MiniBtn onClick={incBpm} title="BPM +5" accent>+5</MiniBtn>
+          </button>
+
+          {/* 확장 메트로놈 패널 */}
+          {metroOpen && (
+            <div
+              ref={metroPanelRef}
+              className="absolute bottom-[calc(100%+8px)] left-1/2 -translate-x-1/2 z-50"
+              style={{
+                background: 'rgba(18,22,30,0.97)',
+                border: '1px solid rgba(212,168,67,.3)',
+                borderRadius: 12,
+                boxShadow: '0 -4px 24px rgba(0,0,0,0.35)',
+                minWidth: 200,
+                padding: '14px 16px',
+              }}
+            >
+              <div className="text-[11px] font-semibold uppercase tracking-[.08em] text-[rgba(212,168,67,.6)] mb-3">
+                메트로놈
+              </div>
+              {/* 패널 내용 — 추후 요구사항에 따라 추가 */}
+              <div className="text-[11px] text-[rgba(255,255,255,.35)] text-center py-2">
+                설정 항목이 곧 추가됩니다
+              </div>
+            </div>
+          )}
         </div>
 
         <Sep />
