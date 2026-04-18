@@ -736,7 +736,7 @@ export function ScoreViewer({ phase }) {
             {/* During 단계: 구간 선택 캔버스 (EyeAnchorOverlay 제거 — TopHUD로 대체) */}
             {isDuring && segments.length > 0 && (
               <>
-                {/* 구간 외곽선 + 클릭 선택 (읽기 전용) */}
+                {/* 구간 외곽선 + 클릭 선택 + 이동/크기조정 (During phase) */}
                 <SegmentCanvas
                   segments={segments}
                   tempSegments={[]}
@@ -746,9 +746,10 @@ export function ScoreViewer({ phase }) {
                   onSegmentCreate={() => {}}
                   onSegmentSelect={segmentActs.selectSegment}
                   onSegmentDelete={() => {}}
+                  onSegmentCoordDelete={() => {}}
                   onTempDelete={() => {}}
-                  onSegmentUpdate={() => {}}
-                  readOnly
+                  onSegmentUpdate={segmentActs.updateSegmentCoord}
+                  hideDelete
                   phase="during"
                 />
               </>

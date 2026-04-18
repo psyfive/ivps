@@ -179,6 +179,7 @@ export function SegmentCanvas({
   onSegmentUpdate,       // (segmentId, coordIndex, {x,y,width,height}) => void — 구간 이동/크기조정
   onSegmentCoordDelete,  // (segmentId, coordIndex) => void — 특정 좌표만 삭제
   readOnly,              // bool — 삭제/편집 UI 숨김, 선택만 허용
+  hideDelete = false,    // bool — × 버튼만 숨김 (readOnly=false여도 삭제 차단)
   phase = 'before',      // 'before' | 'during' | 'after' — 색상 팔레트 선택
 }) {
   const containerRef    = useRef(null);
@@ -189,6 +190,7 @@ export function SegmentCanvas({
   const isSelectingRef  = useRef(isSelectingMode);
   const selectedIdRef   = useRef(selectedSegmentId);
   const readOnlyRef     = useRef(readOnly);
+  const hideDeleteRef   = useRef(hideDelete);
   const pageIdxRef      = useRef(currentPageIndex);
   const onCreateRef     = useRef(onSegmentCreate);
   const onSelectRef     = useRef(onSegmentSelect);
@@ -202,6 +204,7 @@ export function SegmentCanvas({
   useEffect(() => { isSelectingRef.current  = isSelectingMode; }, [isSelectingMode]);
   useEffect(() => { selectedIdRef.current   = selectedSegmentId; },[selectedSegmentId]);
   useEffect(() => { readOnlyRef.current     = readOnly; },         [readOnly]);
+  useEffect(() => { hideDeleteRef.current   = hideDelete; },       [hideDelete]);
   useEffect(() => { pageIdxRef.current      = currentPageIndex; }, [currentPageIndex]);
   useEffect(() => { onCreateRef.current     = onSegmentCreate; },  [onSegmentCreate]);
   useEffect(() => { onSelectRef.current     = onSegmentSelect; },  [onSegmentSelect]);
@@ -243,7 +246,8 @@ export function SegmentCanvas({
     const selId   = selectedIdRef.current;
     const curPage = pageIdxRef.current;
     const editDrag  = editDragRef.current;
-    const isReadOnly = readOnlyRef.current;
+    const isReadOnly  = readOnlyRef.current;
+    const isHideDelete = hideDeleteRef.current;
     const curPhase   = phaseRef.current;
 
     ctx.save();
@@ -315,8 +319,8 @@ export function SegmentCanvas({
           ctx.fillText(label, px + 4, py + ph - 3);
         }
 
-        // 삭제 × — readOnly 모드에서는 숨김
-        if (!isReadOnly) {
+        // 삭제 × — readOnly 또는 hideDelete 모드에서는 숨김
+        if (!isReadOnly && !isHideDelete) {
           const DX = px + pw - 18, DY = py + 1, DS = 17;
           ctx.fillStyle = 'rgba(224,112,112,0.75)';
           ctx.fillRect(DX, DY, DS, DS);
