@@ -401,7 +401,7 @@ export function CognitiveBriefing() {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex flex-col h-full overflow-hidden">
+      <div className="flex flex-col h-full overflow-hidden" onClick={() => segmentActs.selectSegment(null)}>
 
         {/* ── 탭 헤더 ── */}
         <div className="flex-shrink-0 flex border-b border-[var(--ivps-border)] px-5 pt-4 pb-0 gap-4">
@@ -521,20 +521,18 @@ export function CognitiveBriefing() {
                     : '"구간 설정" 버튼을 눌러 악보에서 구간을 드래그하세요'}
                 </div>
               ) : (
-                <div onClick={() => segmentActs.selectSegment(null)}>
-                  {segments.map((seg, i) => (
-                    <DroppableSegmentRow
-                      key={seg.id}
-                      segment={seg}
-                      index={i}
-                      isSelected={seg.id === selectedSegmentId}
-                      onSelect={segmentActs.selectSegment}
-                      onDelete={segmentActs.deleteSegment}
-                      onUnmap={segmentActs.unmapSkillFromSegment}
-                      onSetMeta={segmentActs.setSegmentMeta}
-                    />
-                  ))}
-                </div>
+                segments.map((seg, i) => (
+                  <DroppableSegmentRow
+                    key={seg.id}
+                    segment={seg}
+                    index={i}
+                    isSelected={seg.id === selectedSegmentId}
+                    onSelect={segmentActs.selectSegment}
+                    onDelete={segmentActs.deleteSegment}
+                    onUnmap={segmentActs.unmapSkillFromSegment}
+                    onSetMeta={segmentActs.setSegmentMeta}
+                  />
+                ))
               )}
 
               {/* 안내: 스킬 드래그 힌트 */}
