@@ -5,10 +5,25 @@
 //
 // 지원 기능:
 //   • subdivision (1/2/3/4) — Quarter / Eighth / Triplet / Sixteenth
-//   • 오디오 계층: Accent(강박) > Beat(약박) > Sub-click(분할박)
+//   • 오디오 계층: Accent(강박) > Beat(약박) > Sub-click(분활박)
 //   • ghostTrain — Normal/Ghost 무한반복, READY 마디 가변
+//
+// AudioContext 싱글톤: 모듈 레벨에서 하나의 컨텍스트를 공유해
+// 컴포넌트 mount/unmount 시 컨텍스트가 재생성·재개 불가 상태가 되는
+// 브라우저 autoplay 정책 이슈를 방지한다.
 // ─────────────────────────────────────────────────────────────────────────────
 import { useRef, useCallback, useEffect } from 'react';
+
+// ── AudioContext 싱글톤 ────────────────────────────────────────────────────
+let _sharedCtx = null;
+
+function getSharedCtx() {
+  if (!_sharedCtx || _sharedCtx.state === 'closed') {
+    _sharedCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (_sharedCtx.state === 'suspended') _sharedCtx.resume();
+  return _sharedCtx;
+}
 
 /**
  * @param {object} params
@@ -171,12 +186,10 @@ export function useMetronome({
 
   // ── 시작 / 정지 ──────────────────────────────────────────────────────────
   const start = useCallback(() => {
-    if (!ctxRef.current) {
-      ctxRef.current = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (ctxRef.current.state === 'suspended') ctxRef.current.resume();
+    const ctx = getSharedCtx();
+    ctxRef.current       = ctx;
     tickCountRef.current = 0;
-    nextTimeRef.current  = ctxRef.current.currentTime + 0.05;
+    nextTimeRef.current  = ctx.currentTime + 0.05;
     barIndexRef.current  = 0;
     beatInBarRef.current = 0;
     lastPhaseRef.current = '';
@@ -196,6 +209,6 @@ export function useMetronome({
 
   useEffect(() => () => {
     stop();
-    ctxRef.current?.close();
+    // 공유 AudioContext는 닫지 않음 — 다음 인스턴스가 재사용
   }, [stop]);
 }
