@@ -68,7 +68,7 @@ function CartPicker({ cartIds, onAdd, onClose }) {
         ) : results.map(s => {
           const meta = getCategoryMeta(s.id);
           return (
-            <button key={s.id} onClick={() => { onAdd(s.id); onClose(); }}
+            <button key={s.id} onClick={() => onAdd(s.id)}
               className="w-full flex items-center gap-2 px-3 py-2 hover:bg-[var(--ivps-surface2)] transition-colors text-left">
               <span className="font-mono text-[9.5px] px-1.5 py-0.5 rounded flex-shrink-0"
                 style={{ background: `${meta.color}18`, color: meta.color }}>{s.id}</span>
@@ -442,7 +442,20 @@ export function CognitiveBriefing() {
               </div>
 
               {cartPickerOpen && (
-                <CartPicker cartIds={skillCart} onAdd={cart.addToCart} onClose={() => setCartPickerOpen(false)} />
+                <>
+                  {/* 바깥 클릭 시 닫힘 */}
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setCartPickerOpen(false)}
+                  />
+                  <div className="relative z-20">
+                    <CartPicker
+                      cartIds={skillCart}
+                      onAdd={cart.addToCart}
+                      onClose={() => setCartPickerOpen(false)}
+                    />
+                  </div>
+                </>
               )}
 
               {cartSkills.length === 0 ? (
