@@ -26,7 +26,7 @@ function UtilCard({ icon, title, children }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function Metronome() {
   const { bpm, beatsPerBar, metroPlaying, currentBeat, metro, activeScore, selectedSegmentId,
-          subdivision } = usePractice();
+          subdivision, phase } = usePractice();
 
   // 선택된 구간의 targetBpm이 있으면 우선 적용, 없으면 전체 bpm
   const segments = activeScore?.segments ?? [];
@@ -42,12 +42,12 @@ function Metronome() {
     else setBpmInput(String(effectiveBpm));
   }, [bpmInput, effectiveBpm, metro]);
 
-  // 훅 연결 — effectiveBpm 사용으로 구간 선택 시 자동 전환
+  // During 페이즈에서는 DuringMiniControls가 메트로놈 엔진을 전담하므로 비활성화
   useMetronome({
     bpm: effectiveBpm,
     beatsPerBar,
     subdivision,
-    playing: metroPlaying,
+    playing: metroPlaying && phase !== 'during',
     onBeat: useCallback(beat => metro.setCurrentBeat(beat), [metro]),
   });
 
