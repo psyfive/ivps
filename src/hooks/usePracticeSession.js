@@ -27,8 +27,7 @@ export const INITIAL_STATE = {
   metroPlaying: false,
   currentBeat: -1,
   subdivision: 1,          // 1=Quarter, 2=Eighth, 3=Triplet, 4=Sixteenth
-  randomMuteEnabled: false,
-  randomMuteProb: 40,      // 0~100 %
+  ghostTrainBars: 8,       // Ghost Train — 구간 길이(마디)
 
   // ─ 튜너 ─
   tunerActive: false,
@@ -96,8 +95,7 @@ export const ACTIONS = {
   SET_METRO_PLAYING:     'SET_METRO_PLAYING',
   SET_CURRENT_BEAT:      'SET_CURRENT_BEAT',
   SET_SUBDIVISION:       'SET_SUBDIVISION',
-  SET_RANDOM_MUTE_ENABLED: 'SET_RANDOM_MUTE_ENABLED',
-  SET_RANDOM_MUTE_PROB:  'SET_RANDOM_MUTE_PROB',
+  SET_GHOST_TRAIN_BARS:  'SET_GHOST_TRAIN_BARS',
 
   // 튜너
   SET_TUNER_ACTIVE:  'SET_TUNER_ACTIVE',
@@ -407,11 +405,8 @@ export function reducer(state, action) {
     case ACTIONS.SET_SUBDIVISION:
       return { ...state, subdivision: Math.max(1, Math.min(4, action.subdivision)) };
 
-    case ACTIONS.SET_RANDOM_MUTE_ENABLED:
-      return { ...state, randomMuteEnabled: action.enabled };
-
-    case ACTIONS.SET_RANDOM_MUTE_PROB:
-      return { ...state, randomMuteProb: Math.max(0, Math.min(100, action.prob)) };
+    case ACTIONS.SET_GHOST_TRAIN_BARS:
+      return { ...state, ghostTrainBars: Math.max(1, Math.min(32, action.bars)) };
 
     // ── 튜너 ─────────────────────────────────────────────────────────
     case ACTIONS.SET_TUNER_ACTIVE:
@@ -887,11 +882,8 @@ export function usePracticeSession() {
   const setSubdivision = useCallback((subdivision) =>
     dispatch({ type: ACTIONS.SET_SUBDIVISION, subdivision }), []);
 
-  const setRandomMuteEnabled = useCallback((enabled) =>
-    dispatch({ type: ACTIONS.SET_RANDOM_MUTE_ENABLED, enabled }), []);
-
-  const setRandomMuteProb = useCallback((prob) =>
-    dispatch({ type: ACTIONS.SET_RANDOM_MUTE_PROB, prob }), []);
+  const setGhostTrainBars = useCallback((bars) =>
+    dispatch({ type: ACTIONS.SET_GHOST_TRAIN_BARS, bars: Number(bars) }), []);
 
   // ── 튜너 액션 ─────────────────────────────────────────────────────
   const setTunerActive = useCallback((active) =>
@@ -1015,7 +1007,7 @@ export function usePracticeSession() {
     cart: { addToCart, removeFromCart },
     segment: { toggleSegmentCheck, toggleSegmentMode, startAddToSegment, selectSegment, addSegment, deleteSegment, deleteSegmentCoord, setSegmentMeta, updateSegmentCoord, mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment, commitTempSegments },
     before: { addSection, deleteSection, assignSectionSkill, setCurrentBar },
-    metro: { setBpm, setBeatsPerBar, setMetroPlaying, setCurrentBeat, setSubdivision, setRandomMuteEnabled, setRandomMuteProb },
+    metro: { setBpm, setBeatsPerBar, setMetroPlaying, setCurrentBeat, setSubdivision, setGhostTrainBars },
     tuner: { setTunerActive, setTunerNote },
     grape: { toggleGrape, resetGrapes, adjustGrapeTotal },
     settings: { setGrapeBpmIncrement },

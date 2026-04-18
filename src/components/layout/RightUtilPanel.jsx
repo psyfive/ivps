@@ -26,7 +26,7 @@ function UtilCard({ icon, title, children }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function Metronome() {
   const { bpm, beatsPerBar, metroPlaying, currentBeat, metro, activeScore, selectedSegmentId,
-          subdivision, randomMuteEnabled, randomMuteProb } = usePractice();
+          subdivision } = usePractice();
 
   // 선택된 구간의 targetBpm이 있으면 우선 적용, 없으면 전체 bpm
   const segments = activeScore?.segments ?? [];
@@ -47,8 +47,6 @@ function Metronome() {
     bpm: effectiveBpm,
     beatsPerBar,
     subdivision,
-    randomMuteEnabled,
-    randomMuteProb,
     playing: metroPlaying,
     onBeat: useCallback(beat => metro.setCurrentBeat(beat), [metro]),
   });
