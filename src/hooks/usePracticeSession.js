@@ -26,6 +26,9 @@ export const INITIAL_STATE = {
   beatsPerBar: 4,
   metroPlaying: false,
   currentBeat: -1,
+  subdivision: 1,          // 1=Quarter, 2=Eighth, 3=Triplet, 4=Sixteenth
+  randomMuteEnabled: false,
+  randomMuteProb: 40,      // 0~100 %
 
   // ─ 튜너 ─
   tunerActive: false,
@@ -88,10 +91,13 @@ export const ACTIONS = {
   SET_PICKER_SESSION:'SET_PICKER_SESSION',
 
   // 메트로놈
-  SET_BPM:           'SET_BPM',
-  SET_BEATS_PER_BAR: 'SET_BEATS_PER_BAR',
-  SET_METRO_PLAYING: 'SET_METRO_PLAYING',
-  SET_CURRENT_BEAT:  'SET_CURRENT_BEAT',
+  SET_BPM:               'SET_BPM',
+  SET_BEATS_PER_BAR:     'SET_BEATS_PER_BAR',
+  SET_METRO_PLAYING:     'SET_METRO_PLAYING',
+  SET_CURRENT_BEAT:      'SET_CURRENT_BEAT',
+  SET_SUBDIVISION:       'SET_SUBDIVISION',
+  SET_RANDOM_MUTE_ENABLED: 'SET_RANDOM_MUTE_ENABLED',
+  SET_RANDOM_MUTE_PROB:  'SET_RANDOM_MUTE_PROB',
 
   // 튜너
   SET_TUNER_ACTIVE:  'SET_TUNER_ACTIVE',
@@ -397,6 +403,15 @@ export function reducer(state, action) {
 
     case ACTIONS.SET_CURRENT_BEAT:
       return { ...state, currentBeat: action.beat };
+
+    case ACTIONS.SET_SUBDIVISION:
+      return { ...state, subdivision: Math.max(1, Math.min(4, action.subdivision)) };
+
+    case ACTIONS.SET_RANDOM_MUTE_ENABLED:
+      return { ...state, randomMuteEnabled: action.enabled };
+
+    case ACTIONS.SET_RANDOM_MUTE_PROB:
+      return { ...state, randomMuteProb: Math.max(0, Math.min(100, action.prob)) };
 
     // ── 튜너 ─────────────────────────────────────────────────────────
     case ACTIONS.SET_TUNER_ACTIVE:
@@ -860,11 +875,23 @@ export function usePracticeSession() {
   const setBpm = useCallback((bpm) =>
     dispatch({ type: ACTIONS.SET_BPM, bpm: Number(bpm) }), []);
 
+  const setBeatsPerBar = useCallback((beats) =>
+    dispatch({ type: ACTIONS.SET_BEATS_PER_BAR, beats: Math.max(1, Math.min(16, Number(beats))) }), []);
+
   const setMetroPlaying = useCallback((playing) =>
     dispatch({ type: ACTIONS.SET_METRO_PLAYING, playing }), []);
 
   const setCurrentBeat = useCallback((beat) =>
     dispatch({ type: ACTIONS.SET_CURRENT_BEAT, beat }), []);
+
+  const setSubdivision = useCallback((subdivision) =>
+    dispatch({ type: ACTIONS.SET_SUBDIVISION, subdivision }), []);
+
+  const setRandomMuteEnabled = useCallback((enabled) =>
+    dispatch({ type: ACTIONS.SET_RANDOM_MUTE_ENABLED, enabled }), []);
+
+  const setRandomMuteProb = useCallback((prob) =>
+    dispatch({ type: ACTIONS.SET_RANDOM_MUTE_PROB, prob }), []);
 
   // ── 튜너 액션 ─────────────────────────────────────────────────────
   const setTunerActive = useCallback((active) =>
@@ -988,7 +1015,7 @@ export function usePracticeSession() {
     cart: { addToCart, removeFromCart },
     segment: { toggleSegmentCheck, toggleSegmentMode, startAddToSegment, selectSegment, addSegment, deleteSegment, deleteSegmentCoord, setSegmentMeta, updateSegmentCoord, mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment, commitTempSegments },
     before: { addSection, deleteSection, assignSectionSkill, setCurrentBar },
-    metro: { setBpm, setMetroPlaying, setCurrentBeat },
+    metro: { setBpm, setBeatsPerBar, setMetroPlaying, setCurrentBeat, setSubdivision, setRandomMuteEnabled, setRandomMuteProb },
     tuner: { setTunerActive, setTunerNote },
     grape: { toggleGrape, resetGrapes, adjustGrapeTotal },
     settings: { setGrapeBpmIncrement },
