@@ -25,20 +25,25 @@ function UtilCard({ icon, title, children }) {
 // Metronome UI
 // ─────────────────────────────────────────────────────────────────────────────
 function Metronome() {
-  const { bpm, beatsPerBar, metroPlaying, currentBeat, metro } = usePractice();
+  const { bpm, beatsPerBar, metroPlaying, currentBeat, metro, activeScore, selectedSegmentId } = usePractice();
 
-  const [bpmInput, setBpmInput] = useState(String(bpm));
-  useEffect(() => { setBpmInput(String(bpm)); }, [bpm]);
+  // 선택된 구간의 targetBpm이 있으면 우선 적용, 없으면 전체 bpm
+  const segments = activeScore?.segments ?? [];
+  const selectedSegment = segments.find(s => s.id === selectedSegmentId) ?? null;
+  const effectiveBpm = selectedSegment?.targetBpm ?? bpm;
+
+  const [bpmInput, setBpmInput] = useState(String(effectiveBpm));
+  useEffect(() => { setBpmInput(String(effectiveBpm)); }, [effectiveBpm]);
 
   const commitBpm = useCallback(() => {
     const v = Number(bpmInput);
     if (!isNaN(v) && v >= 20 && v <= 240) metro.setBpm(v);
-    else setBpmInput(String(bpm));
-  }, [bpmInput, bpm, metro]);
+    else setBpmInput(String(effectiveBpm));
+  }, [bpmInput, effectiveBpm, metro]);
 
-  // 훅 연결 — 비트 tick 시 Context에 현재 박자 저장
+  // 훅 연결 — effectiveBpm 사용으로 구간 선택 시 자동 전환
   useMetronome({
-    bpm,
+    bpm: effectiveBpm,
     beatsPerBar,
     playing: metroPlaying,
     onBeat: useCallback(beat => metro.setCurrentBeat(beat), [metro]),

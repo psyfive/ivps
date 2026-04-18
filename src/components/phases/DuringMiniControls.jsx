@@ -65,10 +65,12 @@ export function DuringMiniControls() {
 
   const segments   = activeScore?.segments ?? [];
   const selIdx     = segments.findIndex(s => s.id === selectedSegmentId);
+  const selSegment = selIdx >= 0 ? segments[selIdx] : null;
   const hasPrev    = selIdx > 0;
   const hasNext    = selIdx < segments.length - 1 && selIdx !== -1;
-  const targetBpm  = segments[selIdx]?.targetBpm ?? null;
-  const targetReps = segments[selIdx]?.targetReps ?? null;
+  const targetReps = selSegment?.targetReps ?? null;
+  // 선택된 구간의 targetBpm 우선, 없으면 전체 bpm
+  const effectiveBpm = selSegment?.targetBpm ?? bpm;
 
   // ── 경과 시간 ────────────────────────────────────────────────────
   const [elapsed, setElapsed] = useState(0);
@@ -82,8 +84,14 @@ export function DuringMiniControls() {
 
   // ── 확장 메트로놈 패널 토글 ──────────────────────────────────────
   const [metroOpen, setMetroOpen] = useState(false);
+  const [panelBpm, setPanelBpm]   = useState(effectiveBpm);
   const metroPanelRef = useRef(null);
   const metroBtnRef   = useRef(null);
+
+  // 패널 열릴 때마다 현재 유효 BPM으로 초기화
+  useEffect(() => {
+    if (metroOpen) setPanelBpm(effectiveBpm);
+  }, [metroOpen, effectiveBpm]);
 
   useEffect(() => {
     if (!metroOpen) return;
@@ -98,6 +106,17 @@ export function DuringMiniControls() {
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
   }, [metroOpen]);
+
+  // ── 확인 핸들러 ─────────────────────────────────────────────────
+  const confirmMetro = useCallback(() => {
+    const v = Math.max(20, Math.min(240, panelBpm));
+    if (selectedSegmentId) {
+      segmentActs.setSegmentMeta(selectedSegmentId, { targetBpm: v });
+    } else {
+      metro.setBpm(v);
+    }
+    setMetroOpen(false);
+  }, [panelBpm, selectedSegmentId, segmentActs, metro]);
 
   // ── 구간 이동 (페이지 자동 점프 포함) ───────────────────────────────
   const goPrev = useCallback(() => {
@@ -156,9 +175,9 @@ export function DuringMiniControls() {
             }}
           >
             <span style={{ fontSize: 10, opacity: 0.7 }}>♩</span>
-            {bpm}
-            {targetBpm && bpm < targetBpm && (
-              <span style={{ fontSize: 8, opacity: 0.5 }}>/{targetBpm}</span>
+            {effectiveBpm}
+            {selSegment?.targetBpm && (
+              <span style={{ fontSize: 8, opacity: 0.5, color: '#10B981' }}>✦</span>
             )}
           </button>
 
@@ -172,17 +191,76 @@ export function DuringMiniControls() {
                 border: '1px solid rgba(212,168,67,.3)',
                 borderRadius: 12,
                 boxShadow: '0 -4px 24px rgba(0,0,0,0.35)',
-                minWidth: 200,
+                minWidth: 220,
                 padding: '14px 16px',
               }}
             >
-              <div className="text-[11px] font-semibold uppercase tracking-[.08em] text-[rgba(212,168,67,.6)] mb-3">
-                메트로놈
+              {/* 헤더 — 구간 선택 여부에 따라 컨텍스트 표시 */}
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[10px] font-semibold uppercase tracking-[.08em] text-[rgba(212,168,67,.6)]">
+                  메트로놈
+                </span>
+                {selectedSegmentId ? (
+                  <span
+                    className="text-[9.5px] font-semibold px-1.5 py-0.5 rounded"
+                    style={{ background: 'rgba(16,185,129,.12)', color: '#10B981' }}
+                  >
+                    🎯 {selIdx + 1}구간 전용
+                  </span>
+                ) : (
+                  <span
+                    className="text-[9.5px] font-semibold px-1.5 py-0.5 rounded"
+                    style={{ background: 'rgba(212,168,67,.1)', color: 'rgba(212,168,67,.7)' }}
+                  >
+                    🌐 전체 기본값
+                  </span>
+                )}
               </div>
-              {/* 패널 내용 — 추후 요구사항에 따라 추가 */}
-              <div className="text-[11px] text-[rgba(255,255,255,.35)] text-center py-2">
-                설정 항목이 곧 추가됩니다
+
+              {/* BPM 조작 */}
+              <div className="flex items-center justify-center gap-1.5 mb-4">
+                <button
+                  onClick={() => setPanelBpm(v => Math.max(20, v - 10))}
+                  className="w-8 h-8 rounded-lg border text-[11px] font-bold transition-colors"
+                  style={{ background: 'rgba(255,255,255,.05)', borderColor: 'rgba(255,255,255,.1)', color: 'rgba(255,255,255,.5)' }}
+                >–10</button>
+                <button
+                  onClick={() => setPanelBpm(v => Math.max(20, v - 1))}
+                  className="w-8 h-8 rounded-lg border text-[12px] font-bold transition-colors"
+                  style={{ background: 'rgba(255,255,255,.05)', borderColor: 'rgba(255,255,255,.1)', color: 'rgba(255,255,255,.6)' }}
+                >–1</button>
+
+                <div
+                  className="font-mono font-bold text-[22px] text-center mx-1"
+                  style={{ color: '#d4a843', minWidth: 56 }}
+                >
+                  {panelBpm}
+                </div>
+
+                <button
+                  onClick={() => setPanelBpm(v => Math.min(240, v + 1))}
+                  className="w-8 h-8 rounded-lg border text-[12px] font-bold transition-colors"
+                  style={{ background: 'rgba(255,255,255,.05)', borderColor: 'rgba(255,255,255,.1)', color: 'rgba(255,255,255,.6)' }}
+                >+1</button>
+                <button
+                  onClick={() => setPanelBpm(v => Math.min(240, v + 10))}
+                  className="w-8 h-8 rounded-lg border text-[11px] font-bold transition-colors"
+                  style={{ background: 'rgba(212,168,67,.1)', borderColor: 'rgba(212,168,67,.25)', color: '#d4a843' }}
+                >+10</button>
               </div>
+
+              {/* 확인 버튼 */}
+              <button
+                onClick={confirmMetro}
+                className="w-full h-8 rounded-lg text-[12px] font-semibold transition-all"
+                style={{
+                  background: selectedSegmentId ? 'rgba(16,185,129,.18)' : 'rgba(212,168,67,.18)',
+                  border: `1px solid ${selectedSegmentId ? 'rgba(16,185,129,.4)' : 'rgba(212,168,67,.4)'}`,
+                  color: selectedSegmentId ? '#10B981' : '#d4a843',
+                }}
+              >
+                확인
+              </button>
             </div>
           )}
         </div>
