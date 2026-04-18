@@ -5,8 +5,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { useRef } from 'react';
 import { DiagnosticContent } from '../phases/DiagnosticInterface';
+import { usePractice } from '../../context/PracticeContext';
 
 export function AfterBottomSheet({ isOpen, onClose }) {
+  const { nav } = usePractice();
   const sheetRef = useRef(null);
   const dragRef = useRef({ startY: 0, dragging: false, currentDelta: 0 });
 
@@ -88,12 +90,26 @@ export function AfterBottomSheet({ isOpen, onClose }) {
           <span className="text-[11px] font-semibold uppercase tracking-[.08em] text-[var(--ivps-plum)]">
             진단 · 처방
           </span>
-          <button
-            onClick={onClose}
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-[17px] text-[var(--ivps-text4)] hover:bg-[var(--ivps-surface2)] transition-colors"
-          >
-            ×
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => { onClose(); nav.enterLastAfter(); }}
+              className="flex items-center gap-1.5 px-2.5 h-7 rounded-lg border text-[11px] font-semibold transition-all"
+              style={{
+                background: 'rgba(224,112,112,.08)',
+                borderColor: 'rgba(224,112,112,.25)',
+                color: '#e07070',
+              }}
+              title="연습 종료 — 전체 리뷰로"
+            >
+              ⏹ 연습종료
+            </button>
+            <button
+              onClick={onClose}
+              className="w-7 h-7 flex items-center justify-center rounded-lg text-[17px] text-[var(--ivps-text4)] hover:bg-[var(--ivps-surface2)] transition-colors"
+            >
+              ×
+            </button>
+          </div>
         </div>
 
         {/* ── 스크롤 가능한 진단 컨텐츠 ── */}

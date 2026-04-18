@@ -27,6 +27,7 @@ import { DuringMiniControls } from '../phases/DuringMiniControls';
 import { TopHUD } from '../phases/TopHUD';
 import { AfterBottomSheet } from './AfterBottomSheet';
 import { FloatingDiagHandle } from './FloatingDiagHandle';
+import { LastAfterPhase } from './LastAfterPhase';
 
 // ── 위상(Phase) 메타 ──────────────────────────────────────────────────────
 const PHASES = [
@@ -128,6 +129,9 @@ export function CockpitView() {
 
   const handleBack = useCallback(() => nav.navigate('library'), [nav]);
 
+  // Last After Phase — 악보/패널 전체 대체
+  if (phase === 'last-after') return <LastAfterPhase />;
+
   const [afterSheetOpen, setAfterSheetOpen] = useState(false);
 
   // During Phase 이탈 시 시트 자동 닫기
@@ -172,7 +176,7 @@ export function CockpitView() {
 
           {/* 전체화면 During: 하단 미니 컨트롤 바 */}
           {practiceFullscreen && phase === 'during' && (
-            <DuringMiniControls onOpenPanel={() => ui.setPracticeFullscreen(false)} />
+            <DuringMiniControls />
           )}
 
           {/* During 전체화면: 플로팅 진단 핸들 (시트 닫혀있을 때만 표시) */}

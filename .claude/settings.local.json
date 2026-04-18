@@ -12,7 +12,8 @@
       "Bash(node:*)",
       "Bash(sed -i 's|from '\\\\''../../data/taxonomyData'\\\\''|from '\\\\''../../data/taxonomy'\\\\''|g' src/components/score/ScoreViewer.jsx src/components/library/LibraryView.jsx src/components/library/SkillDetailModal.jsx src/components/cockpit/CockpitView.jsx src/components/dashboard/DashboardView.jsx src/components/phases/CognitiveBriefing.jsx src/components/phases/PracticeHUD.jsx src/components/phases/DiagnosticInterface.jsx)",
       "Bash(sed -i 's|from '\\\\''../data/taxonomyData'\\\\''|from '\\\\''../data/taxonomy'\\\\''|g' src/hooks/usePracticeSession.js)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(xargs grep *)"
     ]
   }
 }

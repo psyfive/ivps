@@ -54,6 +54,9 @@ export const INITIAL_STATE = {
   // ─ UI ─
   immersionMode: false,
   practiceFullscreen: false, // During 진입 시 양 사이드 패널 접기
+
+  // ─ 연습 종합 리뷰 (Last After Phase) ─
+  reviewSegmentIndex: 0,   // LastAfterPhase 구간 내비게이터 인덱스
 };
 
 // ── 액션 타입 ──────────────────────────────────────────────────────────────
@@ -135,6 +138,11 @@ export const ACTIONS = {
   // UI
   TOGGLE_IMMERSION:       'TOGGLE_IMMERSION',
   SET_PRACTICE_FULLSCREEN:'SET_PRACTICE_FULLSCREEN',
+
+  // 연습 종합 리뷰 (Last After Phase)
+  ENTER_LAST_AFTER:        'ENTER_LAST_AFTER',
+  EXIT_LAST_AFTER:         'EXIT_LAST_AFTER',
+  SET_REVIEW_SEGMENT_INDEX:'SET_REVIEW_SEGMENT_INDEX',
 };
 
 // ── 유틸 ───────────────────────────────────────────────────────────────────
@@ -744,6 +752,30 @@ export function reducer(state, action) {
     case ACTIONS.SET_PRACTICE_FULLSCREEN:
       return { ...state, practiceFullscreen: action.value };
 
+    // ── 연습 종합 리뷰 ────────────────────────────────────────────────
+    case ACTIONS.ENTER_LAST_AFTER:
+      return {
+        ...state,
+        phase: 'last-after',
+        reviewSegmentIndex: 0,
+        practiceFullscreen: false,
+        selectedSegmentId: null,
+        isSelectingSegment: false,
+        tempSegments: [],
+        pickerSessionId: null,
+      };
+
+    case ACTIONS.EXIT_LAST_AFTER:
+      return {
+        ...state,
+        phase: 'before',
+        screen: 'dashboard',
+        reviewSegmentIndex: 0,
+      };
+
+    case ACTIONS.SET_REVIEW_SEGMENT_INDEX:
+      return { ...state, reviewSegmentIndex: action.index };
+
     default:
       return state;
   }
@@ -928,6 +960,16 @@ export function usePracticeSession() {
   const setPracticeFullscreen = useCallback((value) =>
     dispatch({ type: ACTIONS.SET_PRACTICE_FULLSCREEN, value }), []);
 
+  // ── Last After Phase 액션 ─────────────────────────────────────────
+  const enterLastAfter = useCallback(() =>
+    dispatch({ type: ACTIONS.ENTER_LAST_AFTER }), []);
+
+  const exitLastAfter = useCallback(() =>
+    dispatch({ type: ACTIONS.EXIT_LAST_AFTER }), []);
+
+  const setReviewIndex = useCallback((index) =>
+    dispatch({ type: ACTIONS.SET_REVIEW_SEGMENT_INDEX, index }), []);
+
   return {
     // 상태
     ...state,
@@ -939,7 +981,7 @@ export function usePracticeSession() {
     currentSection,
 
     // 액션 (그룹화)
-    nav: { navigate, setPhase, goSkillPractice },
+    nav: { navigate, setPhase, goSkillPractice, enterLastAfter, exitLastAfter, setReviewIndex },
     skill: { openSkillModal, closeSkillModal, setFilterCategory },
     score: { addScore, setActiveScore, deleteScore, renameScore, changePage, setPage },
     session: { addSession, deleteSession, selectSession, assignSkill, removeSkill, toggleCheck, openPicker, closePicker },
