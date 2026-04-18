@@ -74,6 +74,7 @@ export function DuringMiniControls() {
     selectedSegmentId,
     subdivision,
     ghostTrainBars,
+    ghostTrainReadyBars,
     currentBeat,
     metro,
     grape,
@@ -91,11 +92,12 @@ export function DuringMiniControls() {
   const effectiveBpm = selSegment?.targetBpm ?? bpm;
 
   // ── Ghost Train 로컬 상태 ────────────────────────────────────────
-  const [ghostActive,    setGhostActive]    = useState(false);
-  const [ghostPhase,     setGhostPhase]     = useState('');
-  const ghostSetIdx = 2; // Set 2 항상 Ghost (Set 1, Set 3은 Normal)
-  const [panelGhostBars, setPanelGhostBars] = useState(ghostTrainBars);
-  const [showGhostInfo,  setShowGhostInfo]  = useState(false);
+  const [ghostActive,     setGhostActive]    = useState(false);
+  const [ghostPhase,      setGhostPhase]     = useState('');
+  const [ghostBarInfo,    setGhostBarInfo]   = useState({ barInPhase: 0, totalBars: 0 });
+  const [panelGhostBars,  setPanelGhostBars] = useState(ghostTrainBars);
+  const [panelReadyBars,  setPanelReadyBars] = useState(ghostTrainReadyBars);
+  const [showGhostInfo,   setShowGhostInfo]  = useState(false);
 
   // 메트로놈 OFF 시 Ghost Train 자동 종료
   useEffect(() => {
@@ -109,6 +111,10 @@ export function DuringMiniControls() {
     setGhostPhase(phase);
   }, []);
 
+  const onGhostBarChange = useCallback((phase, barInPhase, totalBars) => {
+    setGhostBarInfo({ barInPhase, totalBars });
+  }, []);
+
   // 전체화면 During phase 전용 메트로놈 엔진
   useMetronome({
     bpm: effectiveBpm,
@@ -119,8 +125,9 @@ export function DuringMiniControls() {
     ghostTrain: {
       enabled:       ghostActive,
       bars:          ghostTrainBars,
-      ghostSetIdx,
+      readyBars:     ghostTrainReadyBars,
       onPhaseChange: onGhostPhaseChange,
+      onBarChange:   onGhostBarChange,
     },
   });
 
@@ -151,10 +158,11 @@ export function DuringMiniControls() {
       setPanelBeats(beatsPerBar);
       setPanelSubdiv(subdivision);
       setPanelGhostBars(ghostTrainBars);
+      setPanelReadyBars(ghostTrainReadyBars);
       setBpmEditing(false);
       setBeatsEditing(false);
     }
-  }, [metroOpen, effectiveBpm, beatsPerBar, subdivision, ghostTrainBars]);
+  }, [metroOpen, effectiveBpm, beatsPerBar, subdivision, ghostTrainBars, ghostTrainReadyBars]);
 
   useEffect(() => {
     if (!metroOpen) return;
@@ -181,18 +189,20 @@ export function DuringMiniControls() {
     metro.setBeatsPerBar(Math.max(1, Math.min(16, panelBeats)));
     metro.setSubdivision(panelSubdiv);
     metro.setGhostTrainBars(Math.max(1, Math.min(32, panelGhostBars)));
+    metro.setGhostTrainReadyBars(Math.max(1, Math.min(8, panelReadyBars)));
     setMetroOpen(false);
-  }, [panelBpm, panelBeats, panelSubdiv, panelGhostBars,
+  }, [panelBpm, panelBeats, panelSubdiv, panelGhostBars, panelReadyBars,
       selectedSegmentId, segmentActs, metro]);
 
   // ── Ghost Train 시작 ─────────────────────────────────────────────
   const startGhostTrain = useCallback(() => {
     if (!metroPlaying) return;
     metro.setGhostTrainBars(Math.max(1, Math.min(32, panelGhostBars)));
+    metro.setGhostTrainReadyBars(Math.max(1, Math.min(8, panelReadyBars)));
     setGhostPhase('countIn');
     setGhostActive(true);
     setMetroOpen(false);
-  }, [metroPlaying, panelGhostBars, metro]);
+  }, [metroPlaying, panelGhostBars, panelReadyBars, metro]);
 
   // ── 구간 이동 (페이지 자동 점프 포함) ───────────────────────────────
   const goPrev = useCallback(() => {
@@ -257,6 +267,16 @@ export function DuringMiniControls() {
                   );
                 })}
               </div>
+            )}
+
+            {/* 마디 카운터 */}
+            {ghostBarInfo.totalBars > 0 && (
+              <span
+                className="text-[10px] font-mono font-bold"
+                style={{ color: `${hudContent.color}bb` }}
+              >
+                {ghostBarInfo.barInPhase}/{ghostBarInfo.totalBars}마디
+              </span>
             )}
           </div>
         </div>
@@ -383,35 +403,63 @@ export function DuringMiniControls() {
                     )}
                   </div>
 
-                  {/* 구간 길이 입력 */}
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-[10px] text-[rgba(255,255,255,.4)] flex-1">구간 길이</span>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => setPanelGhostBars(v => Math.max(1, v - 1))}
-                        className="w-7 h-7 rounded border text-[11px] font-bold"
-                        style={{ background: 'rgba(255,255,255,.05)', borderColor: 'rgba(255,255,255,.1)', color: 'rgba(255,255,255,.5)' }}
-                      >–</button>
-                      <input
-                        type="number" min={1} max={32}
-                        value={panelGhostBars}
-                        onChange={e => setPanelGhostBars(Math.max(1, Math.min(32, Number(e.target.value))))}
-                        className="w-10 h-7 rounded border text-center font-mono text-[13px] font-bold bg-transparent outline-none"
-                        style={{ borderColor: 'rgba(155,127,200,.4)', color: '#9b7fc8' }}
-                      />
-                      <button
-                        onClick={() => setPanelGhostBars(v => Math.min(32, v + 1))}
-                        className="w-7 h-7 rounded border text-[11px] font-bold"
-                        style={{ background: 'rgba(155,127,200,.1)', borderColor: 'rgba(155,127,200,.25)', color: '#9b7fc8' }}
-                      >+</button>
-                      <span className="text-[10px] text-[rgba(255,255,255,.35)]">마디</span>
+                  {/* 구간 길이 + READY — 같은 행 */}
+                  <div className="flex items-end gap-2 mb-3">
+                    {/* 구간 길이 */}
+                    <div className="flex flex-col gap-1 flex-1">
+                      <span className="text-[9px] text-[rgba(255,255,255,.35)]">구간 길이</span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setPanelGhostBars(v => Math.max(1, v - 1))}
+                          className="rounded border text-[10px] font-bold flex-shrink-0"
+                          style={{ width: 22, height: 22, background: 'rgba(255,255,255,.05)', borderColor: 'rgba(255,255,255,.1)', color: 'rgba(255,255,255,.5)' }}
+                        >–</button>
+                        <input
+                          type="number" min={1} max={32}
+                          value={panelGhostBars}
+                          onChange={e => setPanelGhostBars(Math.max(1, Math.min(32, Number(e.target.value))))}
+                          className="rounded border text-center font-mono text-[12px] font-bold bg-transparent outline-none"
+                          style={{ width: 34, height: 22, borderColor: 'rgba(155,127,200,.4)', color: '#9b7fc8' }}
+                        />
+                        <button
+                          onClick={() => setPanelGhostBars(v => Math.min(32, v + 1))}
+                          className="rounded border text-[10px] font-bold flex-shrink-0"
+                          style={{ width: 22, height: 22, background: 'rgba(155,127,200,.1)', borderColor: 'rgba(155,127,200,.25)', color: '#9b7fc8' }}
+                        >+</button>
+                        <span className="text-[9px] text-[rgba(255,255,255,.3)]">마디</span>
+                      </div>
+                    </div>
+
+                    {/* READY */}
+                    <div className="flex flex-col gap-1 flex-1">
+                      <span className="text-[9px] text-[rgba(255,255,255,.35)]">READY</span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setPanelReadyBars(v => Math.max(1, v - 1))}
+                          className="rounded border text-[10px] font-bold flex-shrink-0"
+                          style={{ width: 22, height: 22, background: 'rgba(255,255,255,.05)', borderColor: 'rgba(255,255,255,.1)', color: 'rgba(255,255,255,.5)' }}
+                        >–</button>
+                        <input
+                          type="number" min={1} max={8}
+                          value={panelReadyBars}
+                          onChange={e => setPanelReadyBars(Math.max(1, Math.min(8, Number(e.target.value))))}
+                          className="rounded border text-center font-mono text-[12px] font-bold bg-transparent outline-none"
+                          style={{ width: 34, height: 22, borderColor: 'rgba(212,168,67,.4)', color: '#d4a843' }}
+                        />
+                        <button
+                          onClick={() => setPanelReadyBars(v => Math.min(8, v + 1))}
+                          className="rounded border text-[10px] font-bold flex-shrink-0"
+                          style={{ width: 22, height: 22, background: 'rgba(212,168,67,.1)', borderColor: 'rgba(212,168,67,.25)', color: '#d4a843' }}
+                        >+</button>
+                        <span className="text-[9px] text-[rgba(255,255,255,.3)]">마디</span>
+                      </div>
                     </div>
                   </div>
 
                   {/* Ghost Train 시작 / 중지 버튼 */}
                   {ghostActive ? (
                     <button
-                      onClick={() => { setGhostActive(false); setGhostPhase(''); }}
+                      onClick={() => { setGhostActive(false); setGhostPhase(''); metro.setMetroPlaying(false); }}
                       className="w-full h-8 rounded-lg text-[11.5px] font-semibold transition-all"
                       style={{
                         background: 'rgba(224,112,112,.12)',

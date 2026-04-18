@@ -28,6 +28,7 @@ export const INITIAL_STATE = {
   currentBeat: -1,
   subdivision: 1,          // 1=Quarter, 2=Eighth, 3=Triplet, 4=Sixteenth
   ghostTrainBars: 8,       // Ghost Train — 구간 길이(마디)
+  ghostTrainReadyBars: 1,  // Ghost Train — READY 길이(마디)
 
   // ─ 튜너 ─
   tunerActive: false,
@@ -95,7 +96,8 @@ export const ACTIONS = {
   SET_METRO_PLAYING:     'SET_METRO_PLAYING',
   SET_CURRENT_BEAT:      'SET_CURRENT_BEAT',
   SET_SUBDIVISION:       'SET_SUBDIVISION',
-  SET_GHOST_TRAIN_BARS:  'SET_GHOST_TRAIN_BARS',
+  SET_GHOST_TRAIN_BARS:       'SET_GHOST_TRAIN_BARS',
+  SET_GHOST_TRAIN_READY_BARS: 'SET_GHOST_TRAIN_READY_BARS',
 
   // 튜너
   SET_TUNER_ACTIVE:  'SET_TUNER_ACTIVE',
@@ -407,6 +409,9 @@ export function reducer(state, action) {
 
     case ACTIONS.SET_GHOST_TRAIN_BARS:
       return { ...state, ghostTrainBars: Math.max(1, Math.min(32, action.bars)) };
+
+    case ACTIONS.SET_GHOST_TRAIN_READY_BARS:
+      return { ...state, ghostTrainReadyBars: Math.max(1, Math.min(8, action.bars)) };
 
     // ── 튜너 ─────────────────────────────────────────────────────────
     case ACTIONS.SET_TUNER_ACTIVE:
@@ -885,6 +890,9 @@ export function usePracticeSession() {
   const setGhostTrainBars = useCallback((bars) =>
     dispatch({ type: ACTIONS.SET_GHOST_TRAIN_BARS, bars: Number(bars) }), []);
 
+  const setGhostTrainReadyBars = useCallback((bars) =>
+    dispatch({ type: ACTIONS.SET_GHOST_TRAIN_READY_BARS, bars: Number(bars) }), []);
+
   // ── 튜너 액션 ─────────────────────────────────────────────────────
   const setTunerActive = useCallback((active) =>
     dispatch({ type: ACTIONS.SET_TUNER_ACTIVE, active }), []);
@@ -1007,7 +1015,7 @@ export function usePracticeSession() {
     cart: { addToCart, removeFromCart },
     segment: { toggleSegmentCheck, toggleSegmentMode, startAddToSegment, selectSegment, addSegment, deleteSegment, deleteSegmentCoord, setSegmentMeta, updateSegmentCoord, mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment, commitTempSegments },
     before: { addSection, deleteSection, assignSectionSkill, setCurrentBar },
-    metro: { setBpm, setBeatsPerBar, setMetroPlaying, setCurrentBeat, setSubdivision, setGhostTrainBars },
+    metro: { setBpm, setBeatsPerBar, setMetroPlaying, setCurrentBeat, setSubdivision, setGhostTrainBars, setGhostTrainReadyBars },
     tuner: { setTunerActive, setTunerNote },
     grape: { toggleGrape, resetGrapes, adjustGrapeTotal },
     settings: { setGrapeBpmIncrement },

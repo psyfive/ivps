@@ -6,7 +6,7 @@
 // 지원 기능:
 //   • subdivision (1/2/3/4) — Quarter / Eighth / Triplet / Sixteenth
 //   • 오디오 계층: Accent(강박) > Beat(약박) > Sub-click(분할박)
-//   • ghostTrain — 3세트 구조에서 무작위 1세트 무음 (Inner Clock 훈련)
+//   • ghostTrain — Normal/Ghost 무한반복, READY 마디 가변
 // ─────────────────────────────────────────────────────────────────────────────
 import { useRef, useCallback, useEffect } from 'react';
 
@@ -16,12 +16,13 @@ import { useRef, useCallback, useEffect } from 'react';
  * @param {number}   params.beatsPerBar
  * @param {number}   params.subdivision       — 1|2|3|4
  * @param {boolean}  params.playing
- * @param {(beat:number)=>void} params.onBeat — 메인 박(beat) 발화 시 콜백
+ * @param {(beat:number)=>void} params.onBeat
  * @param {{
  *   enabled: boolean,
  *   bars: number,
- *   ghostSetIdx: number,
- *   onPhaseChange: (phase:string)=>void
+ *   readyBars: number,
+ *   onPhaseChange: (phase:string)=>void,
+ *   onBarChange: (phase:string, barInPhase:number, totalBars:number)=>void,
  * }} [params.ghostTrain]
  */
 export function useMetronome({
@@ -37,7 +38,7 @@ export function useMetronome({
   const tickCountRef = useRef(0);
   const timerRef     = useRef(null);
 
-  // props → ref 미러링 (클로저 stale 방지)
+  // props → ref 미러링
   const bpmRef      = useRef(bpm);
   const bpbRef      = useRef(beatsPerBar);
   const subdivRef   = useRef(subdivision);
@@ -49,34 +50,36 @@ export function useMetronome({
   useEffect(() => { onBeatRef.current = onBeat; },     [onBeat]);
 
   // Ghost Train refs
-  const ghostEnabledRef  = useRef(ghostTrain.enabled    ?? false);
-  const ghostBarsRef     = useRef(ghostTrain.bars        ?? 8);
-  const ghostSetIdxRef   = useRef(ghostTrain.ghostSetIdx ?? 1);
-  const onPhaseChangeRef = useRef(ghostTrain.onPhaseChange ?? null);
-  const barIndexRef      = useRef(0);  // 타임라인 내 현재 바 인덱스 (0 = countIn)
-  const beatInBarRef     = useRef(0);  // 현재 바 내 메인 박 누적
-  const lastPhaseRef     = useRef(''); // 직전 페이즈 (중복 콜백 방지)
+  const ghostEnabledRef    = useRef(ghostTrain.enabled      ?? false);
+  const ghostBarsRef       = useRef(ghostTrain.bars          ?? 8);
+  const ghostReadyBarsRef  = useRef(ghostTrain.readyBars     ?? 1);
+  const onPhaseChangeRef   = useRef(ghostTrain.onPhaseChange ?? null);
+  const onBarChangeRef     = useRef(ghostTrain.onBarChange   ?? null);
+  const barIndexRef        = useRef(0);
+  const beatInBarRef       = useRef(0);
+  const lastPhaseRef       = useRef('');
 
-  useEffect(() => { ghostEnabledRef.current  = ghostTrain.enabled       ?? false; }, [ghostTrain.enabled]);
-  useEffect(() => { ghostBarsRef.current     = ghostTrain.bars          ?? 8;     }, [ghostTrain.bars]);
-  useEffect(() => { ghostSetIdxRef.current   = ghostTrain.ghostSetIdx   ?? 1;     }, [ghostTrain.ghostSetIdx]);
-  useEffect(() => { onPhaseChangeRef.current = ghostTrain.onPhaseChange ?? null;  }, [ghostTrain.onPhaseChange]);
+  useEffect(() => { ghostEnabledRef.current   = ghostTrain.enabled      ?? false; }, [ghostTrain.enabled]);
+  useEffect(() => { ghostBarsRef.current      = ghostTrain.bars          ?? 8;    }, [ghostTrain.bars]);
+  useEffect(() => { ghostReadyBarsRef.current = ghostTrain.readyBars     ?? 1;    }, [ghostTrain.readyBars]);
+  useEffect(() => { onPhaseChangeRef.current  = ghostTrain.onPhaseChange ?? null; }, [ghostTrain.onPhaseChange]);
+  useEffect(() => { onBarChangeRef.current    = ghostTrain.onBarChange   ?? null; }, [ghostTrain.onBarChange]);
 
-  // ── Ghost Train 페이즈 계산 (무한반복) ──────────────────────────────────
-  // bar 0 → countIn
-  // 이후 (2N+2) 마디 주기로 반복:
-  //   pos 0..N-1   → normal (홀수 세트)
-  //   pos N        → break
-  //   pos N+1..2N  → ghost  (짝수 세트, 무음)
-  //   pos 2N+1     → break
-  function computeGhostPhase(barIdx, N) {
-    if (barIdx === 0) return 'countIn';
-    const cycleLen = 2 * N + 2;
+  // ── Ghost Train 페이즈 + 바 위치 계산 ───────────────────────────────────
+  // N = setLength bars, R = readyBars
+  // cycleLen = 2N + 2R
+  // pos 0..N-1         → 'normal',  barInPhase = pos+1,         total = N
+  // pos N..N+R-1       → 'break',   barInPhase = pos-N+1,       total = R
+  // pos N+R..2N+R-1    → 'ghost',   barInPhase = pos-N-R+1,     total = N
+  // pos 2N+R..2N+2R-1  → 'break',   barInPhase = pos-2N-R+1,    total = R
+  function computeGhostInfo(barIdx, N, R) {
+    if (barIdx === 0) return { phase: 'countIn', barInPhase: 1, totalBars: 1 };
+    const cycleLen = 2 * N + 2 * R;
     const pos = (barIdx - 1) % cycleLen;
-    if (pos < N)          return 'normal';
-    if (pos === N)        return 'break';
-    if (pos < 2 * N + 1)  return 'ghost';
-    return 'break';
+    if (pos < N)                 return { phase: 'normal', barInPhase: pos + 1,           totalBars: N };
+    if (pos < N + R)             return { phase: 'break',  barInPhase: pos - N + 1,       totalBars: R };
+    if (pos < 2 * N + R)        return { phase: 'ghost',  barInPhase: pos - N - R + 1,   totalBars: N };
+    return                              { phase: 'break',  barInPhase: pos - 2*N - R + 1, totalBars: R };
   }
 
   // ── 단일 오실레이터 스케줄 ───────────────────────────────────────────────
@@ -108,24 +111,30 @@ export function useMetronome({
       const isMainBeat = subIdx === 0;
       const time       = nextTimeRef.current;
 
-      // ── Ghost Train: 새 바 시작 시 페이즈 전환 감지 ──────────────
+      // ── Ghost Train: 새 바 시작 시 페이즈/바 콜백 ────────────────
       if (ghostEnabledRef.current && isMainBeat && beatIdx === 0) {
-        const N     = ghostBarsRef.current;
-        const phase = computeGhostPhase(barIndexRef.current, N);
+        const N    = ghostBarsRef.current;
+        const R    = ghostReadyBarsRef.current;
+        const info = computeGhostInfo(barIndexRef.current, N, R);
+        const delay = Math.max(0, (time - ctx.currentTime) * 1000);
 
-        if (phase !== lastPhaseRef.current) {
-          lastPhaseRef.current = phase;
-          const delay    = Math.max(0, (time - ctx.currentTime) * 1000);
-          const captured = phase;
+        // 페이즈 변경 콜백
+        if (info.phase !== lastPhaseRef.current) {
+          lastPhaseRef.current = info.phase;
+          const captured = info.phase;
           setTimeout(() => { onPhaseChangeRef.current?.(captured); }, delay);
         }
+
+        // 바 카운터 콜백 (매 바마다)
+        const capturedInfo = info;
+        setTimeout(() => { onBarChangeRef.current?.(capturedInfo.phase, capturedInfo.barInPhase, capturedInfo.totalBars); }, delay);
       }
 
-      // ── Ghost Train: 뮤트 여부 결정 (ghost 세트만 무음) ─────────────
+      // ── Ghost Train: ghost 세트만 무음 ───────────────────────────
       let muted = false;
       if (ghostEnabledRef.current) {
-        const phase = computeGhostPhase(barIndexRef.current, ghostBarsRef.current);
-        if (phase === 'ghost') muted = true;
+        const info = computeGhostInfo(barIndexRef.current, ghostBarsRef.current, ghostReadyBarsRef.current);
+        if (info.phase === 'ghost') muted = true;
       }
 
       // ── 오디오 스케줄 ────────────────────────────────────────────
@@ -179,14 +188,12 @@ export function useMetronome({
     timerRef.current = null;
   }, []);
 
-  // playing / bpm / subdivision 변화 시 재시작
   useEffect(() => {
     if (playing) { stop(); start(); }
     else          { stop(); }
     return stop;
   }, [playing, bpm, beatsPerBar, subdivision, start, stop]);
 
-  // 언마운트 정리
   useEffect(() => () => {
     stop();
     ctxRef.current?.close();
