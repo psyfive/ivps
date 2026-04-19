@@ -394,11 +394,11 @@ export function DuringMiniControls() {
                         >i</button>
                         {showGhostInfo && (
                           <div
-                            className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-20 w-52 text-[10px] leading-relaxed rounded-lg p-2.5"
+                            className="absolute top-full left-0 mt-2 z-20 w-52 text-[10px] leading-relaxed rounded-lg p-2.5"
                             style={{ background: 'rgba(30,36,48,.98)', border: '1px solid rgba(255,255,255,.12)', color: 'rgba(255,255,255,.65)' }}
                             onMouseDown={e => e.stopPropagation()}
                           >
-                            연습 세트 중 메트로놈이 자동으로 무음(Stealth) 상태가 됩니다. 소리 없이 내면의 박자감만으로 템포를 유지하며 연주를 완주하세요.
+                            연습 세트 중 메트로놈이 자동으로 무음(Mute) 상태가 됩니다. 소리 없이 내면의 박자감만으로 템포를 유지하며 연주를 완주하세요.
                           </div>
                         )}
                       </div>
