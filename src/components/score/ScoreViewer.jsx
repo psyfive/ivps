@@ -14,6 +14,7 @@ import { TAXONOMY } from '../../data/taxonomy';
 import { SegmentCanvas } from './SegmentCanvas';
 import { EyeAnchorOverlay } from './EyeAnchorOverlay';
 import { SegmentHeatmap } from './SegmentHeatmap';
+import { DrawingCanvas } from './DrawingCanvas';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // pdf.js 동적 로드 (CDN)
@@ -525,6 +526,7 @@ export function ScoreViewer({ phase }) {
     addingToSegmentId,
     tempSegments,
     xpLog,
+    drawingMode,
     score: scoreActs,
     session: sessionActs,
     segment: segmentActs,
@@ -733,25 +735,28 @@ export function ScoreViewer({ phase }) {
               </>
             )}
 
-            {/* During 단계: 구간 선택 캔버스 (EyeAnchorOverlay 제거 — TopHUD로 대체) */}
-            {isDuring && segments.length > 0 && (
+            {/* During 단계: 구간 선택 캔버스 + 필기 캔버스 */}
+            {isDuring && (
               <>
-                {/* 구간 외곽선 + 클릭 선택 + 이동/크기조정 (During phase) */}
-                <SegmentCanvas
-                  segments={segments}
-                  tempSegments={[]}
-                  isSelectingMode={false}
-                  selectedSegmentId={selectedSegmentId}
-                  currentPageIndex={activeScore?.currentPageIndex ?? 0}
-                  onSegmentCreate={() => {}}
-                  onSegmentSelect={segmentActs.selectSegment}
-                  onSegmentDelete={() => {}}
-                  onSegmentCoordDelete={() => {}}
-                  onTempDelete={() => {}}
-                  onSegmentUpdate={segmentActs.updateSegmentCoord}
-                  hideDelete
-                  phase="during"
-                />
+                {segments.length > 0 && (
+                  <SegmentCanvas
+                    segments={segments}
+                    tempSegments={[]}
+                    isSelectingMode={false}
+                    selectedSegmentId={selectedSegmentId}
+                    currentPageIndex={activeScore?.currentPageIndex ?? 0}
+                    onSegmentCreate={() => {}}
+                    onSegmentSelect={drawingMode ? () => {} : segmentActs.selectSegment}
+                    onSegmentDelete={() => {}}
+                    onSegmentCoordDelete={() => {}}
+                    onTempDelete={() => {}}
+                    onSegmentUpdate={segmentActs.updateSegmentCoord}
+                    hideDelete
+                    phase="during"
+                  />
+                )}
+                {/* 필기 캔버스 — 항상 표시 (drawingMode=false 일 때 pointer-events:none) */}
+                <DrawingCanvas currentPageIndex={activeScore?.currentPageIndex ?? 0} />
               </>
             )}
 

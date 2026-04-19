@@ -76,11 +76,15 @@ export function DuringMiniControls() {
     ghostTrainBars,
     ghostTrainReadyBars,
     currentBeat,
+    drawingMode,
+    drawingTool,
+    drawingColor,
     metro,
     grape,
     nav,
     score: scoreActs,
     segment: segmentActs,
+    drawing: drawingActs,
   } = usePractice();
 
   const segments   = activeScore?.segments ?? [];
@@ -681,7 +685,114 @@ export function DuringMiniControls() {
 
         <Sep />
 
-        {/* ── 우: 연습 종료 ── */}
+        {/* ── 우: 필기 모드 + 종료 ── */}
+        <div className="relative">
+          <button
+            onClick={() => drawingActs.setDrawingMode(!drawingMode)}
+            title="필기 모드"
+            className="flex items-center justify-center rounded-lg border text-[13px] transition-all select-none"
+            style={{
+              height: 34,
+              width: 34,
+              background: drawingMode ? 'rgba(212,168,67,.2)' : 'rgba(255,255,255,.05)',
+              borderColor: drawingMode ? 'rgba(212,168,67,.55)' : 'rgba(255,255,255,.1)',
+              color: drawingMode ? '#d4a843' : 'rgba(255,255,255,.55)',
+            }}
+          >
+            ✏️
+          </button>
+
+          {/* 필기 툴바 */}
+          {drawingMode && (
+            <div
+              className="absolute bottom-[calc(100%+8px)] right-0 z-50"
+              style={{
+                background: 'rgba(18,22,30,0.97)',
+                border: '1px solid rgba(212,168,67,.28)',
+                borderRadius: 12,
+                boxShadow: '0 -4px 24px rgba(0,0,0,0.4)',
+                width: 222,
+                padding: '12px 14px',
+              }}
+            >
+              {/* 도구 */}
+              <div className="text-[9px] text-[rgba(255,255,255,.3)] mb-1.5 uppercase tracking-wider">도구</div>
+              <div className="grid grid-cols-4 gap-1 mb-3">
+                {[
+                  { tool: 'pen',     label: '✏️', sub: '펜' },
+                  { tool: 'downBow', label: '∏',  sub: '↓활' },
+                  { tool: 'upBow',   label: '∨',  sub: '↑활' },
+                  { tool: 'eraser',  label: '⌫',  sub: '지우개' },
+                ].map(({ tool, label, sub }) => (
+                  <button
+                    key={tool}
+                    onClick={() => drawingActs.setDrawingTool(tool)}
+                    className="flex flex-col items-center py-1.5 rounded-lg border transition-all"
+                    style={{
+                      background: drawingTool === tool ? 'rgba(212,168,67,.18)' : 'rgba(255,255,255,.04)',
+                      borderColor: drawingTool === tool ? 'rgba(212,168,67,.5)' : 'rgba(255,255,255,.08)',
+                      color: drawingTool === tool ? '#d4a843' : 'rgba(255,255,255,.5)',
+                    }}
+                  >
+                    <span className="text-[15px] leading-none">{label}</span>
+                    <span className="text-[8px] mt-0.5 opacity-70">{sub}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* 색상 (pen/bow 도구일 때만) */}
+              {drawingTool !== 'eraser' && (
+                <>
+                  <div className="text-[9px] text-[rgba(255,255,255,.3)] mb-1.5 uppercase tracking-wider">색상</div>
+                  <div className="flex gap-2 mb-3">
+                    {[
+                      { color: '#e05555', label: '빨강' },
+                      { color: '#5588ee', label: '파랑' },
+                      { color: '#cccccc', label: '흰색' },
+                    ].map(({ color, label }) => (
+                      <button
+                        key={color}
+                        onClick={() => drawingActs.setDrawingColor(color)}
+                        title={label}
+                        className="rounded-full border-2 transition-all flex-shrink-0"
+                        style={{
+                          width: 22,
+                          height: 22,
+                          background: color,
+                          borderColor: drawingColor === color ? 'white' : 'transparent',
+                          boxShadow: drawingColor === color ? '0 0 0 1px rgba(255,255,255,.4)' : 'none',
+                        }}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+
+              <div className="w-full h-px bg-[rgba(255,255,255,.06)] mb-3" />
+
+              {/* 실행취소 / 전체삭제 */}
+              <div className="flex gap-1.5">
+                <button
+                  onClick={drawingActs.undoStroke}
+                  className="flex-1 h-7 rounded-lg border text-[10.5px] font-semibold transition-all"
+                  style={{ background: 'rgba(255,255,255,.05)', borderColor: 'rgba(255,255,255,.1)', color: 'rgba(255,255,255,.55)' }}
+                >
+                  ↺ 실행취소
+                </button>
+                <button
+                  onClick={() => drawingActs.clearDrawings(activeScore?.currentPageIndex ?? 0)}
+                  className="flex-1 h-7 rounded-lg border text-[10.5px] font-semibold transition-all"
+                  style={{ background: 'rgba(224,112,112,.08)', borderColor: 'rgba(224,112,112,.2)', color: '#e07070' }}
+                >
+                  🗑 전체삭제
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <Sep />
+
         <MiniBtn onClick={nav.enterLastAfter} title="연습 종료" danger>
           ⏹ 종료
         </MiniBtn>

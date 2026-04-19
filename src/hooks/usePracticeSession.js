@@ -54,6 +54,11 @@ export const INITIAL_STATE = {
   // ─ 현재 마디 (During Phase 연동) ─
   currentBar: null,           // number | null
 
+  // ─ 필기 (Drawing) ─
+  drawingMode: false,
+  drawingTool: 'pen',         // 'pen' | 'downBow' | 'upBow' | 'eraser'
+  drawingColor: '#e05555',
+
   // ─ UI ─
   immersionMode: false,
   practiceFullscreen: false, // During 진입 시 양 사이드 패널 접기
@@ -141,6 +146,15 @@ export const ACTIONS = {
   // 현재 마디 (During Phase)
   SET_CURRENT_BAR:   'SET_CURRENT_BAR',
 
+  // 필기 (Drawing)
+  ADD_STROKE:        'ADD_STROKE',
+  REMOVE_STROKE:     'REMOVE_STROKE',
+  UNDO_STROKE:       'UNDO_STROKE',
+  CLEAR_DRAWINGS:    'CLEAR_DRAWINGS',
+  SET_DRAWING_MODE:  'SET_DRAWING_MODE',
+  SET_DRAWING_TOOL:  'SET_DRAWING_TOOL',
+  SET_DRAWING_COLOR: 'SET_DRAWING_COLOR',
+
   // UI
   TOGGLE_IMMERSION:       'TOGGLE_IMMERSION',
   SET_PRACTICE_FULLSCREEN:'SET_PRACTICE_FULLSCREEN',
@@ -210,6 +224,7 @@ export function reducer(state, action) {
         sessions: [],
         sections: [],
         segments: [],
+        drawings: [],
         pageData: normalizedPageData,
         currentPageIndex: 0,
       };
@@ -760,6 +775,60 @@ export function reducer(state, action) {
     case ACTIONS.SET_CURRENT_BAR:
       return { ...state, currentBar: action.bar };
 
+    // ── 필기 ─────────────────────────────────────────────────────────
+    case ACTIONS.ADD_STROKE:
+      return {
+        ...state,
+        scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
+          drawings: [...(s.drawings ?? []), action.stroke],
+        })),
+      };
+
+    case ACTIONS.REMOVE_STROKE:
+      return {
+        ...state,
+        scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
+          drawings: (s.drawings ?? []).filter(d => d.id !== action.strokeId),
+        })),
+      };
+
+    case ACTIONS.UNDO_STROKE: {
+      const scoreForUndo = getActiveScore(state);
+      const pageIdxForUndo = scoreForUndo?.currentPageIndex ?? 0;
+      const drawingsForUndo = scoreForUndo?.drawings ?? [];
+      let lastStrokeId = null;
+      for (let i = drawingsForUndo.length - 1; i >= 0; i--) {
+        if (drawingsForUndo[i].pageIndex === pageIdxForUndo) {
+          lastStrokeId = drawingsForUndo[i].id;
+          break;
+        }
+      }
+      if (!lastStrokeId) return state;
+      return {
+        ...state,
+        scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
+          drawings: s.drawings.filter(d => d.id !== lastStrokeId),
+        })),
+      };
+    }
+
+    case ACTIONS.CLEAR_DRAWINGS:
+      return {
+        ...state,
+        scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
+          drawings: (s.drawings ?? []).filter(d => d.pageIndex !== action.pageIndex),
+        })),
+      };
+
+    case ACTIONS.SET_DRAWING_MODE:
+      return { ...state, drawingMode: action.active };
+
+    case ACTIONS.SET_DRAWING_TOOL:
+      return { ...state, drawingTool: action.tool };
+
+    case ACTIONS.SET_DRAWING_COLOR:
+      return { ...state, drawingColor: action.color };
+
     // ── UI ───────────────────────────────────────────────────────────
     case ACTIONS.TOGGLE_IMMERSION:
       return { ...state, immersionMode: !state.immersionMode };
@@ -980,6 +1049,28 @@ export function usePracticeSession() {
   const setCurrentBar = useCallback((bar) =>
     dispatch({ type: ACTIONS.SET_CURRENT_BAR, bar }), []);
 
+  // ── 필기 액션 ────────────────────────────────────────────────────
+  const addStroke = useCallback((stroke) =>
+    dispatch({ type: ACTIONS.ADD_STROKE, stroke }), []);
+
+  const removeStroke = useCallback((strokeId) =>
+    dispatch({ type: ACTIONS.REMOVE_STROKE, strokeId }), []);
+
+  const undoStroke = useCallback(() =>
+    dispatch({ type: ACTIONS.UNDO_STROKE }), []);
+
+  const clearDrawings = useCallback((pageIndex) =>
+    dispatch({ type: ACTIONS.CLEAR_DRAWINGS, pageIndex }), []);
+
+  const setDrawingMode = useCallback((active) =>
+    dispatch({ type: ACTIONS.SET_DRAWING_MODE, active }), []);
+
+  const setDrawingTool = useCallback((tool) =>
+    dispatch({ type: ACTIONS.SET_DRAWING_TOOL, tool }), []);
+
+  const setDrawingColor = useCallback((color) =>
+    dispatch({ type: ACTIONS.SET_DRAWING_COLOR, color }), []);
+
   // ── UI 액션 ──────────────────────────────────────────────────────
   const toggleImmersion = useCallback(() =>
     dispatch({ type: ACTIONS.TOGGLE_IMMERSION }), []);
@@ -1015,6 +1106,7 @@ export function usePracticeSession() {
     cart: { addToCart, removeFromCart },
     segment: { toggleSegmentCheck, toggleSegmentMode, startAddToSegment, selectSegment, addSegment, deleteSegment, deleteSegmentCoord, setSegmentMeta, updateSegmentCoord, mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment, commitTempSegments },
     before: { addSection, deleteSection, assignSectionSkill, setCurrentBar },
+    drawing: { addStroke, removeStroke, undoStroke, clearDrawings, setDrawingMode, setDrawingTool, setDrawingColor },
     metro: { setBpm, setBeatsPerBar, setMetroPlaying, setCurrentBeat, setSubdivision, setGhostTrainBars, setGhostTrainReadyBars },
     tuner: { setTunerActive, setTunerNote },
     grape: { toggleGrape, resetGrapes, adjustGrapeTotal },
