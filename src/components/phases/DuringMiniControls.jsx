@@ -148,8 +148,9 @@ export function DuringMiniControls() {
   const [panelSubdiv, setPanelSubdiv]   = useState(subdivision);
   const [bpmEditing, setBpmEditing]     = useState(false);
   const [beatsEditing, setBeatsEditing] = useState(false);
-  const metroPanelRef = useRef(null);
-  const metroBtnRef   = useRef(null);
+  const metroPanelRef    = useRef(null);
+  const metroBtnRef      = useRef(null);
+  const confirmMetroRef  = useRef(null);
 
   // 패널 열릴 때마다 현재 값으로 초기화
   useEffect(() => {
@@ -171,7 +172,7 @@ export function DuringMiniControls() {
         metroPanelRef.current && !metroPanelRef.current.contains(e.target) &&
         metroBtnRef.current   && !metroBtnRef.current.contains(e.target)
       ) {
-        setMetroOpen(false);
+        confirmMetroRef.current?.();
       }
     };
     document.addEventListener('mousedown', onDown);
@@ -193,6 +194,9 @@ export function DuringMiniControls() {
     setMetroOpen(false);
   }, [panelBpm, panelBeats, panelSubdiv, panelGhostBars, panelReadyBars,
       selectedSegmentId, segmentActs, metro]);
+
+  // confirmMetro를 ref에 미러링 — 외부 클릭 핸들러의 stale closure 방지
+  useEffect(() => { confirmMetroRef.current = confirmMetro; }, [confirmMetro]);
 
   // ── Ghost Train 시작 ─────────────────────────────────────────────
   const startGhostTrain = useCallback(() => {
