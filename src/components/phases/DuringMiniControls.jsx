@@ -376,21 +376,25 @@ export function DuringMiniControls() {
                   )}
                 </div>
 
-                {/* ── Ghost Train ── */}
+                {/* ── Stealth Metronome ── */}
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[11px] font-semibold text-[rgba(255,255,255,.7)]">Ghost Train</span>
+                      <span className="text-[11px] font-semibold text-[rgba(255,255,255,.7)]">Stealth Metronome</span>
                       <div className="relative">
                         <button
                           onClick={() => setShowGhostInfo(v => !v)}
+                          onMouseDown={e => e.stopPropagation()}
                           className="w-4 h-4 rounded-full border text-[9px] font-bold flex items-center justify-center transition-colors"
                           style={{ borderColor: 'rgba(255,255,255,.25)', color: 'rgba(255,255,255,.4)' }}
                         >i</button>
                         {showGhostInfo && (
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-10 w-52 text-[10px] leading-relaxed rounded-lg p-2.5"
-                            style={{ background: 'rgba(30,36,48,.98)', border: '1px solid rgba(255,255,255,.12)', color: 'rgba(255,255,255,.65)' }}>
-                            3세트 반복 중 무작위 1세트가 무음이 됩니다. 소리 없이 내부 박자감만으로 연주를 완주하세요.
+                          <div
+                            className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-20 w-52 text-[10px] leading-relaxed rounded-lg p-2.5"
+                            style={{ background: 'rgba(30,36,48,.98)', border: '1px solid rgba(255,255,255,.12)', color: 'rgba(255,255,255,.65)' }}
+                            onMouseDown={e => e.stopPropagation()}
+                          >
+                            연습 세트 중 메트로놈이 자동으로 무음(Stealth) 상태가 됩니다. 소리 없이 내면의 박자감만으로 템포를 유지하며 연주를 완주하세요.
                           </div>
                         )}
                       </div>
@@ -467,7 +471,7 @@ export function DuringMiniControls() {
                         color: '#e07070',
                       }}
                     >
-                      ■ Ghost Train 중지
+                      ■ Stealth Metronome 중지
                     </button>
                   ) : (
                     <button
@@ -481,7 +485,7 @@ export function DuringMiniControls() {
                         cursor: !metroPlaying ? 'not-allowed' : 'pointer',
                       }}
                     >
-                      ▶ Ghost Train 시작
+                      ▶ Stealth Metronome 시작
                     </button>
                   )}
                   {!metroPlaying && !ghostActive && (
