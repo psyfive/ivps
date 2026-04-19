@@ -241,21 +241,20 @@ function ScoreRailCard({ score, onOpen, onRename, onDelete }) {
         </div>
       </div>
 
-      {/* 호버 액션 */}
+      {/* 호버 액션 — 오버레이 자체는 pointer-events-none으로 카드 클릭 투과 */}
       <div
-        className="absolute inset-0 flex items-end justify-center gap-2 pb-2.5 px-2 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="absolute inset-0 flex items-end justify-center gap-2 pb-2.5 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
         style={{ background: 'linear-gradient(180deg, transparent 40%, rgba(10,14,22,.88) 100%)' }}
-        onClick={e => e.stopPropagation()}
       >
         <button
-          onClick={() => onRename(score.id)}
-          className="flex-1 py-1 text-[9.5px] text-[rgba(255,255,255,.6)] bg-[rgba(255,255,255,.08)] border border-[rgba(255,255,255,.12)] rounded-md hover:bg-[rgba(255,255,255,.14)] transition-colors"
+          onClick={e => { e.stopPropagation(); onRename(score.id); }}
+          className="flex-1 py-1 text-[9.5px] text-[rgba(255,255,255,.6)] bg-[rgba(255,255,255,.08)] border border-[rgba(255,255,255,.12)] rounded-md hover:bg-[rgba(255,255,255,.14)] transition-colors pointer-events-auto"
         >
           이름
         </button>
         <button
-          onClick={() => onDelete(score.id)}
-          className="flex-1 py-1 text-[9.5px] text-[#e07070] bg-[rgba(224,112,112,.08)] border border-[rgba(224,112,112,.2)] rounded-md hover:bg-[rgba(224,112,112,.14)] transition-colors"
+          onClick={e => { e.stopPropagation(); onDelete(score.id); }}
+          className="flex-1 py-1 text-[9.5px] text-[#e07070] bg-[rgba(224,112,112,.08)] border border-[rgba(224,112,112,.2)] rounded-md hover:bg-[rgba(224,112,112,.14)] transition-colors pointer-events-auto"
         >
           삭제
         </button>
