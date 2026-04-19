@@ -380,11 +380,11 @@ export function DuringMiniControls() {
                   )}
                 </div>
 
-                {/* ── Stealth Metronome ── */}
+                {/* ── Interval Mute ── */}
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[11px] font-semibold text-[rgba(255,255,255,.7)]">Stealth Metronome</span>
+                      <span className="text-[11px] font-semibold text-[rgba(255,255,255,.7)]">Interval Mute</span>
                       <div className="relative">
                         <button
                           onClick={() => setShowGhostInfo(v => !v)}
@@ -475,7 +475,7 @@ export function DuringMiniControls() {
                         color: '#e07070',
                       }}
                     >
-                      ■ Stealth Metronome 중지
+                      ■ Interval Mute 중지
                     </button>
                   ) : (
                     <button
@@ -489,7 +489,7 @@ export function DuringMiniControls() {
                         cursor: !metroPlaying ? 'not-allowed' : 'pointer',
                       }}
                     >
-                      ▶ Stealth Metronome 시작
+                      ▶ Interval Mute 시작
                     </button>
                   )}
                   {!metroPlaying && !ghostActive && (
