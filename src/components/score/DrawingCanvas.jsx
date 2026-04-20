@@ -9,10 +9,10 @@
 //   upBow    — 활 올림 ∨ 스탬프
 //   eraser   — 가장 가까운 스트로크 삭제
 // ─────────────────────────────────────────────────────────────────────────────
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
 import { usePractice } from '../../context/PracticeContext';
 
-const BOWING_SIZE = 0.0008;      // canvas width 대비 보잉 기호 크기
+const BOWING_SIZE = 0.0016;      // canvas width 대비 보잉 기호 크기
 const ERASER_THRESHOLD_PX = 28;  // 지우개 감지 픽셀 반경
 
 function drawStroke(ctx, stroke, w, h) {
@@ -37,9 +37,9 @@ function drawStroke(ctx, stroke, w, h) {
 
   if (tool === 'highlighter') {
     if (points.length < 2) return;
-    ctx.globalAlpha = 0.38;
+    ctx.globalAlpha = 0.18;
     ctx.lineCap = 'square';
-    ctx.lineWidth = Math.max(6, strokeWidth * w / 600);
+    ctx.lineWidth = Math.max(10, strokeWidth * w / 300);
     ctx.beginPath();
     ctx.moveTo(points[0].x * w, points[0].y * h);
     for (let i = 1; i < points.length; i++) {
@@ -72,6 +72,16 @@ function drawStroke(ctx, stroke, w, h) {
       ctx.lineTo(cx + sz, cy - sz * 0.5);
     }
     ctx.stroke();
+    return;
+  }
+
+  if (tool === 'text') {
+    const cx = points[0].x * w;
+    const cy = points[0].y * h;
+    const fontSize = Math.max(12, strokeWidth * w / 60);
+    ctx.font = `bold ${fontSize}px sans-serif`;
+    ctx.fillStyle = color;
+    ctx.fillText(stroke.text ?? '', cx, cy);
   }
 }
 
@@ -90,6 +100,7 @@ export function DrawingCanvas({ currentPageIndex }) {
   const activeStrokeRef = useRef(null);
   const strokesRef      = useRef([]);
   const isErasingRef    = useRef(false);
+  const [textInput, setTextInput] = useState(null); // { x, y, pageIdx }
 
   // 항상 최신 strokes를 ref에 동기화 (이벤트 핸들러 stale closure 방지)
   const strokes = (activeScore?.drawings ?? []).filter(d => d.pageIndex === currentPageIndex);
@@ -200,6 +211,11 @@ export function DrawingCanvas({ currentPageIndex }) {
       return;
     }
 
+    if (tool === 'text') {
+      setTextInput({ x: pt.x, y: pt.y, pageIdx });
+      return;
+    }
+
     if (tool === 'downBow' || tool === 'upBow') {
       acts.addStroke({ id: uid(), tool, color, strokeWidth: 2.5, points: [pt], pageIndex: pageIdx });
       return;
@@ -258,19 +274,62 @@ export function DrawingCanvas({ currentPageIndex }) {
 
   const cursor = !drawingMode ? 'default'
     : drawingTool === 'eraser' ? 'cell'
+    : drawingTool === 'text'   ? 'text'
     : 'crosshair';
 
+  const commitText = useCallback((value) => {
+    if (!textInput) return;
+    if (value.trim()) {
+      drawingActsRef.current.addStroke({
+        id: uid(),
+        tool: 'text',
+        color: drawingColorRef.current,
+        strokeWidth: 2,
+        points: [{ x: textInput.x, y: textInput.y }],
+        text: value.trim(),
+        pageIndex: textInput.pageIdx,
+      });
+    }
+    setTextInput(null);
+  }, [textInput]);
+
   return (
-    <canvas
-      ref={canvasRef}
+    <div
       className="absolute inset-0 w-full h-full"
-      style={{
-        pointerEvents: drawingMode ? 'auto' : 'none',
-        cursor,
-        zIndex: 10,
-        touchAction: 'none',
-      }}
-      onPointerDown={onPointerDown}
-    />
+      style={{ pointerEvents: drawingMode ? 'auto' : 'none', zIndex: 10 }}
+    >
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 w-full h-full"
+        style={{ cursor, touchAction: 'none', pointerEvents: 'auto' }}
+        onPointerDown={onPointerDown}
+      />
+      {textInput && (
+        <input
+          autoFocus
+          style={{
+            position: 'absolute',
+            left: `${textInput.x * 100}%`,
+            top: `${textInput.y * 100}%`,
+            transform: 'translate(0, -50%)',
+            zIndex: 20,
+            background: 'rgba(0,0,0,0.55)',
+            color: drawingColor,
+            border: '1px solid rgba(255,255,255,0.35)',
+            borderRadius: 4,
+            padding: '2px 6px',
+            fontSize: 14,
+            fontWeight: 'bold',
+            outline: 'none',
+            minWidth: 80,
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') commitText(e.target.value);
+            if (e.key === 'Escape') setTextInput(null);
+          }}
+          onBlur={(e) => commitText(e.target.value)}
+        />
+      )}
+    </div>
   );
 }
