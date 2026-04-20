@@ -18,6 +18,7 @@ const PALETTE = {
   unmapped:  { fill: 'rgba(155,127,200,0.15)', stroke: '#9b7fc8',               text: '#9b7fc8'               },
   mapped:    { fill: 'rgba(126,168,144,0.22)', stroke: '#7ea890',               text: '#7ea890'               },
   selected:  { fill: 'rgba(59,130,246,0.18)',  stroke: '#3B82F6',               text: '#3B82F6'               }, // Blue — Affordance
+  hard:      { fill: 'rgba(224,112,112,0.12)', stroke: 'rgba(224,112,112,0.75)', text: '#e07070'              }, // Red — 어려운 구간
   // During 전용
   practice:  { fill: 'rgba(16,185,129,0.17)',  stroke: '#10B981',                text: '#10B981'                }, // Mint Green — Reduced Load
   faint:     { fill: 'rgba(16,185,129,0.07)',  stroke: 'rgba(16,185,129,0.28)',  text: 'rgba(16,185,129,0.5)'  }, // 연한 초록 — 비선택 구간
@@ -37,6 +38,7 @@ function segColor(seg, isSelected, phase) {
   }
   // Before / After
   if (isSelected) return PALETTE.selected;  // Blue — "선택됨" 즉각 인지
+  if (seg.difficulty === 'hard') return PALETTE.hard; // Red — 어려운 구간 표시
   return seg.mappedSkills.length > 0 ? PALETTE.mapped : PALETTE.unmapped;
 }
 

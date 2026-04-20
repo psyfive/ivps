@@ -146,6 +146,9 @@ export const ACTIONS = {
   // 현재 마디 (During Phase)
   SET_CURRENT_BAR:   'SET_CURRENT_BAR',
 
+  // 구간 난이도
+  SET_SEGMENT_DIFFICULTY: 'SET_SEGMENT_DIFFICULTY',
+
   // 필기 (Drawing)
   ADD_STROKE:        'ADD_STROKE',
   REMOVE_STROKE:     'REMOVE_STROKE',
@@ -723,6 +726,18 @@ export function reducer(state, action) {
         })),
       };
 
+    case ACTIONS.SET_SEGMENT_DIFFICULTY:
+      return {
+        ...state,
+        scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
+          segments: (s.segments ?? []).map(seg =>
+            seg.id === action.segmentId
+              ? { ...seg, difficulty: action.difficulty }
+              : seg
+          ),
+        })),
+      };
+
     // ── Skill Cart ────────────────────────────────────────────────────
     case ACTIONS.ADD_TO_CART:
       if (state.skillCart.includes(action.skillId)) return state;
@@ -1029,6 +1044,9 @@ export function usePracticeSession() {
   const commitTempSegments = useCallback(() =>
     dispatch({ type: ACTIONS.COMMIT_TEMP_SEGMENTS }), []);
 
+  const setSegmentDifficulty = useCallback((segmentId, difficulty) =>
+    dispatch({ type: ACTIONS.SET_SEGMENT_DIFFICULTY, segmentId, difficulty }), []);
+
   // ── Skill Cart 액션 ──────────────────────────────────────────────
   const addToCart = useCallback((skillId) =>
     dispatch({ type: ACTIONS.ADD_TO_CART, skillId }), []);
@@ -1104,7 +1122,7 @@ export function usePracticeSession() {
     score: { addScore, setActiveScore, deleteScore, renameScore, changePage, setPage },
     session: { addSession, deleteSession, selectSession, assignSkill, removeSkill, toggleCheck, openPicker, closePicker },
     cart: { addToCart, removeFromCart },
-    segment: { toggleSegmentCheck, toggleSegmentMode, startAddToSegment, selectSegment, addSegment, deleteSegment, deleteSegmentCoord, setSegmentMeta, updateSegmentCoord, mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment, commitTempSegments },
+    segment: { toggleSegmentCheck, toggleSegmentMode, startAddToSegment, selectSegment, addSegment, deleteSegment, deleteSegmentCoord, setSegmentMeta, updateSegmentCoord, mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment, commitTempSegments, setSegmentDifficulty },
     before: { addSection, deleteSection, assignSectionSkill, setCurrentBar },
     drawing: { addStroke, removeStroke, undoStroke, clearDrawings, setDrawingMode, setDrawingTool, setDrawingColor },
     metro: { setBpm, setBeatsPerBar, setMetroPlaying, setCurrentBeat, setSubdivision, setGhostTrainBars, setGhostTrainReadyBars },
