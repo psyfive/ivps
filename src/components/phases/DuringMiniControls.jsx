@@ -717,12 +717,13 @@ export function DuringMiniControls() {
             >
               {/* 도구 */}
               <div className="text-[9px] text-[rgba(255,255,255,.3)] mb-1.5 uppercase tracking-wider">도구</div>
-              <div className="grid grid-cols-4 gap-1 mb-3">
+              <div className="grid grid-cols-5 gap-1 mb-3">
                 {[
-                  { tool: 'pen',     label: '✏️', sub: '펜' },
-                  { tool: 'downBow', label: '∏',  sub: '↓활' },
-                  { tool: 'upBow',   label: '∨',  sub: '↑활' },
-                  { tool: 'eraser',  label: '⌫',  sub: '지우개' },
+                  { tool: 'pen',         label: '✏️', sub: '펜' },
+                  { tool: 'highlighter', label: '▬',  sub: '형광펜' },
+                  { tool: 'downBow',     label: '∏',  sub: '↓활' },
+                  { tool: 'upBow',       label: '∨',  sub: '↑활' },
+                  { tool: 'eraser',      label: '⌫',  sub: '지우개' },
                 ].map(({ tool, label, sub }) => (
                   <button
                     key={tool}
@@ -740,8 +741,36 @@ export function DuringMiniControls() {
                 ))}
               </div>
 
-              {/* 색상 (pen/bow 도구일 때만) */}
-              {drawingTool !== 'eraser' && (
+              {/* 색상 — 형광펜 전용 팔레트 */}
+              {drawingTool === 'highlighter' && (
+                <>
+                  <div className="text-[9px] text-[rgba(255,255,255,.3)] mb-1.5 uppercase tracking-wider">형광 색상</div>
+                  <div className="flex gap-2 mb-3">
+                    {[
+                      { color: '#ffe033', label: '노랑' },
+                      { color: '#80ff66', label: '초록' },
+                      { color: '#ff80c0', label: '분홍' },
+                    ].map(({ color, label }) => (
+                      <button
+                        key={color}
+                        onClick={() => drawingActs.setDrawingColor(color)}
+                        title={label}
+                        className="rounded-full border-2 transition-all flex-shrink-0"
+                        style={{
+                          width: 22,
+                          height: 22,
+                          background: color,
+                          borderColor: drawingColor === color ? 'white' : 'transparent',
+                          boxShadow: drawingColor === color ? '0 0 0 1px rgba(255,255,255,.4)' : 'none',
+                        }}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* 색상 — 펜 / 활 전용 팔레트 */}
+              {(drawingTool === 'pen' || drawingTool === 'downBow' || drawingTool === 'upBow') && (
                 <>
                   <div className="text-[9px] text-[rgba(255,255,255,.3)] mb-1.5 uppercase tracking-wider">색상</div>
                   <div className="flex gap-2 mb-3">
@@ -749,6 +778,7 @@ export function DuringMiniControls() {
                       { color: '#e05555', label: '빨강' },
                       { color: '#5588ee', label: '파랑' },
                       { color: '#cccccc', label: '흰색' },
+                      { color: '#111111', label: '검정' },
                     ].map(({ color, label }) => (
                       <button
                         key={color}

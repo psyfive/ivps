@@ -12,7 +12,7 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { usePractice } from '../../context/PracticeContext';
 
-const BOWING_SIZE = 0.034;       // canvas width 대비 보잉 기호 크기
+const BOWING_SIZE = 0.0008;      // canvas width 대비 보잉 기호 크기
 const ERASER_THRESHOLD_PX = 28;  // 지우개 감지 픽셀 반경
 
 function drawStroke(ctx, stroke, w, h) {
@@ -32,6 +32,22 @@ function drawStroke(ctx, stroke, w, h) {
       ctx.lineTo(points[i].x * w, points[i].y * h);
     }
     ctx.stroke();
+    return;
+  }
+
+  if (tool === 'highlighter') {
+    if (points.length < 2) return;
+    ctx.globalAlpha = 0.38;
+    ctx.lineCap = 'square';
+    ctx.lineWidth = Math.max(6, strokeWidth * w / 600);
+    ctx.beginPath();
+    ctx.moveTo(points[0].x * w, points[0].y * h);
+    for (let i = 1; i < points.length; i++) {
+      ctx.lineTo(points[i].x * w, points[i].y * h);
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.lineCap = 'round';
     return;
   }
 
@@ -73,6 +89,7 @@ export function DrawingCanvas({ currentPageIndex }) {
   const canvasRef       = useRef(null);
   const activeStrokeRef = useRef(null);
   const strokesRef      = useRef([]);
+  const isErasingRef    = useRef(false);
 
   // 항상 최신 strokes를 ref에 동기화 (이벤트 핸들러 stale closure 방지)
   const strokes = (activeScore?.drawings ?? []).filter(d => d.pageIndex === currentPageIndex);
@@ -140,6 +157,31 @@ export function DrawingCanvas({ currentPageIndex }) {
     };
   }, []);
 
+  // ── 지우개 히트 테스트 + 삭제 ──────────────────────────────────────
+  const eraseNear = useCallback((pt, pageIdx, acts) => {
+    const allDrawings  = activeScoreRef.current?.drawings ?? [];
+    const pageDrawings = allDrawings.filter(d => d.pageIndex === pageIdx);
+    const el = canvasRef.current;
+    if (!el) return false;
+    const w = el.width;
+    const h = el.height;
+    let nearest = null;
+    let nearestDist = Infinity;
+    for (const stroke of pageDrawings) {
+      for (const p of stroke.points) {
+        const dx   = (p.x - pt.x) * w;
+        const dy   = (p.y - pt.y) * h;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < nearestDist) { nearestDist = dist; nearest = stroke; }
+      }
+    }
+    if (nearest && nearestDist < ERASER_THRESHOLD_PX) {
+      acts.removeStroke(nearest.id);
+      return true;
+    }
+    return false;
+  }, []);
+
   // ── 포인터 이벤트 ────────────────────────────────────────────────
   const onPointerDown = useCallback((e) => {
     if (!drawingModeRef.current) return;
@@ -152,24 +194,9 @@ export function DrawingCanvas({ currentPageIndex }) {
     const acts    = drawingActsRef.current;
 
     if (tool === 'eraser') {
-      const allDrawings  = activeScoreRef.current?.drawings ?? [];
-      const pageDrawings = allDrawings.filter(d => d.pageIndex === pageIdx);
-      const el = canvasRef.current;
-      const w  = el.width;
-      const h  = el.height;
-      let nearest = null;
-      let nearestDist = Infinity;
-      for (const stroke of pageDrawings) {
-        for (const p of stroke.points) {
-          const dx   = (p.x - pt.x) * w;
-          const dy   = (p.y - pt.y) * h;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < nearestDist) { nearestDist = dist; nearest = stroke; }
-        }
-      }
-      if (nearest && nearestDist < ERASER_THRESHOLD_PX) {
-        acts.removeStroke(nearest.id);
-      }
+      isErasingRef.current = true;
+      const erased = eraseNear(pt, pageIdx, acts);
+      if (!erased) { /* 첫 클릭에 아무것도 없어도 드래그 허용 */ }
       return;
     }
 
@@ -190,18 +217,27 @@ export function DrawingCanvas({ currentPageIndex }) {
   }, [getRelPt]);
 
   const onPointerMove = useCallback((e) => {
-    if (!drawingModeRef.current || !activeStrokeRef.current) return;
+    if (!drawingModeRef.current) return;
     e.preventDefault();
     const pt = getRelPt(e);
     if (!pt) return;
+
+    // 지우개 드래그 중
+    if (isErasingRef.current && drawingToolRef.current === 'eraser') {
+      eraseNear(pt, pageIdxRef.current, drawingActsRef.current);
+      return;
+    }
+
+    if (!activeStrokeRef.current) return;
     activeStrokeRef.current = {
       ...activeStrokeRef.current,
       points: [...activeStrokeRef.current.points, pt],
     };
     redraw();
-  }, [getRelPt, redraw]);
+  }, [getRelPt, redraw, eraseNear]);
 
   const onPointerUp = useCallback(() => {
+    isErasingRef.current = false;
     if (!drawingModeRef.current || !activeStrokeRef.current) return;
     const stroke = activeStrokeRef.current;
     activeStrokeRef.current = null;
