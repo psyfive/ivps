@@ -184,62 +184,44 @@ function SkillDiagPanel({ skill, segmentId, checks, onToggleCheck }) {
   );
 }
 
-// ── 구간 난이도 마커 ──────────────────────────────────────────────────────
-function DifficultyMarker({ segment, segmentActs }) {
-  if (!segment) return null;
-  const isHard = segment.difficulty === 'hard';
+// ── 구간 난이도 마커 — hard 상태일 때만 표시 ─────────────────────────────
+export function DifficultyMarker({ segment, segmentActs }) {
+  if (!segment || segment.difficulty !== 'hard') return null;
 
   return (
     <div
       className="rounded-xl border p-3.5 flex items-center justify-between gap-3"
-      style={{
-        background: isHard ? 'rgba(224,112,112,0.06)' : 'rgba(0,0,0,0.03)',
-        borderColor: isHard ? 'rgba(224,112,112,0.25)' : 'var(--ivps-border)',
-      }}
+      style={{ background: 'rgba(224,112,112,0.06)', borderColor: 'rgba(224,112,112,0.25)' }}
     >
       <div>
-        <div
-          className="text-[10px] font-semibold uppercase tracking-[.07em] mb-0.5"
-          style={{ color: isHard ? '#e07070' : 'var(--ivps-text3)' }}
-        >
-          {isHard ? '⚠ 어려운 구간으로 표시됨' : '구간 난이도'}
+        <div className="text-[10px] font-semibold uppercase tracking-[.07em] mb-0.5" style={{ color: '#e07070' }}>
+          ⚠ 어려운 구간으로 표시됨
         </div>
         <div className="text-[11px]" style={{ color: 'var(--ivps-text4)' }}>
-          {isHard
-            ? '다음 연습 시 빨간 테두리로 강조됩니다.'
-            : '이 구간이 어려웠다면 표시해두세요.'}
+          다음 연습 시 빨간 테두리로 강조됩니다.
         </div>
       </div>
-      {isHard ? (
-        <button
-          onClick={() => segmentActs.setSegmentDifficulty(segment.id, null)}
-          className="flex-shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all hover:scale-[1.02]"
-          style={{ background: 'rgba(126,168,144,0.1)', borderColor: 'rgba(126,168,144,0.3)', color: '#7ea890' }}
-        >
-          ✓ 해결했어요
-        </button>
-      ) : (
-        <button
-          onClick={() => segmentActs.setSegmentDifficulty(segment.id, 'hard')}
-          className="flex-shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all hover:scale-[1.02]"
-          style={{ background: 'rgba(224,112,112,0.1)', borderColor: 'rgba(224,112,112,0.3)', color: '#e07070' }}
-        >
-          😣 어려워요
-        </button>
-      )}
+      <button
+        onClick={() => segmentActs.setSegmentDifficulty(segment.id, null)}
+        className="flex-shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all hover:scale-[1.02]"
+        style={{ background: 'rgba(126,168,144,0.1)', borderColor: 'rgba(126,168,144,0.3)', color: '#7ea890' }}
+      >
+        ✓ 해결했어요
+      </button>
     </div>
   );
 }
 
 // ── XP 결과 기록 ──────────────────────────────────────────────────────────
-function XpLogger({ skills, scoreId, segmentId }) {
+function XpLogger({ skills, scoreId, segmentId, onHardResult }) {
   const { xp, nav } = usePractice();
   const [logged, setLogged] = useState(false);
 
   const handleLog = useCallback((result) => {
     skills.forEach(skillId => xp.logXp(skillId, result, scoreId, segmentId));
+    if (result === 'hard') onHardResult?.();
     setLogged(true);
-  }, [skills, xp, scoreId, segmentId]);
+  }, [skills, xp, scoreId, segmentId, onHardResult]);
 
   const XP_MAP = { success: 30, ok: 15, hard: 5 };
   const LABELS = [
@@ -415,15 +397,16 @@ export function DiagnosticInterface() {
             ))}
           </div>
 
-          {/* 난이도 마커 + XP 기록 */}
+          {/* XP 기록 + 난이도 마커 */}
           {segmentSkills.length > 0 && (
             <div className="mt-4 flex flex-col gap-3">
-              <DifficultyMarker segment={selectedSegment} segmentActs={segmentActs} />
               <XpLogger
                 skills={selectedSegment.mappedSkills}
                 scoreId={activeScore?.id ?? null}
                 segmentId={selectedSegmentId}
+                onHardResult={() => segmentActs.setSegmentDifficulty(selectedSegment.id, 'hard')}
               />
+              <DifficultyMarker segment={selectedSegment} segmentActs={segmentActs} />
             </div>
           )}
         </div>
@@ -576,12 +559,13 @@ export function DiagnosticContent() {
 
       {segmentSkills.length > 0 && (
         <div className="mt-4 flex flex-col gap-3">
-          <DifficultyMarker segment={selectedSegment} segmentActs={segmentActs} />
           <XpLogger
             skills={selectedSegment.mappedSkills}
             scoreId={activeScore?.id ?? null}
             segmentId={selectedSegmentId}
+            onHardResult={() => segmentActs.setSegmentDifficulty(selectedSegment.id, 'hard')}
           />
+          <DifficultyMarker segment={selectedSegment} segmentActs={segmentActs} />
         </div>
       )}
     </>

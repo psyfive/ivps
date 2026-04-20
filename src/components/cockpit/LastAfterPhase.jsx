@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { usePractice } from '../../context/PracticeContext';
 import { getSkillById, getCategoryMeta } from '../../data/taxonomy';
+import { DifficultyMarker } from '../phases/DiagnosticInterface';
 
 // ── DiagCell ─────────────────────────────────────────────────────────────────
 function DiagCell({ label, color, value }) {
@@ -260,7 +261,7 @@ export function LastAfterPhase() {
       {/* ── 구간 점 인디케이터 ── */}
       {total > 1 && (
         <div className="flex-shrink-0 flex items-center justify-center gap-1.5 py-2 border-b border-[var(--ivps-border)]">
-          {segments.map((_, i) => (
+          {segments.map((seg, i) => (
             <button
               key={i}
               onClick={() => nav.setReviewIndex(i)}
@@ -268,7 +269,11 @@ export function LastAfterPhase() {
               style={{
                 width: i === safeIdx ? 20 : 6,
                 height: 6,
-                background: i === safeIdx ? '#9b7fc8' : 'rgba(255,255,255,.15)',
+                background: i === safeIdx
+                  ? '#9b7fc8'
+                  : seg.difficulty === 'hard'
+                    ? 'rgba(224,112,112,0.6)'
+                    : 'rgba(255,255,255,.15)',
               }}
             />
           ))}
@@ -351,6 +356,30 @@ export function LastAfterPhase() {
                     onToggleCheck={segmentActs.toggleSegmentCheck}
                   />
                 ))}
+              </div>
+            )}
+
+            {/* 구간 난이도 — hard 표시 또는 마킹 버튼 */}
+            {currentSegment && (
+              <div className="mt-2">
+                {currentSegment.difficulty === 'hard' ? (
+                  <DifficultyMarker
+                    segment={currentSegment}
+                    segmentActs={segmentActs}
+                  />
+                ) : (
+                  <button
+                    onClick={() => segmentActs.setSegmentDifficulty(currentSegment.id, 'hard')}
+                    className="w-full py-2.5 rounded-xl border text-[11.5px] font-medium transition-all hover:scale-[1.01]"
+                    style={{
+                      background: 'rgba(224,112,112,0.06)',
+                      borderColor: 'rgba(224,112,112,0.2)',
+                      color: '#e07070',
+                    }}
+                  >
+                    😣 어려운 구간으로 표시하기
+                  </button>
+                )}
               </div>
             )}
 
