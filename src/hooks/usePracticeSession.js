@@ -66,6 +66,9 @@ export const INITIAL_STATE = {
 
   // ─ 연습 종합 리뷰 (Last After Phase) ─
   reviewSegmentIndex: 0,   // LastAfterPhase 구간 내비게이터 인덱스
+
+  // ─ 연습 세션 기록 ─
+  practiceSessions: [],    // [{ id, scoreId, scoreName, skillIds, xpGained, date }]
 };
 
 // ── 액션 타입 ──────────────────────────────────────────────────────────────
@@ -163,6 +166,9 @@ export const ACTIONS = {
   // UI
   TOGGLE_IMMERSION:       'TOGGLE_IMMERSION',
   SET_PRACTICE_FULLSCREEN:'SET_PRACTICE_FULLSCREEN',
+
+  // 연습 세션 기록
+  RECORD_PRACTICE_SESSION: 'RECORD_PRACTICE_SESSION',
 
   // 연습 종합 리뷰 (Last After Phase)
   ENTER_LAST_AFTER:        'ENTER_LAST_AFTER',
@@ -857,7 +863,23 @@ export function reducer(state, action) {
       return { ...state, practiceFullscreen: action.value };
 
     // ── 연습 종합 리뷰 ────────────────────────────────────────────────
-    case ACTIONS.ENTER_LAST_AFTER:
+    case ACTIONS.ENTER_LAST_AFTER: {
+      const score = getActiveScore(state);
+      const skillIds = [...new Set(
+        (score?.segments ?? []).flatMap(seg => seg.mappedSkills ?? []),
+      )];
+      const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+      const xpGained = state.xpLog
+        .filter(e => e.scoreId === state.activeScoreId && e.timestamp >= todayStart.getTime())
+        .reduce((sum, e) => sum + e.xp, 0);
+      const sessionRecord = {
+        id: uid(),
+        scoreId: state.activeScoreId,
+        scoreName: score?.name ?? '알 수 없음',
+        skillIds,
+        xpGained,
+        date: Date.now(),
+      };
       return {
         ...state,
         phase: 'last-after',
@@ -867,7 +889,9 @@ export function reducer(state, action) {
         isSelectingSegment: false,
         tempSegments: [],
         pickerSessionId: null,
+        practiceSessions: [sessionRecord, ...state.practiceSessions],
       };
+    }
 
     case ACTIONS.EXIT_LAST_AFTER:
       return {
