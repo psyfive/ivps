@@ -1,295 +1,164 @@
 // src/components/dashboard/PracticeHeatmap.jsx
 // ─────────────────────────────────────────────────────────────────────────────
-// 대시보드 — 7일 연습 활동 히트맵
+// 100일 연습 활동 히트맵 — 10×10 정사각형 그리드
 //
-// - 최근 7일의 일별 XP 바 차트
-// - 색상: 가장 많이 연습한 카테고리(A/B/C/D) 색상으로 표시
-// - 연습 없는 날: 회색 점선 표시
-// - 오늘 / 어제 라벨 강조
+// 색상 강도 기준:
+//   Primary  — during phase 연습시간 (durationMinutes per day)
+//   Fallback — XP (durationMinutes=0인 날의 보조 지표)
 // ─────────────────────────────────────────────────────────────────────────────
 import { useMemo } from 'react';
 
-const CAT_COLORS = {
-  A: '#7ea890',
-  B: '#d4a843',
-  C: '#9b7fc8',
-  D: '#6b90b8',
-};
+const CELL = 18;
+const GAP  = 3;
+const COLS = 10;
+const ROWS = 10;
+const DAYS = COLS * ROWS; // 100
 
-const CAT_NAMES = {
-  A: '왼손',
-  B: '오른손',
-  C: '음악성',
-  D: '장비',
-};
+function cellColor(durationMinutes, xpFallback) {
+  if (durationMinutes >= 60) return 'rgba(160,120,20,0.95)';
+  if (durationMinutes >= 45) return 'rgba(160,120,20,0.80)';
+  if (durationMinutes >= 30) return 'rgba(160,120,20,0.62)';
+  if (durationMinutes >= 15) return 'rgba(160,120,20,0.42)';
+  if (durationMinutes >= 1)  return 'rgba(160,120,20,0.24)';
+  if (xpFallback >= 60) return 'rgba(160,120,20,0.36)';
+  if (xpFallback >= 30) return 'rgba(160,120,20,0.22)';
+  if (xpFallback >= 1)  return 'rgba(160,120,20,0.13)';
+  return 'rgba(160,120,20,0.06)';
+}
 
-const RESULT_XP = { success: 30, ok: 15, hard: 5 };
-
-// ── 7일 데이터 계산 ──────────────────────────────────────────────────────
-function buildDayData(xpLog) {
+function buildCells(practiceSessions, xpLog) {
   const now = Date.now();
 
-  return Array.from({ length: 7 }, (_, i) => {
-    const dayStart = new Date(now - (6 - i) * 86400000);
+  return Array.from({ length: DAYS }, (_, idx) => {
+    const dayOffset = (DAYS - 1) - idx; // 0=오늘, 99=99일전
+    const dayStart  = new Date(now - dayOffset * 86400000);
     dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(dayStart.getTime());
+    const dayEnd = new Date(dayStart);
     dayEnd.setHours(23, 59, 59, 999);
 
-    const entries = xpLog.filter(
-      e => e.timestamp >= dayStart.getTime() && e.timestamp <= dayEnd.getTime()
-    );
+    const durationMinutes = practiceSessions
+      .filter(s => s.date >= dayStart.getTime() && s.date <= dayEnd.getTime())
+      .reduce((sum, s) => sum + (s.durationMinutes ?? 0), 0);
 
-    const totalXp = entries.reduce((s, e) => s + e.xp, 0);
+    const xpTotal = xpLog
+      .filter(e => e.timestamp >= dayStart.getTime() && e.timestamp <= dayEnd.getTime())
+      .reduce((sum, e) => sum + e.xp, 0);
 
-    // 카테고리별 XP 집계
-    const catXp = { A: 0, B: 0, C: 0, D: 0 };
-    entries.forEach(e => {
-      const cat = e.skillId?.[0];
-      if (cat && catXp[cat] !== undefined) catXp[cat] += e.xp;
-    });
+    const isToday = dayOffset === 0;
+    const label   = `${dayStart.getMonth() + 1}/${dayStart.getDate()}`;
 
-    // 최다 카테고리
-    const topCat = Object.entries(catXp)
-      .filter(([, xp]) => xp > 0)
-      .sort(([, a], [, b]) => b - a)[0]?.[0] ?? null;
-
-    // 활성 카테고리 목록
-    const activeCats = Object.entries(catXp)
-      .filter(([, xp]) => xp > 0)
-      .sort(([, a], [, b]) => b - a)
-      .map(([cat]) => cat);
-
-    const weekDay = ['일', '월', '화', '수', '목', '금', '토'][dayStart.getDay()];
-    const label   = i === 6 ? '오늘' : i === 5 ? '어제' : weekDay;
-    const isToday = i === 6;
-
-    return { label, isToday, totalXp, topCat, activeCats, catXp, entries };
+    return { idx, durationMinutes, xpTotal, isToday, label };
   });
 }
 
-// ── 요약 통계 ─────────────────────────────────────────────────────────────
-function buildSummary(days) {
-  const weekXp       = days.reduce((s, d) => s + d.totalXp, 0);
-  const activeDays   = days.filter(d => d.totalXp > 0).length;
-  const maxXp        = Math.max(...days.map(d => d.totalXp), 1);
+function buildWeekSummary(practiceSessions, xpLog) {
+  const now = Date.now();
+  const weekStart = new Date(now - 6 * 86400000);
+  weekStart.setHours(0, 0, 0, 0);
 
-  // 가장 많이 연습한 카테고리
-  const catTotals = { A: 0, B: 0, C: 0, D: 0 };
-  days.forEach(d => {
-    Object.entries(d.catXp).forEach(([cat, xp]) => { catTotals[cat] += xp; });
-  });
-  const focusCat = Object.entries(catTotals)
-    .filter(([, xp]) => xp > 0)
-    .sort(([, a], [, b]) => b - a)[0]?.[0] ?? null;
+  const weekMinutes = practiceSessions
+    .filter(s => s.date >= weekStart.getTime())
+    .reduce((sum, s) => sum + (s.durationMinutes ?? 0), 0);
 
-  return { weekXp, activeDays, maxXp, focusCat };
+  const weekXp = xpLog
+    .filter(e => e.timestamp >= weekStart.getTime())
+    .reduce((sum, e) => sum + e.xp, 0);
+
+  return { weekMinutes, weekXp };
 }
 
-// ── 하루 컬럼 ─────────────────────────────────────────────────────────────
-function DayColumn({ day, maxXp }) {
-  const barPct    = maxXp > 0 ? (day.totalXp / maxXp) * 100 : 0;
-  const barColor  = day.topCat ? CAT_COLORS[day.topCat] : 'transparent';
-  const isEmpty   = day.totalXp === 0;
-
-  return (
-    <div className="flex flex-col items-center gap-1.5" style={{ flex: 1 }}>
-      {/* XP 숫자 */}
-      <div
-        style={{
-          fontSize: 9,
-          fontFamily: 'ui-monospace, monospace',
-          color: isEmpty ? 'rgba(255,255,255,0.15)' : (day.topCat ? CAT_COLORS[day.topCat] : '#888'),
-          fontWeight: 600,
-          height: 14,
-          lineHeight: '14px',
-        }}
-      >
-        {isEmpty ? '' : `${day.totalXp}`}
-      </div>
-
-      {/* 바 영역 */}
-      <div
-        style={{
-          width: '100%',
-          height: 60,
-          display: 'flex',
-          alignItems: 'flex-end',
-          justifyContent: 'center',
-          position: 'relative',
-        }}
-      >
-        {isEmpty ? (
-          // 연습 없는 날 — 점선 기둥
-          <div
-            style={{
-              width: '60%',
-              height: '100%',
-              borderLeft: '1px dashed rgba(255,255,255,0.07)',
-              borderRight: '1px dashed rgba(255,255,255,0.07)',
-            }}
-          />
-        ) : (
-          <div
-            style={{
-              width: '72%',
-              height: `${Math.max(barPct, 8)}%`,
-              background: `linear-gradient(180deg, ${barColor}99 0%, ${barColor} 100%)`,
-              borderRadius: '3px 3px 0 0',
-              transition: 'height 0.4s ease',
-              boxShadow: `0 0 8px ${barColor}40`,
-            }}
-          />
-        )}
-      </div>
-
-      {/* 카테고리 점들 */}
-      <div style={{ height: 8, display: 'flex', gap: 2, alignItems: 'center' }}>
-        {day.activeCats.slice(0, 3).map(cat => (
-          <div
-            key={cat}
-            style={{
-              width: 4,
-              height: 4,
-              borderRadius: '50%',
-              background: CAT_COLORS[cat],
-              opacity: 0.8,
-            }}
-          />
-        ))}
-      </div>
-
-      {/* 요일 라벨 */}
-      <div
-        style={{
-          fontSize: day.isToday ? 10 : 9,
-          fontFamily: 'ui-monospace, monospace',
-          fontWeight: day.isToday ? 700 : 400,
-          color: day.isToday
-            ? '#d4a843'
-            : isEmpty
-            ? 'rgba(255,255,255,0.2)'
-            : 'rgba(255,255,255,0.45)',
-        }}
-      >
-        {day.label}
-      </div>
-    </div>
+export function PracticeHeatmap({ practiceSessions = [], xpLog = [] }) {
+  const cells = useMemo(() => buildCells(practiceSessions, xpLog), [practiceSessions, xpLog]);
+  const { weekMinutes, weekXp } = useMemo(
+    () => buildWeekSummary(practiceSessions, xpLog),
+    [practiceSessions, xpLog],
   );
-}
 
-// ── 카테고리 범례 ─────────────────────────────────────────────────────────
-function CatLegend({ catXp }) {
-  const active = Object.entries(catXp)
-    .filter(([, xp]) => xp > 0)
-    .sort(([, a], [, b]) => b - a);
-
-  if (active.length === 0) return null;
-
-  return (
-    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
-      {active.map(([cat, xp]) => (
-        <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-          <div
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: '50%',
-              background: CAT_COLORS[cat],
-              flexShrink: 0,
-            }}
-          />
-          <span
-            style={{
-              fontSize: 9.5,
-              fontFamily: 'ui-monospace, monospace',
-              color: CAT_COLORS[cat],
-            }}
-          >
-            {cat} {CAT_NAMES[cat]}
-          </span>
-          <span
-            style={{
-              fontSize: 9,
-              color: 'rgba(255,255,255,0.3)',
-              fontFamily: 'ui-monospace, monospace',
-            }}
-          >
-            {xp}xp
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ── 메인 ─────────────────────────────────────────────────────────────────
-export function PracticeHeatmap({ xpLog }) {
-  const days    = useMemo(() => buildDayData(xpLog), [xpLog]);
-  const summary = useMemo(() => buildSummary(days),  [days]);
-
-  // 이번 주 카테고리별 XP 합산
-  const weekCatXp = useMemo(() => {
-    const totals = { A: 0, B: 0, C: 0, D: 0 };
-    days.forEach(d => {
-      Object.entries(d.catXp).forEach(([cat, xp]) => { totals[cat] += xp; });
-    });
-    return totals;
-  }, [days]);
-
-  if (xpLog.length === 0) {
-    return (
-      <div
-        style={{
-          padding: '20px 0',
-          textAlign: 'center',
-          color: 'rgba(255,255,255,0.2)',
-          fontSize: 12,
-        }}
-      >
-        연습을 시작하면 활동 기록이 쌓입니다.
-      </div>
-    );
-  }
+  const gridSize = CELL * COLS + GAP * (COLS - 1);
 
   return (
     <div>
-      {/* 요약 줄 */}
+      {/* 이번 주 요약 */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 12,
-          marginBottom: 12,
+          gap: 8,
+          marginBottom: 10,
           fontSize: 11,
           fontFamily: 'ui-monospace, monospace',
         }}
       >
-        <span style={{ color: '#d4a843', fontWeight: 700 }}>
-          {summary.weekXp} XP
+        <span style={{ color: 'var(--ivps-gold)', fontWeight: 700 }}>
+          {weekMinutes}분
         </span>
-        <span style={{ color: 'rgba(255,255,255,0.3)' }}>·</span>
-        <span style={{ color: 'rgba(255,255,255,0.5)' }}>
-          {summary.activeDays}일 연습
-        </span>
-        {summary.focusCat && (
+        <span style={{ color: 'var(--ivps-text4)' }}>·</span>
+        <span style={{ color: 'var(--ivps-text3)' }}>이번 주</span>
+        {weekXp > 0 && (
           <>
-            <span style={{ color: 'rgba(255,255,255,0.3)' }}>·</span>
-            <span style={{ color: CAT_COLORS[summary.focusCat] }}>
-              {CAT_NAMES[summary.focusCat]} 집중
-            </span>
+            <span style={{ color: 'var(--ivps-text4)' }}>·</span>
+            <span style={{ color: 'var(--ivps-text3)' }}>{weekXp} XP</span>
           </>
         )}
       </div>
 
-      {/* 바 차트 */}
-      <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 100 }}>
-        {days.map((day, i) => (
-          <DayColumn key={i} day={day} maxXp={summary.maxXp} />
+      {/* 10×10 그리드 */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(${COLS}, ${CELL}px)`,
+          gridTemplateRows:    `repeat(${ROWS}, ${CELL}px)`,
+          gap: GAP,
+          width:  gridSize,
+          height: gridSize,
+        }}
+      >
+        {cells.map(cell => (
+          <div
+            key={cell.idx}
+            title={
+              cell.durationMinutes > 0
+                ? `${cell.label} — ${cell.durationMinutes}분 연습`
+                : cell.xpTotal > 0
+                ? `${cell.label} — ${cell.xpTotal} XP`
+                : `${cell.label} — 연습 없음`
+            }
+            style={{
+              width:        CELL,
+              height:       CELL,
+              borderRadius: 3,
+              background:   cellColor(cell.durationMinutes, cell.xpTotal),
+              outline:      cell.isToday ? '2px solid var(--ivps-gold)' : 'none',
+              outlineOffset: -1,
+              cursor:       'default',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.18)'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+          />
         ))}
       </div>
 
-      {/* 카테고리 범례 */}
-      <CatLegend catXp={weekCatXp} />
+      {/* 색상 범례 */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
+          marginTop: 8,
+          fontSize: 9,
+          fontFamily: 'ui-monospace, monospace',
+          color: 'var(--ivps-text4)',
+        }}
+      >
+        <span>없음</span>
+        {[0.06, 0.24, 0.42, 0.62, 0.95].map((op, i) => (
+          <div
+            key={i}
+            style={{ width: 10, height: 10, borderRadius: 2, background: `rgba(160,120,20,${op})` }}
+          />
+        ))}
+        <span>60분+</span>
+      </div>
     </div>
   );
 }

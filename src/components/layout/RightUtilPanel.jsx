@@ -65,7 +65,7 @@ function Metronome() {
               style={{
                 background: isActive
                   ? i === 0 ? '#d4a843' : 'rgba(212,168,67,.5)'
-                  : '#1a2035',
+                  : 'var(--ivps-surface2)',
               }}
             />
           );
@@ -93,7 +93,7 @@ function Metronome() {
       <div className="flex items-center gap-1.5 mb-2.5">
         <button
           onClick={() => metro.setBpm(bpm - 5)}
-          className="w-8 h-8 bg-[var(--ivps-surface2)] border border-[var(--ivps-border2)] rounded-md text-[var(--ivps-text1)] text-sm font-mono flex items-center justify-center hover:bg-[#222b3d] transition-colors flex-shrink-0"
+          className="w-8 h-8 bg-[var(--ivps-surface2)] border border-[var(--ivps-border2)] rounded-md text-[var(--ivps-text1)] text-sm font-mono flex items-center justify-center hover:bg-[var(--ivps-surface)] transition-colors flex-shrink-0"
         >
           −
         </button>
@@ -105,7 +105,7 @@ function Metronome() {
         />
         <button
           onClick={() => metro.setBpm(bpm + 5)}
-          className="w-8 h-8 bg-[var(--ivps-surface2)] border border-[var(--ivps-border2)] rounded-md text-[var(--ivps-text1)] text-sm font-mono flex items-center justify-center hover:bg-[#222b3d] transition-colors flex-shrink-0"
+          className="w-8 h-8 bg-[var(--ivps-surface2)] border border-[var(--ivps-border2)] rounded-md text-[var(--ivps-text1)] text-sm font-mono flex items-center justify-center hover:bg-[var(--ivps-surface)] transition-colors flex-shrink-0"
         >
           +
         </button>
@@ -172,7 +172,7 @@ function Tuner() {
   }, [tunerActive, tuner, start, stop]);
 
   const nt         = tunerNote;
-  const noteColor  = nt ? centsColor(nt.cents) : '#2a3048';
+  const noteColor  = nt ? centsColor(nt.cents) : 'var(--ivps-border2)';
   const needleLeft = nt ? Math.max(0, Math.min(100, 50 + nt.cents)) : 50;
 
   // 개방현 매칭
@@ -198,14 +198,14 @@ function Tuner() {
                 className="absolute top-0 h-full w-[10px] -translate-x-1/2 rounded transition-all duration-75"
                 style={{ left: `${needleLeft}%`, background: noteColor }}
               />
-              <div className="absolute left-1/2 top-0 h-full w-px bg-[#3d4455] -translate-x-1/2" />
+              <div className="absolute left-1/2 top-0 h-full w-px bg-[var(--ivps-border2)] -translate-x-1/2" />
             </div>
             <div className="font-mono text-[10px] text-[var(--ivps-text3)]">
               {nt.cents > 0 ? '+' : ''}{nt.cents}¢ · {nt.freq}Hz
             </div>
           </>
         ) : (
-          <div className="text-[11px] mt-1" style={{ color: tunerActive ? '#4a5568' : '#2a3048' }}>
+          <div className="text-[11px] mt-1" style={{ color: tunerActive ? 'var(--ivps-text3)' : 'var(--ivps-text4)' }}>
             {tunerActive ? '소리를 내주세요...' : '마이크 비활성'}
           </div>
         )}
@@ -223,10 +223,10 @@ function Tuner() {
                 : 'bg-[var(--ivps-surface2)] border-[var(--ivps-border)]',
             ].join(' ')}
           >
-            <div className="text-[8px] opacity-50" style={{ color: matchedString === string ? '#7ea890' : '#3d4455' }}>
+            <div className="text-[8px] opacity-50" style={{ color: matchedString === string ? '#7ea890' : 'var(--ivps-text4)' }}>
               {n}{octave}
             </div>
-            <div style={{ color: matchedString === string ? '#7ea890' : '#4a5568' }}>
+            <div style={{ color: matchedString === string ? '#7ea890' : 'var(--ivps-text4)' }}>
               {string}
             </div>
           </div>
@@ -240,7 +240,7 @@ function Tuner() {
           'w-full py-2 rounded-lg text-[12px] font-medium flex items-center justify-center gap-1.5 transition-all border',
           tunerActive
             ? 'bg-[rgba(126,168,144,.12)] border-[#7ea890] text-[var(--ivps-moss)]'
-            : 'bg-[var(--ivps-surface2)] border-[var(--ivps-border2)] text-[var(--ivps-text3)] hover:bg-[#222b3d] hover:text-[var(--ivps-text2)]',
+            : 'bg-[var(--ivps-surface2)] border-[var(--ivps-border2)] text-[var(--ivps-text3)] hover:bg-[var(--ivps-surface)] hover:text-[var(--ivps-text2)]',
         ].join(' ')}
       >
         {tunerActive ? '🎙 튜너 끄기' : '🎙 마이크 켜기'}
@@ -306,7 +306,7 @@ function GrapeChecker() {
                 'w-[22px] h-[22px] rounded-full border flex items-center justify-center text-[9px] transition-all duration-150',
                 done
                   ? 'bg-gradient-to-br from-[#9b7fc8] to-[#7b5fa8] border-[#9b7fc8] text-white scale-105'
-                  : 'bg-[var(--ivps-surface2)] border-[var(--ivps-border2)] text-transparent hover:border-[#4a5568]',
+                  : 'bg-[var(--ivps-surface2)] border-[var(--ivps-border2)] text-transparent hover:border-[var(--ivps-border2)]',
               ].join(' ')}
             >
               {done ? '✓' : ''}
@@ -319,19 +319,19 @@ function GrapeChecker() {
       <div className="flex gap-1.5">
         <button
           onClick={grape.resetGrapes}
-          className="flex-1 py-1.5 bg-[var(--ivps-surface2)] border border-[var(--ivps-border2)] rounded-md text-[var(--ivps-text3)] text-[11px] hover:bg-[#222b3d] hover:text-[var(--ivps-text2)] transition-colors"
+          className="flex-1 py-1.5 bg-[var(--ivps-surface2)] border border-[var(--ivps-border2)] rounded-md text-[var(--ivps-text3)] text-[11px] hover:bg-[var(--ivps-surface)] hover:text-[var(--ivps-text2)] transition-colors"
         >
           초기화
         </button>
         <button
           onClick={() => grape.adjustGrapeTotal(-1)}
-          className="w-7 h-7 bg-[var(--ivps-surface2)] border border-[var(--ivps-border2)] rounded-md text-[var(--ivps-text3)] text-sm flex items-center justify-center hover:bg-[#222b3d] transition-colors"
+          className="w-7 h-7 bg-[var(--ivps-surface2)] border border-[var(--ivps-border2)] rounded-md text-[var(--ivps-text3)] text-sm flex items-center justify-center hover:bg-[var(--ivps-surface)] transition-colors"
         >
           −
         </button>
         <button
           onClick={() => grape.adjustGrapeTotal(1)}
-          className="w-7 h-7 bg-[var(--ivps-surface2)] border border-[var(--ivps-border2)] rounded-md text-[var(--ivps-text3)] text-sm flex items-center justify-center hover:bg-[#222b3d] transition-colors"
+          className="w-7 h-7 bg-[var(--ivps-surface2)] border border-[var(--ivps-border2)] rounded-md text-[var(--ivps-text3)] text-sm flex items-center justify-center hover:bg-[var(--ivps-surface)] transition-colors"
         >
           +
         </button>
@@ -347,7 +347,7 @@ export function RightUtilPanel() {
   return (
     <aside className="w-[230px] flex-shrink-0 bg-[var(--ivps-nav)] border-l border-[var(--ivps-border)] flex flex-col overflow-hidden">
       <div className="px-3.5 pt-3.5 pb-2 flex-shrink-0">
-        <div className="text-[9px] text-[#2a3045] uppercase tracking-[.1em] font-mono">
+        <div className="text-[9px] text-[var(--ivps-text4)] uppercase tracking-[.1em] font-mono">
           유틸리티
         </div>
       </div>

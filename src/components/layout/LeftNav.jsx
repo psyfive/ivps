@@ -43,7 +43,7 @@ function SettingsPanel({ onClose }) {
             <button
               onClick={() => settings.setGrapeBpmIncrement(grapeBpmIncrement - 1)}
               disabled={grapeBpmIncrement <= 0}
-              className="w-6 h-6 rounded border border-[var(--ivps-border2)] bg-[var(--ivps-surface2)] text-[var(--ivps-text3)] text-[13px] flex items-center justify-center hover:bg-[#222b3d] disabled:opacity-30 transition-colors"
+              className="w-6 h-6 rounded border border-[var(--ivps-border2)] bg-[var(--ivps-surface2)] text-[var(--ivps-text3)] text-[13px] flex items-center justify-center hover:bg-[var(--ivps-surface)] disabled:opacity-30 transition-colors"
             >
               −
             </button>
@@ -53,7 +53,7 @@ function SettingsPanel({ onClose }) {
             <button
               onClick={() => settings.setGrapeBpmIncrement(grapeBpmIncrement + 1)}
               disabled={grapeBpmIncrement >= 20}
-              className="w-6 h-6 rounded border border-[var(--ivps-border2)] bg-[var(--ivps-surface2)] text-[var(--ivps-text3)] text-[13px] flex items-center justify-center hover:bg-[#222b3d] disabled:opacity-30 transition-colors"
+              className="w-6 h-6 rounded border border-[var(--ivps-border2)] bg-[var(--ivps-surface2)] text-[var(--ivps-text3)] text-[13px] flex items-center justify-center hover:bg-[var(--ivps-surface)] disabled:opacity-30 transition-colors"
             >
               +
             </button>

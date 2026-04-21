@@ -68,7 +68,10 @@ export const INITIAL_STATE = {
   reviewSegmentIndex: 0,   // LastAfterPhase 구간 내비게이터 인덱스
 
   // ─ 연습 세션 기록 ─
-  practiceSessions: [],    // [{ id, scoreId, scoreName, skillIds, xpGained, date }]
+  practiceSessions: [],    // [{ id, scoreId, scoreName, skillIds, xpGained, durationMinutes, date }]
+
+  // ─ During Phase 진입 시각 (연습시간 계산용) ─
+  duringStartTime: null,   // number | null (ms timestamp)
 };
 
 // ── 액션 타입 ──────────────────────────────────────────────────────────────
@@ -202,8 +205,9 @@ export function reducer(state, action) {
         ...state,
         phase: action.phase,
         activeSessionId: null,
-        // During이 아닌 phase로 전환 시 fullscreen 자동 해제
         practiceFullscreen: action.phase === 'during' ? state.practiceFullscreen : false,
+        // During 진입 시 시작 시각 기록 (연습시간 계산용)
+        duringStartTime: action.phase === 'during' ? Date.now() : state.duringStartTime,
       };
 
     // ── 스킬 ────────────────────────────────────────────────────────
@@ -872,12 +876,15 @@ export function reducer(state, action) {
       const xpGained = state.xpLog
         .filter(e => e.scoreId === state.activeScoreId && e.timestamp >= todayStart.getTime())
         .reduce((sum, e) => sum + e.xp, 0);
+      const durationMs = state.duringStartTime ? Date.now() - state.duringStartTime : 0;
+      const durationMinutes = Math.round(durationMs / 60000);
       const sessionRecord = {
         id: uid(),
         scoreId: state.activeScoreId,
         scoreName: score?.name ?? '알 수 없음',
         skillIds,
         xpGained,
+        durationMinutes,
         date: Date.now(),
       };
       return {
@@ -889,6 +896,7 @@ export function reducer(state, action) {
         isSelectingSegment: false,
         tempSegments: [],
         pickerSessionId: null,
+        duringStartTime: null,
         practiceSessions: [sessionRecord, ...state.practiceSessions],
       };
     }

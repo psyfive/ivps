@@ -138,9 +138,9 @@ function CourseCardsSection() {
           <span
             className="text-[9px] font-mono px-2 py-0.5 rounded-full flex-shrink-0"
             style={{
-              background: 'rgba(255,255,255,.05)',
-              border: '1px solid rgba(255,255,255,.1)',
-              color: 'rgba(255,255,255,.3)',
+              background: 'var(--ivps-surface2)',
+              border: '1px solid var(--ivps-border)',
+              color: 'var(--ivps-text4)',
             }}
           >
             준비 중
@@ -159,7 +159,7 @@ function RecentSessionRow({ session, onResume }) {
   const meta = skillCount > 0 ? getCategoryMeta(session.skillIds[0]) : null;
 
   return (
-    <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-[rgba(255,255,255,.05)] bg-[rgba(255,255,255,.02)] mb-1.5">
+    <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-[var(--ivps-border)] bg-[var(--ivps-surface2)] mb-1.5">
       <div className="flex-1 min-w-0">
         <div className="text-[12.5px] font-semibold text-[var(--ivps-text1)] truncate">{session.scoreName}</div>
         <div className="flex items-center gap-1.5 mt-0.5">
@@ -201,11 +201,25 @@ function ScoreRailCard({ score, onOpen, onRename, onDelete }) {
 
   return (
     <div
-      className="group relative flex-shrink-0 w-[148px] rounded-xl border border-[rgba(255,255,255,.07)] bg-[#111720] overflow-hidden cursor-pointer transition-all duration-200 hover:border-[rgba(212,168,67,.35)] hover:bg-[#14192a] hover:shadow-[0_4px_20px_rgba(212,168,67,.08)]"
+      className="group relative flex-shrink-0 w-[148px] rounded-xl border overflow-hidden cursor-pointer transition-all duration-200"
+      style={{
+        borderColor: 'var(--ivps-border)',
+        background: 'var(--ivps-surface2)',
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.borderColor = 'var(--ivps-gold-border)';
+        e.currentTarget.style.background = 'var(--ivps-surface)';
+        e.currentTarget.style.boxShadow = '0 4px 20px var(--ivps-gold-bg)';
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.borderColor = 'var(--ivps-border)';
+        e.currentTarget.style.background = 'var(--ivps-surface2)';
+        e.currentTarget.style.boxShadow = 'none';
+      }}
       onClick={() => onOpen(score.id)}
     >
       {/* 썸네일 */}
-      <div className="h-[96px] bg-[#0a0e16] overflow-hidden relative">
+      <div className="h-[96px] overflow-hidden relative" style={{ background: 'var(--ivps-surface2)' }}>
         <img
           src={score.dataUrl}
           alt={score.name}
@@ -215,7 +229,7 @@ function ScoreRailCard({ score, onOpen, onRename, onDelete }) {
         {/* 그라디언트 오버레이 */}
         <div
           className="absolute inset-0"
-          style={{ background: 'linear-gradient(180deg, transparent 50%, rgba(10,14,22,.7) 100%)' }}
+          style={{ background: 'linear-gradient(180deg, transparent 50%, rgba(100,70,30,.45) 100%)' }}
         />
         {/* 상단 배지들 */}
         <div className="absolute top-1.5 right-1.5 flex flex-col items-end gap-1">
@@ -242,20 +256,30 @@ function ScoreRailCard({ score, onOpen, onRename, onDelete }) {
         </div>
       </div>
 
-      {/* 호버 액션 — 오버레이 자체는 pointer-events-none으로 카드 클릭 투과 */}
+      {/* 호버 액션 */}
       <div
         className="absolute inset-0 flex items-end justify-center gap-2 pb-2.5 px-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-        style={{ background: 'linear-gradient(180deg, transparent 40%, rgba(10,14,22,.88) 100%)' }}
+        style={{ background: 'linear-gradient(180deg, transparent 40%, rgba(100,70,30,.75) 100%)' }}
       >
         <button
           onClick={e => { e.stopPropagation(); onRename(score.id); }}
-          className="flex-1 py-1 text-[9.5px] text-[rgba(255,255,255,.6)] bg-[rgba(255,255,255,.08)] border border-[rgba(255,255,255,.12)] rounded-md hover:bg-[rgba(255,255,255,.14)] transition-colors pointer-events-auto"
+          className="flex-1 py-1 text-[9.5px] rounded-md transition-colors pointer-events-auto"
+          style={{
+            color: 'var(--ivps-text2)',
+            background: 'var(--ivps-surface)',
+            border: '1px solid var(--ivps-border2)',
+          }}
         >
           이름
         </button>
         <button
           onClick={e => { e.stopPropagation(); onDelete(score.id); }}
-          className="flex-1 py-1 text-[9.5px] text-[#e07070] bg-[rgba(224,112,112,.08)] border border-[rgba(224,112,112,.2)] rounded-md hover:bg-[rgba(224,112,112,.14)] transition-colors pointer-events-auto"
+          className="flex-1 py-1 text-[9.5px] rounded-md transition-colors pointer-events-auto"
+          style={{
+            color: 'var(--ivps-rust)',
+            background: 'var(--ivps-rust-bg)',
+            border: '1px solid var(--ivps-rust-border)',
+          }}
         >
           삭제
         </button>
@@ -297,10 +321,8 @@ function ScoreSection({ scores, onOpen, onRename, onDelete, onUpload }) {
         onClick={() => onUpload(null)}
         className="relative cursor-pointer rounded-2xl overflow-hidden transition-all duration-300 mb-7"
         style={{
-          border: `2px dashed ${dragOver ? 'rgba(212,168,67,.7)' : 'rgba(255,255,255,.1)'}`,
-          background: dragOver
-            ? 'rgba(212,168,67,.05)'
-            : 'linear-gradient(135deg, rgba(212,168,67,.04) 0%, rgba(155,127,200,.03) 50%, transparent 100%)',
+          border: `2px dashed ${dragOver ? 'var(--ivps-gold-border)' : 'var(--ivps-border2)'}`,
+          background: dragOver ? 'var(--ivps-gold-bg)' : 'var(--ivps-surface)',
           transform: dragOver ? 'scale(1.005)' : 'scale(1)',
         }}
       >
@@ -357,9 +379,9 @@ function ScoreSection({ scores, onOpen, onRename, onDelete, onUpload }) {
                 key={fmt}
                 className="text-[9px] font-mono tracking-wider"
                 style={{
-                  color: 'rgba(255,255,255,.25)',
-                  background: 'rgba(255,255,255,.04)',
-                  border: '1px solid rgba(255,255,255,.07)',
+                  color: 'var(--ivps-text4)',
+                  background: 'var(--ivps-surface2)',
+                  border: '1px solid var(--ivps-border)',
                   borderRadius: 4,
                   padding: '2px 6px',
                 }}
@@ -381,11 +403,9 @@ function ScoreSection({ scores, onOpen, onRename, onDelete, onUpload }) {
       onDrop={handleDrop}
       className="mb-7 rounded-2xl border transition-all duration-200 overflow-hidden"
       style={{
-        borderColor: dragOver ? 'rgba(212,168,67,.5)' : 'rgba(255,255,255,.07)',
-        background: dragOver
-          ? 'rgba(212,168,67,.04)'
-          : 'linear-gradient(135deg, rgba(212,168,67,.03) 0%, rgba(13,17,23,.8) 60%)',
-        boxShadow: dragOver ? '0 0 0 2px rgba(212,168,67,.25)' : 'none',
+        borderColor: dragOver ? 'var(--ivps-gold-border)' : 'var(--ivps-border)',
+        background: dragOver ? 'var(--ivps-gold-bg)' : 'var(--ivps-surface)',
+        boxShadow: dragOver ? '0 0 0 2px var(--ivps-gold-bg)' : 'none',
       }}
     >
       {/* 레일 헤더 */}
@@ -440,7 +460,7 @@ function ScoreSection({ scores, onOpen, onRename, onDelete, onUpload }) {
       {/* 가로 스크롤 레일 */}
       <div
         className="flex gap-3 px-5 pb-4 overflow-x-auto"
-        style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,.08) transparent' }}
+        style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--ivps-border) transparent' }}
       >
         {scores.map(sc => (
           <ScoreRailCard
@@ -456,30 +476,21 @@ function ScoreSection({ scores, onOpen, onRename, onDelete, onUpload }) {
         <div
           onClick={() => onUpload(null)}
           className="flex-shrink-0 w-[148px] rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 cursor-pointer transition-all duration-200"
-          style={{
-            height: 148,
-            borderColor: 'rgba(255,255,255,.08)',
-            color: 'rgba(255,255,255,.2)',
-          }}
+          style={{ height: 148, borderColor: 'var(--ivps-border2)', color: 'var(--ivps-text4)' }}
           onMouseEnter={e => {
-            e.currentTarget.style.borderColor = 'rgba(212,168,67,.4)';
-            e.currentTarget.style.color = '#d4a843';
-            e.currentTarget.style.background = 'rgba(212,168,67,.04)';
+            e.currentTarget.style.borderColor = 'var(--ivps-gold-border)';
+            e.currentTarget.style.color = 'var(--ivps-gold)';
+            e.currentTarget.style.background = 'var(--ivps-gold-bg)';
           }}
           onMouseLeave={e => {
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,.08)';
-            e.currentTarget.style.color = 'rgba(255,255,255,.2)';
+            e.currentTarget.style.borderColor = 'var(--ivps-border2)';
+            e.currentTarget.style.color = 'var(--ivps-text4)';
             e.currentTarget.style.background = 'transparent';
           }}
         >
           <span className="text-[24px] leading-none">+</span>
           <span className="text-[11px] font-medium">새 악보</span>
-          <span
-            className="text-[9px] font-mono"
-            style={{ opacity: 0.5 }}
-          >
-            PNG · JPG · PDF
-          </span>
+          <span className="text-[9px] font-mono" style={{ opacity: 0.5 }}>PNG · JPG · PDF</span>
         </div>
       </div>
     </div>
@@ -623,9 +634,9 @@ export function DashboardView() {
               <span
                 className="text-[9px] font-mono px-2 py-0.5 rounded-full"
                 style={{
-                  background: 'rgba(255,255,255,.05)',
-                  border: '1px solid rgba(255,255,255,.1)',
-                  color: 'rgba(255,255,255,.3)',
+                  background: 'var(--ivps-surface2)',
+                  border: '1px solid var(--ivps-border)',
+                  color: 'var(--ivps-text4)',
                 }}
               >
                 Beta
@@ -664,16 +675,18 @@ export function DashboardView() {
           </Panel>
         </div>
 
-        {/* ── 레벨 진행 바 ── */}
-        <div className="mb-4">
-          <LevelBar level={level} xpPct={xpPct} xpToNext={xpToNext} />
-        </div>
+        {/* ── 하단 2열: 히트맵(좌) + 레벨바(우) ── */}
+        <div className="grid grid-cols-[auto_1fr] gap-4 mb-6 items-start">
 
-        {/* ── 주간 연습 히트맵 ── */}
-        <div className="mb-6">
-          <Panel title="📊 주간 연습 활동">
-            <PracticeHeatmap xpLog={xpLog} />
+          {/* 좌하단: 100일 10×10 히트맵 */}
+          <Panel title="🗓 100일 연습 기록">
+            <PracticeHeatmap practiceSessions={practiceSessions} xpLog={xpLog} />
           </Panel>
+
+          {/* 우측: 레벨 진행 바 */}
+          <div>
+            <LevelBar level={level} xpPct={xpPct} xpToNext={xpToNext} />
+          </div>
         </div>
 
       </div>
