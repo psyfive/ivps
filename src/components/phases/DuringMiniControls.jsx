@@ -79,6 +79,7 @@ export function DuringMiniControls() {
     drawingMode,
     drawingTool,
     drawingColor,
+    drawingFontSize,
     metro,
     grape,
     nav,
@@ -689,14 +690,13 @@ export function DuringMiniControls() {
                 >
                   {/* 도구 */}
                   <div className="text-[9px] text-[rgba(255,255,255,.3)] mb-1.5 uppercase tracking-wider">도구</div>
-                  <div className="grid grid-cols-6 gap-1 mb-3">
+                  <div className="grid grid-cols-5 gap-1 mb-3">
                     {[
-                      { tool: 'pen',         label: '✏️', sub: '펜' },
-                      { tool: 'highlighter', label: '▬',  sub: '형광펜' },
-                      { tool: 'text',        label: 'T',  sub: '글자' },
-                      { tool: 'downBow',     label: '∏',  sub: '↓활' },
-                      { tool: 'upBow',       label: '∨',  sub: '↑활' },
-                      { tool: 'eraser',      label: '⌫',  sub: '지우개' },
+                      { tool: 'pen',     label: '✏️', sub: '펜' },
+                      { tool: 'text',    label: 'T',  sub: '글자' },
+                      { tool: 'downBow', label: '∏',  sub: '↓활' },
+                      { tool: 'upBow',   label: '∨',  sub: '↑활' },
+                      { tool: 'eraser',  label: '⌫',  sub: '지우개' },
                     ].map(({ tool, label, sub }) => (
                       <button
                         key={tool}
@@ -714,34 +714,6 @@ export function DuringMiniControls() {
                     ))}
                   </div>
 
-                  {/* 색상 — 형광펜 전용 팔레트 */}
-                  {drawingTool === 'highlighter' && (
-                    <>
-                      <div className="text-[9px] text-[rgba(255,255,255,.3)] mb-1.5 uppercase tracking-wider">형광 색상</div>
-                      <div className="flex gap-2 mb-3">
-                        {[
-                          { color: '#ffe033', label: '노랑' },
-                          { color: '#80ff66', label: '초록' },
-                          { color: '#ff80c0', label: '분홍' },
-                        ].map(({ color, label }) => (
-                          <button
-                            key={color}
-                            onClick={() => drawingActs.setDrawingColor(color)}
-                            title={label}
-                            className="rounded-full border-2 transition-all flex-shrink-0"
-                            style={{
-                              width: 22,
-                              height: 22,
-                              background: color,
-                              borderColor: drawingColor === color ? 'white' : 'transparent',
-                              boxShadow: drawingColor === color ? '0 0 0 1px rgba(255,255,255,.4)' : 'none',
-                            }}
-                          />
-                        ))}
-                      </div>
-                    </>
-                  )}
-
                   {/* 색상 — 펜 / 글자 / 활 전용 팔레트 */}
                   {(drawingTool === 'pen' || drawingTool === 'text' || drawingTool === 'downBow' || drawingTool === 'upBow') && (
                     <>
@@ -757,15 +729,47 @@ export function DuringMiniControls() {
                             key={color}
                             onClick={() => drawingActs.setDrawingColor(color)}
                             title={label}
-                            className="rounded-full border-2 transition-all flex-shrink-0"
+                            className="rounded-full transition-all flex-shrink-0"
                             style={{
                               width: 22,
                               height: 22,
                               background: color,
-                              borderColor: drawingColor === color ? 'white' : 'transparent',
+                              border: drawingColor === color
+                                ? '2px solid white'
+                                : color === '#111111'
+                                  ? '2px solid rgba(255,255,255,.35)'
+                                  : '2px solid transparent',
                               boxShadow: drawingColor === color ? '0 0 0 1px rgba(255,255,255,.4)' : 'none',
                             }}
                           />
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {/* 글자 크기 — text 도구 전용 */}
+                  {drawingTool === 'text' && (
+                    <>
+                      <div className="text-[9px] text-[rgba(255,255,255,.3)] mb-1.5 uppercase tracking-wider">글자 크기</div>
+                      <div className="flex gap-1.5 mb-3">
+                        {[
+                          { size: 1, label: 'S', px: '14px' },
+                          { size: 2, label: 'M', px: '22px' },
+                          { size: 3, label: 'L', px: '32px' },
+                        ].map(({ size, label, px }) => (
+                          <button
+                            key={size}
+                            onClick={() => drawingActs.setDrawingFontSize(size)}
+                            className="flex flex-col items-center flex-1 py-1 rounded-lg border transition-all"
+                            style={{
+                              background: drawingFontSize === size ? 'rgba(212,168,67,.18)' : 'rgba(255,255,255,.04)',
+                              borderColor: drawingFontSize === size ? 'rgba(212,168,67,.5)' : 'rgba(255,255,255,.08)',
+                              color: drawingFontSize === size ? '#d4a843' : 'rgba(255,255,255,.5)',
+                            }}
+                          >
+                            <span className="font-bold leading-none" style={{ fontSize: 13 }}>{label}</span>
+                            <span className="text-[8px] mt-0.5 opacity-60">{px}</span>
+                          </button>
                         ))}
                       </div>
                     </>

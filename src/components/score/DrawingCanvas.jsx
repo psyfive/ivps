@@ -12,7 +12,8 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import { usePractice } from '../../context/PracticeContext';
 
-const BOWING_SIZE = 0.0016;      // canvas width 대비 보잉 기호 크기
+const BOWING_SIZE = 0.0024;      // canvas width 대비 보잉 기호 크기
+const FONT_SIZE_MAP = { 1: 14, 2: 22, 3: 32 }; // drawingFontSize → px
 const ERASER_THRESHOLD_PX = 28;  // 지우개 감지 픽셀 반경
 
 function drawStroke(ctx, stroke, w, h) {
@@ -32,22 +33,6 @@ function drawStroke(ctx, stroke, w, h) {
       ctx.lineTo(points[i].x * w, points[i].y * h);
     }
     ctx.stroke();
-    return;
-  }
-
-  if (tool === 'highlighter') {
-    if (points.length < 2) return;
-    ctx.globalAlpha = 0.18;
-    ctx.lineCap = 'square';
-    ctx.lineWidth = Math.max(10, strokeWidth * w / 300);
-    ctx.beginPath();
-    ctx.moveTo(points[0].x * w, points[0].y * h);
-    for (let i = 1; i < points.length; i++) {
-      ctx.lineTo(points[i].x * w, points[i].y * h);
-    }
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-    ctx.lineCap = 'round';
     return;
   }
 
@@ -78,7 +63,7 @@ function drawStroke(ctx, stroke, w, h) {
   if (tool === 'text') {
     const cx = points[0].x * w;
     const cy = points[0].y * h;
-    const fontSize = Math.max(12, strokeWidth * w / 60);
+    const fontSize = FONT_SIZE_MAP[strokeWidth] ?? 22;
     ctx.font = `bold ${fontSize}px sans-serif`;
     ctx.fillStyle = color;
     ctx.fillText(stroke.text ?? '', cx, cy);
@@ -93,6 +78,7 @@ export function DrawingCanvas({ currentPageIndex }) {
     drawingMode,
     drawingTool,
     drawingColor,
+    drawingFontSize,
     drawing,
   } = usePractice();
 
@@ -107,19 +93,21 @@ export function DrawingCanvas({ currentPageIndex }) {
   strokesRef.current = strokes;
 
   // props → ref 미러링
-  const drawingModeRef    = useRef(drawingMode);
-  const drawingToolRef    = useRef(drawingTool);
-  const drawingColorRef   = useRef(drawingColor);
-  const pageIdxRef        = useRef(currentPageIndex);
-  const drawingActsRef    = useRef(drawing);
-  const activeScoreRef    = useRef(activeScore);
+  const drawingModeRef     = useRef(drawingMode);
+  const drawingToolRef     = useRef(drawingTool);
+  const drawingColorRef    = useRef(drawingColor);
+  const drawingFontSizeRef = useRef(drawingFontSize);
+  const pageIdxRef         = useRef(currentPageIndex);
+  const drawingActsRef     = useRef(drawing);
+  const activeScoreRef     = useRef(activeScore);
 
-  useEffect(() => { drawingModeRef.current  = drawingMode; },      [drawingMode]);
-  useEffect(() => { drawingToolRef.current  = drawingTool; },      [drawingTool]);
-  useEffect(() => { drawingColorRef.current = drawingColor; },     [drawingColor]);
-  useEffect(() => { pageIdxRef.current      = currentPageIndex; }, [currentPageIndex]);
-  useEffect(() => { drawingActsRef.current  = drawing; },          [drawing]);
-  useEffect(() => { activeScoreRef.current  = activeScore; },      [activeScore]);
+  useEffect(() => { drawingModeRef.current     = drawingMode; },      [drawingMode]);
+  useEffect(() => { drawingToolRef.current     = drawingTool; },      [drawingTool]);
+  useEffect(() => { drawingColorRef.current    = drawingColor; },     [drawingColor]);
+  useEffect(() => { drawingFontSizeRef.current = drawingFontSize; },  [drawingFontSize]);
+  useEffect(() => { pageIdxRef.current         = currentPageIndex; }, [currentPageIndex]);
+  useEffect(() => { drawingActsRef.current     = drawing; },          [drawing]);
+  useEffect(() => { activeScoreRef.current     = activeScore; },      [activeScore]);
 
   // ── 캔버스 렌더 ──────────────────────────────────────────────────
   const redraw = useCallback(() => {
@@ -212,7 +200,27 @@ export function DrawingCanvas({ currentPageIndex }) {
     }
 
     if (tool === 'text') {
-      setTextInput({ x: pt.x, y: pt.y, pageIdx });
+      // 기존 text 스트로크 근처 클릭 시 편집 모드
+      const allDrawings = activeScoreRef.current?.drawings ?? [];
+      const textStrokes = allDrawings.filter(d => d.pageIndex === pageIdx && d.tool === 'text');
+      const el = canvasRef.current;
+      if (el && textStrokes.length > 0) {
+        const tw = el.width, th = el.height;
+        let nearestText = null, nearestDist = Infinity;
+        for (const stroke of textStrokes) {
+          const p = stroke.points[0];
+          const dx = (p.x - pt.x) * tw;
+          const dy = (p.y - pt.y) * th;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < nearestDist) { nearestDist = dist; nearestText = stroke; }
+        }
+        if (nearestText && nearestDist < 40) {
+          acts.removeStroke(nearestText.id);
+          setTextInput({ x: nearestText.points[0].x, y: nearestText.points[0].y, pageIdx, prefill: nearestText.text ?? '' });
+          return;
+        }
+      }
+      setTextInput({ x: pt.x, y: pt.y, pageIdx, prefill: '' });
       return;
     }
 
@@ -284,7 +292,7 @@ export function DrawingCanvas({ currentPageIndex }) {
         id: uid(),
         tool: 'text',
         color: drawingColorRef.current,
-        strokeWidth: 2,
+        strokeWidth: drawingFontSizeRef.current,
         points: [{ x: textInput.x, y: textInput.y }],
         text: value.trim(),
         pageIndex: textInput.pageIdx,
@@ -307,6 +315,7 @@ export function DrawingCanvas({ currentPageIndex }) {
       {textInput && (
         <input
           autoFocus
+          defaultValue={textInput.prefill ?? ''}
           style={{
             position: 'absolute',
             left: `${textInput.x * 100}%`,
@@ -318,7 +327,7 @@ export function DrawingCanvas({ currentPageIndex }) {
             border: '1px solid rgba(255,255,255,0.35)',
             borderRadius: 4,
             padding: '2px 6px',
-            fontSize: 14,
+            fontSize: FONT_SIZE_MAP[drawingFontSize] ?? 22,
             fontWeight: 'bold',
             outline: 'none',
             minWidth: 80,

@@ -56,8 +56,9 @@ export const INITIAL_STATE = {
 
   // ─ 필기 (Drawing) ─
   drawingMode: false,
-  drawingTool: 'pen',         // 'pen' | 'downBow' | 'upBow' | 'eraser'
+  drawingTool: 'pen',         // 'pen' | 'downBow' | 'upBow' | 'eraser' | 'text'
   drawingColor: '#e05555',
+  drawingFontSize: 2,         // 1=Small(14px) / 2=Medium(22px) / 3=Large(32px)
 
   // ─ UI ─
   immersionMode: false,
@@ -156,7 +157,8 @@ export const ACTIONS = {
   CLEAR_DRAWINGS:    'CLEAR_DRAWINGS',
   SET_DRAWING_MODE:  'SET_DRAWING_MODE',
   SET_DRAWING_TOOL:  'SET_DRAWING_TOOL',
-  SET_DRAWING_COLOR: 'SET_DRAWING_COLOR',
+  SET_DRAWING_COLOR:     'SET_DRAWING_COLOR',
+  SET_DRAWING_FONT_SIZE: 'SET_DRAWING_FONT_SIZE',
 
   // UI
   TOGGLE_IMMERSION:       'TOGGLE_IMMERSION',
@@ -844,6 +846,9 @@ export function reducer(state, action) {
     case ACTIONS.SET_DRAWING_COLOR:
       return { ...state, drawingColor: action.color };
 
+    case ACTIONS.SET_DRAWING_FONT_SIZE:
+      return { ...state, drawingFontSize: action.size };
+
     // ── UI ───────────────────────────────────────────────────────────
     case ACTIONS.TOGGLE_IMMERSION:
       return { ...state, immersionMode: !state.immersionMode };
@@ -1089,6 +1094,9 @@ export function usePracticeSession() {
   const setDrawingColor = useCallback((color) =>
     dispatch({ type: ACTIONS.SET_DRAWING_COLOR, color }), []);
 
+  const setDrawingFontSize = useCallback((size) =>
+    dispatch({ type: ACTIONS.SET_DRAWING_FONT_SIZE, size }), []);
+
   // ── UI 액션 ──────────────────────────────────────────────────────
   const toggleImmersion = useCallback(() =>
     dispatch({ type: ACTIONS.TOGGLE_IMMERSION }), []);
@@ -1124,7 +1132,7 @@ export function usePracticeSession() {
     cart: { addToCart, removeFromCart },
     segment: { toggleSegmentCheck, toggleSegmentMode, startAddToSegment, selectSegment, addSegment, deleteSegment, deleteSegmentCoord, setSegmentMeta, updateSegmentCoord, mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment, commitTempSegments, setSegmentDifficulty },
     before: { addSection, deleteSection, assignSectionSkill, setCurrentBar },
-    drawing: { addStroke, removeStroke, undoStroke, clearDrawings, setDrawingMode, setDrawingTool, setDrawingColor },
+    drawing: { addStroke, removeStroke, undoStroke, clearDrawings, setDrawingMode, setDrawingTool, setDrawingColor, setDrawingFontSize },
     metro: { setBpm, setBeatsPerBar, setMetroPlaying, setCurrentBeat, setSubdivision, setGhostTrainBars, setGhostTrainReadyBars },
     tuner: { setTunerActive, setTunerNote },
     grape: { toggleGrape, resetGrapes, adjustGrapeTotal },
