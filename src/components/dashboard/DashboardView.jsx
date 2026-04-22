@@ -5,7 +5,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { useRef, useCallback, useState, useMemo } from 'react';
 import { usePractice } from '../../context/PracticeContext';
-import { getCategoryMeta } from '../../data/taxonomy';
+import { TAXONOMY, getCategoryMeta, getSkillById } from '../../data/taxonomy';
+import { SkillDetailModal } from '../library/SkillDetailModal';
 import { PracticeHeatmap } from './PracticeHeatmap';
 
 // ── 파일 → pageData 변환 (ScoreViewer와 동일한 로직, 공통 util로 이동 가능) ──
@@ -79,55 +80,107 @@ function calcStats(xpLog) {
 // ─────────────────────────────────────────────────────────────────────────────
 // SymptomQuickEntry — 증상 기반 퀵 온보딩
 // ─────────────────────────────────────────────────────────────────────────────
-const SYMPTOM_TAGS = [
-  { label: '소리가 긁힘',   keywords: ['긁', '거칠', '잡음'] },
-  { label: '음정이 불안함', keywords: ['음정', '틀'] },
-  { label: '손이 피로함',   keywords: ['피로', '쥐', '긴장'] },
-  { label: '활이 떨림',    keywords: ['떨', '흔들'] },
-  { label: '손목이 굳음',   keywords: ['손목'] },
-  { label: '박자가 밀림',   keywords: ['박자', '리듬', '밀림'] },
-  { label: '고음이 안 남',  keywords: ['고음', '고포지션'] },
-  { label: '소리가 작음',   keywords: ['음량', '소리가 작', '가늘'] },
-];
+const ALL_SYMPTOMS = (() => {
+  const seen = new Set();
+  return TAXONOMY.flatMap(skill =>
+    (skill.after ?? []).map(a => ({ symptom: a.symptom, skillId: skill.id }))
+  ).filter(({ symptom }) => {
+    if (seen.has(symptom)) return false;
+    seen.add(symptom);
+    return true;
+  });
+})();
 
-function SymptomQuickEntry({ onSelect }) {
+function pickRandom(arr, n) {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, n);
+}
+
+function SymptomQuickEntry({ query = '', onSelect }) {
+  const randomFour = useMemo(() => pickRandom(ALL_SYMPTOMS, 4), []);
+  const displayed = query.trim()
+    ? ALL_SYMPTOMS.filter(s => s.symptom.includes(query.trim()))
+    : randomFour;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ fontSize: 12, color: 'var(--ivps-text3)', lineHeight: 1.55 }}>
         오늘 어떤 소리가 마음에 안 드시나요?
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-        {SYMPTOM_TAGS.map(tag => (
-          <button
-            key={tag.label}
-            onClick={() => onSelect(tag)}
-            style={{
-              padding: '8px 10px',
-              borderRadius: 8,
-              border: '1px solid var(--ivps-border2)',
-              background: 'var(--ivps-surface2)',
-              color: 'var(--ivps-text2)',
-              fontSize: 11.5,
-              fontWeight: 500,
-              textAlign: 'left',
-              cursor: 'pointer',
-              transition: 'all 150ms',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.borderColor = 'rgba(212,168,67,.45)';
-              e.currentTarget.style.background = 'rgba(212,168,67,.06)';
-              e.currentTarget.style.color = 'var(--ivps-gold)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.borderColor = 'var(--ivps-border2)';
-              e.currentTarget.style.background = 'var(--ivps-surface2)';
-              e.currentTarget.style.color = 'var(--ivps-text2)';
-            }}
-          >
-            {tag.label}
-          </button>
-        ))}
-      </div>
+
+      {query.trim() ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 180, overflowY: 'auto' }}>
+          {displayed.length === 0 ? (
+            <div style={{ fontSize: 11, color: 'var(--ivps-text4)', padding: '8px 0' }}>
+              일치하는 증상이 없습니다.
+            </div>
+          ) : displayed.map((entry, i) => (
+            <button
+              key={i}
+              onClick={() => onSelect(entry)}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '7px 10px', borderRadius: 8,
+                border: '1px solid var(--ivps-border)',
+                background: 'var(--ivps-surface2)',
+                color: 'var(--ivps-text2)', fontSize: 11.5,
+                textAlign: 'left', cursor: 'pointer', transition: 'all 150ms',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.borderColor = 'rgba(212,168,67,.45)';
+                e.currentTarget.style.background = 'rgba(212,168,67,.06)';
+                e.currentTarget.style.color = 'var(--ivps-gold)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.borderColor = 'var(--ivps-border)';
+                e.currentTarget.style.background = 'var(--ivps-surface2)';
+                e.currentTarget.style.color = 'var(--ivps-text2)';
+              }}
+            >
+              <span>{entry.symptom}</span>
+              <span style={{
+                fontSize: 9, fontFamily: 'ui-monospace, monospace', fontWeight: 700,
+                padding: '1px 5px', borderRadius: 4,
+                background: 'var(--ivps-surface)', border: '1px solid var(--ivps-border2)',
+                color: 'var(--ivps-text4)', flexShrink: 0, marginLeft: 6,
+              }}>{entry.skillId}</span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+          {randomFour.map((entry, i) => (
+            <button
+              key={i}
+              onClick={() => onSelect(entry)}
+              style={{
+                padding: '8px 10px', borderRadius: 8,
+                border: '1px solid var(--ivps-border2)',
+                background: 'var(--ivps-surface2)',
+                color: 'var(--ivps-text2)', fontSize: 11.5, fontWeight: 500,
+                textAlign: 'left', cursor: 'pointer', transition: 'all 150ms',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.borderColor = 'rgba(212,168,67,.45)';
+                e.currentTarget.style.background = 'rgba(212,168,67,.06)';
+                e.currentTarget.style.color = 'var(--ivps-gold)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.borderColor = 'var(--ivps-border2)';
+                e.currentTarget.style.background = 'var(--ivps-surface2)';
+                e.currentTarget.style.color = 'var(--ivps-text2)';
+              }}
+            >
+              {entry.symptom}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div style={{ fontSize: 10, color: 'var(--ivps-text4)', lineHeight: 1.5 }}>
         증상을 선택하면 관련 스킬을 바로 찾아드립니다.
       </div>
@@ -564,10 +617,12 @@ export function DashboardView() {
     practiceSessions,
     nav,
     score: scoreActs,
-    skill,
   } = usePractice();
 
   const fileInputRef = useRef(null);
+  const [symptomQuery,   setSymptomQuery]   = useState('');
+  const [symptomSkillId, setSymptomSkillId] = useState(null);
+  const symptomSkill = symptomSkillId ? getSkillById(symptomSkillId) : null;
 
   const { totalXP, level, xpToNext, xpPct } = calcStats(xpLog);
   const today = formatDateLong(Date.now());
@@ -618,10 +673,9 @@ export function DashboardView() {
     scoreActs.setActiveScore(scoreId);
   }, [scoreActs]);
 
-  const handleSymptomSelect = useCallback(tag => {
-    skill.setSymptomFilter(tag);
-    nav.navigate('library');
-  }, [skill, nav]);
+  const handleSymptomSelect = useCallback(({ skillId }) => {
+    setSymptomSkillId(skillId);
+  }, []);
 
   // ─────────────────────────────────────────────────────────────────
   return (
@@ -688,8 +742,28 @@ export function DashboardView() {
           </Panel>
 
           {/* 오늘의 증상 — 퀵 온보딩 */}
-          <Panel title="🩺 오늘의 증상">
-            <SymptomQuickEntry onSelect={handleSymptomSelect} />
+          <Panel
+            title="🩺 오늘의 증상"
+            action={
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] pointer-events-none" style={{ color: 'var(--ivps-text4)' }}>🔍</span>
+                <input
+                  type="text"
+                  value={symptomQuery}
+                  onChange={e => setSymptomQuery(e.target.value)}
+                  placeholder="증상 검색…"
+                  className="pl-6 pr-3 py-1 rounded-lg border bg-[var(--ivps-surface2)] text-[11px] outline-none w-28 transition-colors"
+                  style={{
+                    color: 'var(--ivps-text1)',
+                    borderColor: 'var(--ivps-border)',
+                  }}
+                  onFocus={e => { e.target.style.borderColor = 'rgba(212,168,67,.4)'; }}
+                  onBlur={e => { e.target.style.borderColor = 'var(--ivps-border)'; }}
+                />
+              </div>
+            }
+          >
+            <SymptomQuickEntry query={symptomQuery} onSelect={handleSymptomSelect} />
           </Panel>
         </div>
 
@@ -714,7 +788,7 @@ export function DashboardView() {
               <div className="text-center py-5 text-[12px] text-[var(--ivps-text4)]">
                 아직 세션 기록이 없어요.<br />
                 <button
-                  onClick={() => nav.navigate('cockpit')}
+                  onClick={() => nav.navigate('library')}
                   className="mt-2 text-[var(--ivps-gold)] hover:underline"
                 >
                   연습 시작하기 →
@@ -731,6 +805,14 @@ export function DashboardView() {
         </div>
 
       </div>
+
+      {symptomSkill && (
+        <SkillDetailModal
+          skill={symptomSkill}
+          onClose={() => setSymptomSkillId(null)}
+          onStartPractice={id => { nav.goSkillPractice(id); setSymptomSkillId(null); }}
+        />
+      )}
     </div>
   );
 }

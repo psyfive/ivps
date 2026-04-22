@@ -5,7 +5,6 @@ import { ThemeToggle } from './ThemeToggle';
 const NAV_ITEMS = [
   { id: 'dashboard', icon: '📊', label: '대시보드' },
   { id: 'library',   icon: '📚', label: '연습 라이브러리' },
-  { id: 'cockpit',   icon: '🚀', label: '연습 콕핏' },
 ];
 
 const INSTRUMENT_GROUPS = [
