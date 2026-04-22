@@ -8,8 +8,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { useMemo } from 'react';
 
-const CELL = 18;
-const GAP  = 3;
+const GAP  = 4;
 const COLS = 10;
 const ROWS = 10;
 const DAYS = COLS * ROWS; // 100
@@ -74,8 +73,6 @@ export function PracticeHeatmap({ practiceSessions = [], xpLog = [] }) {
     [practiceSessions, xpLog],
   );
 
-  const gridSize = CELL * COLS + GAP * (COLS - 1);
-
   return (
     <div>
       {/* 이번 주 요약 */}
@@ -102,15 +99,15 @@ export function PracticeHeatmap({ practiceSessions = [], xpLog = [] }) {
         )}
       </div>
 
-      {/* 10×10 그리드 */}
+      {/* 10×10 그리드 — 패널 너비에 맞게 자동 확장 */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: `repeat(${COLS}, ${CELL}px)`,
-          gridTemplateRows:    `repeat(${ROWS}, ${CELL}px)`,
+          gridTemplateColumns: `repeat(${COLS}, 1fr)`,
+          gridTemplateRows:    `repeat(${ROWS}, 1fr)`,
           gap: GAP,
-          width:  gridSize,
-          height: gridSize,
+          width:       '100%',
+          aspectRatio: '1 / 1',
         }}
       >
         {cells.map(cell => (
@@ -124,15 +121,14 @@ export function PracticeHeatmap({ practiceSessions = [], xpLog = [] }) {
                 : `${cell.label} — 연습 없음`
             }
             style={{
-              width:        CELL,
-              height:       CELL,
-              borderRadius: 3,
+              aspectRatio:  '1 / 1',
+              borderRadius: 4,
               background:   cellColor(cell.durationMinutes, cell.xpTotal),
               outline:      cell.isToday ? '2px solid var(--ivps-gold)' : 'none',
               outlineOffset: -1,
               cursor:       'default',
             }}
-            onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.18)'; }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.15)'; }}
             onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
           />
         ))}
