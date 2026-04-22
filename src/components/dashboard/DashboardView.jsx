@@ -676,7 +676,7 @@ export function DashboardView() {
         </div>
 
         {/* ── 하단 2열: 히트맵(좌) + 레벨바(우) ── */}
-        <div className="grid grid-cols-[auto_1fr] gap-4 mb-6 items-start">
+        <div className="grid grid-cols-2 gap-4 mb-6 items-start">
 
           {/* 좌하단: 100일 10×10 히트맵 */}
           <Panel title="🗓 100일 연습 기록">
