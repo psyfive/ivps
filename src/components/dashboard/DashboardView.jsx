@@ -67,53 +67,6 @@ function formatDateLong(ts) {
   });
 }
 
-// ── 스트릭 계산 ───────────────────────────────────────────────────────────
-function calcStreak(practiceSessions) {
-  if (practiceSessions.length === 0) return 0;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  let streak = 0;
-  for (let i = 0; i < 366; i++) {
-    const dayStart = new Date(today.getTime() - i * 86400000);
-    const dayEnd   = new Date(dayStart);
-    dayEnd.setHours(23, 59, 59, 999);
-    const has = practiceSessions.some(
-      s => s.date >= dayStart.getTime() && s.date <= dayEnd.getTime(),
-    );
-    if (has) {
-      streak++;
-    } else if (i === 0) {
-      // 오늘 아직 연습 없어도 스트릭 유지 (당일 첫 연습 전)
-    } else {
-      break;
-    }
-  }
-  return streak;
-}
-
-// ── 요약 통계 ─────────────────────────────────────────────────────────────
-function calcSummaryStats(practiceSessions) {
-  const weekAgo = Date.now() - 7 * 86400000;
-  const thisWeek = practiceSessions.filter(s => s.date >= weekAgo).length;
-  const durSessions = practiceSessions.filter(s => (s.durationMinutes ?? 0) > 0);
-  const avgMin = durSessions.length > 0
-    ? Math.round(durSessions.reduce((sum, s) => sum + s.durationMinutes, 0) / durSessions.length)
-    : 0;
-  return { total: practiceSessions.length, thisWeek, avgMin };
-}
-
-// ── 카테고리별 XP 합산 (A·B·C만) ─────────────────────────────────────────
-function calcCategoryXp(xpLog) {
-  const totals = { A: 0, B: 0, C: 0 };
-  xpLog.forEach(e => {
-    const cat = e.skillId?.charAt(0);
-    if (cat && Object.prototype.hasOwnProperty.call(totals, cat)) {
-      totals[cat] += (e.xp ?? 0);
-    }
-  });
-  return totals;
-}
-
 // ── XP / 레벨 계산 ────────────────────────────────────────────────────────
 function calcStats(xpLog) {
   const totalXP     = xpLog.reduce((s, e) => s + e.xp, 0);
@@ -124,131 +77,59 @@ function calcStats(xpLog) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LevelBar — XP 레벨 진행 바
+// SymptomQuickEntry — 증상 기반 퀵 온보딩
 // ─────────────────────────────────────────────────────────────────────────────
-function LevelBar({ level, xpPct, xpToNext }) {
-  return (
-    <div className="bg-[var(--ivps-surface)] border border-[var(--ivps-border)] rounded-[10px] px-4 py-3.5">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <span className="font-mono text-[11px] text-[var(--ivps-gold)] bg-[rgba(212,168,67,.1)] border border-[rgba(212,168,67,.2)] px-2 py-0.5 rounded">
-            Lv.{level}
-          </span>
-          <span className="text-[11px] text-[var(--ivps-text3)]">다음 레벨까지</span>
-        </div>
-        <span className="font-mono text-[11px] text-[var(--ivps-text3)]">{xpToNext} XP</span>
-      </div>
-      <div className="h-1.5 bg-[var(--ivps-surface2)] rounded-full overflow-hidden">
-        <div
-          className="h-full rounded-full transition-all duration-500"
-          style={{
-            width: `${xpPct}%`,
-            background: 'linear-gradient(90deg,#d4a843,#b8891f)',
-          }}
-        />
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PracticeInsightPanel — 스트릭 + 카테고리 분포
-// ─────────────────────────────────────────────────────────────────────────────
-const CAT_DISPLAY = [
-  { key: 'A', label: 'A · 왼손',   color: '#7ea890' },
-  { key: 'B', label: 'B · 오른손', color: '#d4a843' },
-  { key: 'C', label: 'C · 음악성', color: '#9b7fc8' },
+const SYMPTOM_TAGS = [
+  { label: '소리가 긁힘',   keywords: ['긁', '거칠', '잡음'] },
+  { label: '음정이 불안함', keywords: ['음정', '틀'] },
+  { label: '손이 피로함',   keywords: ['피로', '쥐', '긴장'] },
+  { label: '활이 떨림',    keywords: ['떨', '흔들'] },
+  { label: '손목이 굳음',   keywords: ['손목'] },
+  { label: '박자가 밀림',   keywords: ['박자', '리듬', '밀림'] },
+  { label: '고음이 안 남',  keywords: ['고음', '고포지션'] },
+  { label: '소리가 작음',   keywords: ['음량', '소리가 작', '가늘'] },
 ];
 
-function PracticeInsightPanel({ practiceSessions, xpLog }) {
-  const streak = useMemo(() => calcStreak(practiceSessions), [practiceSessions]);
-  const { total, thisWeek, avgMin } = useMemo(
-    () => calcSummaryStats(practiceSessions),
-    [practiceSessions],
-  );
-  const catXp  = useMemo(() => calcCategoryXp(xpLog), [xpLog]);
-  const maxXp  = Math.max(catXp.A, catXp.B, catXp.C, 1);
-
+function SymptomQuickEntry({ onSelect }) {
   return (
-    <div>
-      {/* 스트릭 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-        <span style={{ fontSize: 20, lineHeight: 1 }}>🔥</span>
-        <span style={{
-          fontFamily: 'ui-monospace, monospace', fontSize: 26, fontWeight: 700,
-          color: 'var(--ivps-gold)', lineHeight: 1,
-        }}>
-          {streak}일
-        </span>
-        <span style={{ fontSize: 11, color: 'var(--ivps-text3)' }}>연속 연습</span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ fontSize: 12, color: 'var(--ivps-text3)', lineHeight: 1.55 }}>
+        오늘 어떤 소리가 마음에 안 드시나요?
       </div>
-
-      {/* 요약 수치 */}
-      <div style={{
-        display: 'flex', gap: 10, fontSize: 11,
-        fontFamily: 'ui-monospace, monospace', marginBottom: 14,
-      }}>
-        <span>
-          <span style={{ color: 'var(--ivps-text1)', fontWeight: 600 }}>{total}</span>
-          <span style={{ color: 'var(--ivps-text4)' }}> 세션</span>
-        </span>
-        <span style={{ color: 'var(--ivps-text4)' }}>·</span>
-        <span>
-          <span style={{ color: 'var(--ivps-text1)', fontWeight: 600 }}>{thisWeek}</span>
-          <span style={{ color: 'var(--ivps-text4)' }}> 이번주</span>
-        </span>
-        {avgMin > 0 && (
-          <>
-            <span style={{ color: 'var(--ivps-text4)' }}>·</span>
-            <span>
-              <span style={{ color: 'var(--ivps-text1)', fontWeight: 600 }}>{avgMin}</span>
-              <span style={{ color: 'var(--ivps-text4)' }}> 분 평균</span>
-            </span>
-          </>
-        )}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+        {SYMPTOM_TAGS.map(tag => (
+          <button
+            key={tag.label}
+            onClick={() => onSelect(tag)}
+            style={{
+              padding: '8px 10px',
+              borderRadius: 8,
+              border: '1px solid var(--ivps-border2)',
+              background: 'var(--ivps-surface2)',
+              color: 'var(--ivps-text2)',
+              fontSize: 11.5,
+              fontWeight: 500,
+              textAlign: 'left',
+              cursor: 'pointer',
+              transition: 'all 150ms',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor = 'rgba(212,168,67,.45)';
+              e.currentTarget.style.background = 'rgba(212,168,67,.06)';
+              e.currentTarget.style.color = 'var(--ivps-gold)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = 'var(--ivps-border2)';
+              e.currentTarget.style.background = 'var(--ivps-surface2)';
+              e.currentTarget.style.color = 'var(--ivps-text2)';
+            }}
+          >
+            {tag.label}
+          </button>
+        ))}
       </div>
-
-      {/* 구분선 */}
-      <div style={{ height: 1, background: 'var(--ivps-border)', marginBottom: 12 }} />
-
-      {/* 카테고리 레이블 */}
-      <div style={{
-        fontSize: 10, color: 'var(--ivps-text4)',
-        fontFamily: 'ui-monospace, monospace',
-        letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 9,
-      }}>
-        스킬 카테고리 분포
-      </div>
-
-      {/* 카테고리 바 */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-        {CAT_DISPLAY.map(({ key, label, color }) => {
-          const xp  = catXp[key];
-          const pct = Math.round((xp / maxXp) * 100);
-          return (
-            <div key={key}>
-              <div style={{
-                display: 'flex', justifyContent: 'space-between',
-                marginBottom: 4, fontSize: 10.5,
-                fontFamily: 'ui-monospace, monospace',
-              }}>
-                <span style={{ color }}>{label}</span>
-                <span style={{ color: 'var(--ivps-text4)' }}>{xp > 0 ? `${xp} XP` : '—'}</span>
-              </div>
-              <div style={{
-                height: 5, background: 'var(--ivps-surface2)',
-                borderRadius: 3, overflow: 'hidden',
-              }}>
-                <div style={{
-                  height: '100%', width: `${pct}%`,
-                  background: color, borderRadius: 3,
-                  transition: 'width 0.5s ease',
-                  opacity: xp > 0 ? 1 : 0.15,
-                }} />
-              </div>
-            </div>
-          );
-        })}
+      <div style={{ fontSize: 10, color: 'var(--ivps-text4)', lineHeight: 1.5 }}>
+        증상을 선택하면 관련 스킬을 바로 찾아드립니다.
       </div>
     </div>
   );
@@ -683,6 +564,7 @@ export function DashboardView() {
     practiceSessions,
     nav,
     score: scoreActs,
+    skill,
   } = usePractice();
 
   const fileInputRef = useRef(null);
@@ -736,6 +618,11 @@ export function DashboardView() {
     scoreActs.setActiveScore(scoreId);
   }, [scoreActs]);
 
+  const handleSymptomSelect = useCallback(tag => {
+    skill.setSymptomFilter(tag);
+    nav.navigate('library');
+  }, [skill, nav]);
+
   // ─────────────────────────────────────────────────────────────────
   return (
     <div className="flex-1 overflow-y-auto">
@@ -778,7 +665,7 @@ export function DashboardView() {
           onUpload={handleScoreUpload}
         />
 
-        {/* ── 2열: 추천 코스 | 최근 세션 ── */}
+        {/* ── 2열: 추천 코스 | 증상 퀵 진입 ── */}
         <div className="grid grid-cols-2 gap-4 mb-5">
 
           {/* 추천 연습 코스 (placeholder) */}
@@ -800,7 +687,21 @@ export function DashboardView() {
             <CourseCardsSection />
           </Panel>
 
-          {/* 최근 연습 세션 */}
+          {/* 오늘의 증상 — 퀵 온보딩 */}
+          <Panel title="🩺 오늘의 증상">
+            <SymptomQuickEntry onSelect={handleSymptomSelect} />
+          </Panel>
+        </div>
+
+        {/* ── 하단 2열: 히트맵(좌) + 최근 세션(우) ── */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+
+          {/* 좌하단: 100일 10×10 히트맵 */}
+          <Panel title="🗓 100일 연습 기록">
+            <PracticeHeatmap practiceSessions={practiceSessions} xpLog={xpLog} />
+          </Panel>
+
+          {/* 우하단: 최근 연습 세션 */}
           <Panel
             title="🕐 최근 연습 세션"
             action={
@@ -826,20 +727,6 @@ export function DashboardView() {
                 ))}
               </div>
             )}
-          </Panel>
-        </div>
-
-        {/* ── 하단 2열: 히트맵(좌) + 레벨바(우) ── */}
-        <div className="grid grid-cols-2 gap-4 mb-6 items-start">
-
-          {/* 좌하단: 100일 10×10 히트맵 */}
-          <Panel title="🗓 100일 연습 기록">
-            <PracticeHeatmap practiceSessions={practiceSessions} xpLog={xpLog} />
-          </Panel>
-
-          {/* 우하단: 연습 인사이트 */}
-          <Panel title="📊 연습 인사이트">
-            <PracticeInsightPanel practiceSessions={practiceSessions} xpLog={xpLog} />
           </Panel>
         </div>
 

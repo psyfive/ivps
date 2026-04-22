@@ -6,7 +6,7 @@
 //   - 스킬 카드 그리드 → 클릭 시 SkillDetailModal 열기
 //   - 레벨 / XP 진행 바 표시
 // ─────────────────────────────────────────────────────────────────────────────
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { usePractice } from '../../context/PracticeContext';
 import {
   TAXONOMY,
@@ -127,7 +127,7 @@ function GroupChip({ group, active, onClick }) {
 // LibraryView
 // ─────────────────────────────────────────────────────────────────────────────
 export function LibraryView() {
-  const { selectedSkill, skill: skillActs, nav } = usePractice();
+  const { selectedSkill, skill: skillActs, nav, symptomFilter } = usePractice();
 
   const [activeCat,   setActiveCat]   = useState('ALL');
   const [activeGroup, setActiveGroup] = useState('ALL'); // 'ALL' or groupId
@@ -146,16 +146,33 @@ export function LibraryView() {
     setActiveGroup('ALL');
   }, []);
 
+  // ── 증상 필터 진입 시 카테고리·그룹 초기화 ────────────────────────
+  useEffect(() => {
+    if (symptomFilter) {
+      setActiveCat('ALL');
+      setActiveGroup('ALL');
+    }
+  }, [symptomFilter]);
+
   // ── 필터된 스킬 목록 ──────────────────────────────────────────────
   const filteredSkills = useMemo(() => {
     let list = TAXONOMY;
 
-    if (activeCat !== 'ALL') {
-      list = list.filter(s => s.id.startsWith(activeCat));
+    if (symptomFilter) {
+      list = list.filter(s =>
+        s.after?.some(a =>
+          symptomFilter.keywords.some(kw => a.symptom.includes(kw))
+        )
+      );
+    } else {
+      if (activeCat !== 'ALL') {
+        list = list.filter(s => s.id.startsWith(activeCat));
+      }
+      if (activeGroup !== 'ALL') {
+        list = list.filter(s => s.groupId === activeGroup);
+      }
     }
-    if (activeGroup !== 'ALL') {
-      list = list.filter(s => s.groupId === activeGroup);
-    }
+
     if (query.trim()) {
       const q = query.trim().toLowerCase();
       list = list.filter(s =>
@@ -166,7 +183,7 @@ export function LibraryView() {
     }
 
     return list;
-  }, [activeCat, activeGroup, query]);
+  }, [activeCat, activeGroup, query, symptomFilter]);
 
   // ── XP 요약 ───────────────────────────────────────────────────────
   const totalSkills    = TAXONOMY.length;
@@ -206,6 +223,30 @@ export function LibraryView() {
             />
           </div>
         </div>
+
+        {/* 증상 필터 활성 배너 */}
+        {symptomFilter && (
+          <div
+            className="flex items-center justify-between px-3.5 py-2 rounded-lg mb-3"
+            style={{
+              background: 'rgba(212,168,67,.07)',
+              border: '1px solid rgba(212,168,67,.28)',
+            }}
+          >
+            <span className="text-[12px]" style={{ color: 'var(--ivps-gold)' }}>
+              🩺 증상: <strong>{symptomFilter.label}</strong> 관련 스킬
+            </span>
+            <button
+              onClick={() => skillActs.setSymptomFilter(null)}
+              className="text-[11px] transition-colors"
+              style={{ color: 'var(--ivps-text4)' }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'var(--ivps-gold)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--ivps-text4)'; }}
+            >
+              ✕ 해제
+            </button>
+          </div>
+        )}
 
         {/* 카테고리 탭 */}
         <div className="flex gap-1.5 flex-wrap">

@@ -78,6 +78,9 @@ export const INITIAL_STATE = {
 
   // ─ 활성 악기 ─
   activeInstrument: 'violin', // 현재는 'violin'만 활성
+
+  // ─ 증상 필터 (라이브러리 증상 퀵 진입용) ─
+  symptomFilter: null,         // { label, keywords } | null
 };
 
 // ── 액션 타입 ──────────────────────────────────────────────────────────────
@@ -189,6 +192,9 @@ export const ACTIONS = {
 
   // 악기 설정
   SET_INSTRUMENT:          'SET_INSTRUMENT',
+
+  // 증상 필터
+  SET_SYMPTOM_FILTER:      'SET_SYMPTOM_FILTER',
 };
 
 // ── 유틸 ───────────────────────────────────────────────────────────────────
@@ -933,6 +939,9 @@ export function reducer(state, action) {
     case ACTIONS.SET_INSTRUMENT:
       return { ...state, activeInstrument: action.value };
 
+    case ACTIONS.SET_SYMPTOM_FILTER:
+      return { ...state, symptomFilter: action.value };
+
     default:
       return state;
   }
@@ -1061,6 +1070,9 @@ export function usePracticeSession() {
   const setInstrument = useCallback((value) =>
     dispatch({ type: ACTIONS.SET_INSTRUMENT, value }), []);
 
+  const setSymptomFilter = useCallback((value) =>
+    dispatch({ type: ACTIONS.SET_SYMPTOM_FILTER, value }), []);
+
   // ── XP 액션 ──────────────────────────────────────────────────────
   const logXp = useCallback((skillId, result, scoreId = null, segmentId = null) =>
     dispatch({ type: ACTIONS.LOG_XP, skillId, result, scoreId, segmentId }), []);
@@ -1185,7 +1197,7 @@ export function usePracticeSession() {
 
     // 액션 (그룹화)
     nav: { navigate, setPhase, goSkillPractice, enterLastAfter, exitLastAfter, setReviewIndex },
-    skill: { openSkillModal, closeSkillModal, setFilterCategory },
+    skill: { openSkillModal, closeSkillModal, setFilterCategory, setSymptomFilter },
     score: { addScore, setActiveScore, deleteScore, renameScore, changePage, setPage },
     session: { addSession, deleteSession, selectSession, assignSkill, removeSkill, toggleCheck, openPicker, closePicker },
     cart: { addToCart, removeFromCart },
