@@ -75,6 +75,9 @@ export const INITIAL_STATE = {
 
   // ─ 후원자 여부 (세션 기록 제한 해제) ─
   isPatron: false,         // true면 3개 상한 없음
+
+  // ─ 활성 악기 ─
+  activeInstrument: 'violin', // 현재는 'violin'만 활성
 };
 
 // ── 액션 타입 ──────────────────────────────────────────────────────────────
@@ -183,6 +186,9 @@ export const ACTIONS = {
 
   // 후원자 설정
   SET_PATRON:              'SET_PATRON',
+
+  // 악기 설정
+  SET_INSTRUMENT:          'SET_INSTRUMENT',
 };
 
 // ── 유틸 ───────────────────────────────────────────────────────────────────
@@ -924,6 +930,9 @@ export function reducer(state, action) {
     case ACTIONS.SET_PATRON:
       return { ...state, isPatron: action.value };
 
+    case ACTIONS.SET_INSTRUMENT:
+      return { ...state, activeInstrument: action.value };
+
     default:
       return state;
   }
@@ -1048,6 +1057,9 @@ export function usePracticeSession() {
 
   const setPatron = useCallback((value) =>
     dispatch({ type: ACTIONS.SET_PATRON, value }), []);
+
+  const setInstrument = useCallback((value) =>
+    dispatch({ type: ACTIONS.SET_INSTRUMENT, value }), []);
 
   // ── XP 액션 ──────────────────────────────────────────────────────
   const logXp = useCallback((skillId, result, scoreId = null, segmentId = null) =>
@@ -1183,7 +1195,7 @@ export function usePracticeSession() {
     metro: { setBpm, setBeatsPerBar, setMetroPlaying, setCurrentBeat, setSubdivision, setGhostTrainBars, setGhostTrainReadyBars },
     tuner: { setTunerActive, setTunerNote },
     grape: { toggleGrape, resetGrapes, adjustGrapeTotal },
-    settings: { setGrapeBpmIncrement, setPatron },
+    settings: { setGrapeBpmIncrement, setPatron, setInstrument },
     xp: { logXp },
     ui: { toggleImmersion, setPracticeFullscreen },
   };
