@@ -3,7 +3,7 @@
 // v3의 "오늘의 연습" (스탯 카드 + 최근 스킬 + 복습 정원) +
 // v4의 "악보 갤러리" (썸네일 그리드 + 업로드)를 하나의 뷰로 통합.
 // ─────────────────────────────────────────────────────────────────────────────
-import { useRef, useCallback, useState } from 'react';
+import { useRef, useCallback, useState, useMemo } from 'react';
 import { usePractice } from '../../context/PracticeContext';
 import { getCategoryMeta } from '../../data/taxonomy';
 import { PracticeHeatmap } from './PracticeHeatmap';
@@ -67,6 +67,53 @@ function formatDateLong(ts) {
   });
 }
 
+// ── 스트릭 계산 ───────────────────────────────────────────────────────────
+function calcStreak(practiceSessions) {
+  if (practiceSessions.length === 0) return 0;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  let streak = 0;
+  for (let i = 0; i < 366; i++) {
+    const dayStart = new Date(today.getTime() - i * 86400000);
+    const dayEnd   = new Date(dayStart);
+    dayEnd.setHours(23, 59, 59, 999);
+    const has = practiceSessions.some(
+      s => s.date >= dayStart.getTime() && s.date <= dayEnd.getTime(),
+    );
+    if (has) {
+      streak++;
+    } else if (i === 0) {
+      // 오늘 아직 연습 없어도 스트릭 유지 (당일 첫 연습 전)
+    } else {
+      break;
+    }
+  }
+  return streak;
+}
+
+// ── 요약 통계 ─────────────────────────────────────────────────────────────
+function calcSummaryStats(practiceSessions) {
+  const weekAgo = Date.now() - 7 * 86400000;
+  const thisWeek = practiceSessions.filter(s => s.date >= weekAgo).length;
+  const durSessions = practiceSessions.filter(s => (s.durationMinutes ?? 0) > 0);
+  const avgMin = durSessions.length > 0
+    ? Math.round(durSessions.reduce((sum, s) => sum + s.durationMinutes, 0) / durSessions.length)
+    : 0;
+  return { total: practiceSessions.length, thisWeek, avgMin };
+}
+
+// ── 카테고리별 XP 합산 (A·B·C만) ─────────────────────────────────────────
+function calcCategoryXp(xpLog) {
+  const totals = { A: 0, B: 0, C: 0 };
+  xpLog.forEach(e => {
+    const cat = e.skillId?.charAt(0);
+    if (cat && Object.prototype.hasOwnProperty.call(totals, cat)) {
+      totals[cat] += (e.xp ?? 0);
+    }
+  });
+  return totals;
+}
+
 // ── XP / 레벨 계산 ────────────────────────────────────────────────────────
 function calcStats(xpLog) {
   const totalXP     = xpLog.reduce((s, e) => s + e.xp, 0);
@@ -99,6 +146,109 @@ function LevelBar({ level, xpPct, xpToNext }) {
             background: 'linear-gradient(90deg,#d4a843,#b8891f)',
           }}
         />
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PracticeInsightPanel — 스트릭 + 카테고리 분포
+// ─────────────────────────────────────────────────────────────────────────────
+const CAT_DISPLAY = [
+  { key: 'A', label: 'A · 왼손',   color: '#7ea890' },
+  { key: 'B', label: 'B · 오른손', color: '#d4a843' },
+  { key: 'C', label: 'C · 음악성', color: '#9b7fc8' },
+];
+
+function PracticeInsightPanel({ practiceSessions, xpLog }) {
+  const streak = useMemo(() => calcStreak(practiceSessions), [practiceSessions]);
+  const { total, thisWeek, avgMin } = useMemo(
+    () => calcSummaryStats(practiceSessions),
+    [practiceSessions],
+  );
+  const catXp  = useMemo(() => calcCategoryXp(xpLog), [xpLog]);
+  const maxXp  = Math.max(catXp.A, catXp.B, catXp.C, 1);
+
+  return (
+    <div>
+      {/* 스트릭 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+        <span style={{ fontSize: 20, lineHeight: 1 }}>🔥</span>
+        <span style={{
+          fontFamily: 'ui-monospace, monospace', fontSize: 26, fontWeight: 700,
+          color: 'var(--ivps-gold)', lineHeight: 1,
+        }}>
+          {streak}일
+        </span>
+        <span style={{ fontSize: 11, color: 'var(--ivps-text3)' }}>연속 연습</span>
+      </div>
+
+      {/* 요약 수치 */}
+      <div style={{
+        display: 'flex', gap: 10, fontSize: 11,
+        fontFamily: 'ui-monospace, monospace', marginBottom: 14,
+      }}>
+        <span>
+          <span style={{ color: 'var(--ivps-text1)', fontWeight: 600 }}>{total}</span>
+          <span style={{ color: 'var(--ivps-text4)' }}> 세션</span>
+        </span>
+        <span style={{ color: 'var(--ivps-text4)' }}>·</span>
+        <span>
+          <span style={{ color: 'var(--ivps-text1)', fontWeight: 600 }}>{thisWeek}</span>
+          <span style={{ color: 'var(--ivps-text4)' }}> 이번주</span>
+        </span>
+        {avgMin > 0 && (
+          <>
+            <span style={{ color: 'var(--ivps-text4)' }}>·</span>
+            <span>
+              <span style={{ color: 'var(--ivps-text1)', fontWeight: 600 }}>{avgMin}</span>
+              <span style={{ color: 'var(--ivps-text4)' }}> 분 평균</span>
+            </span>
+          </>
+        )}
+      </div>
+
+      {/* 구분선 */}
+      <div style={{ height: 1, background: 'var(--ivps-border)', marginBottom: 12 }} />
+
+      {/* 카테고리 레이블 */}
+      <div style={{
+        fontSize: 10, color: 'var(--ivps-text4)',
+        fontFamily: 'ui-monospace, monospace',
+        letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 9,
+      }}>
+        스킬 카테고리 분포
+      </div>
+
+      {/* 카테고리 바 */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+        {CAT_DISPLAY.map(({ key, label, color }) => {
+          const xp  = catXp[key];
+          const pct = Math.round((xp / maxXp) * 100);
+          return (
+            <div key={key}>
+              <div style={{
+                display: 'flex', justifyContent: 'space-between',
+                marginBottom: 4, fontSize: 10.5,
+                fontFamily: 'ui-monospace, monospace',
+              }}>
+                <span style={{ color }}>{label}</span>
+                <span style={{ color: 'var(--ivps-text4)' }}>{xp > 0 ? `${xp} XP` : '—'}</span>
+              </div>
+              <div style={{
+                height: 5, background: 'var(--ivps-surface2)',
+                borderRadius: 3, overflow: 'hidden',
+              }}>
+                <div style={{
+                  height: '100%', width: `${pct}%`,
+                  background: color, borderRadius: 3,
+                  transition: 'width 0.5s ease',
+                  opacity: xp > 0 ? 1 : 0.15,
+                }} />
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -683,10 +833,10 @@ export function DashboardView() {
             <PracticeHeatmap practiceSessions={practiceSessions} xpLog={xpLog} />
           </Panel>
 
-          {/* 우측: 레벨 진행 바 */}
-          <div>
-            <LevelBar level={level} xpPct={xpPct} xpToNext={xpToNext} />
-          </div>
+          {/* 우하단: 연습 인사이트 */}
+          <Panel title="📊 연습 인사이트">
+            <PracticeInsightPanel practiceSessions={practiceSessions} xpLog={xpLog} />
+          </Panel>
         </div>
 
       </div>
