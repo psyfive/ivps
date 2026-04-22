@@ -86,7 +86,20 @@ export function DuringMiniControls() {
     score: scoreActs,
     segment: segmentActs,
     drawing: drawingActs,
+    practiceSessions,
+    isPatron,
   } = usePractice();
+
+  const handleEnterLastAfter = () => {
+    if (!isPatron && practiceSessions.length >= 3) {
+      const oldest = practiceSessions[practiceSessions.length - 1];
+      const ok = window.confirm(
+        `연습 기록이 가득 찼습니다 (최대 3개).\n가장 오래된 세션 "${oldest?.scoreName ?? '알 수 없음'}"의 기록이 삭제됩니다.\n계속할까요?`
+      );
+      if (!ok) return;
+    }
+    nav.enterLastAfter();
+  };
 
   const segments   = activeScore?.segments ?? [];
   const selIdx     = segments.findIndex(s => s.id === selectedSegmentId);
@@ -826,7 +839,7 @@ export function DuringMiniControls() {
 
         <Sep />
 
-        <MiniBtn onClick={nav.enterLastAfter} title="연습 종료" danger>
+        <MiniBtn onClick={handleEnterLastAfter} title="연습 종료" danger>
           ⏹ 종료
         </MiniBtn>
       </div>

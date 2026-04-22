@@ -8,7 +8,19 @@ import { DiagnosticContent } from '../phases/DiagnosticInterface';
 import { usePractice } from '../../context/PracticeContext';
 
 export function AfterBottomSheet({ isOpen, onClose }) {
-  const { nav } = usePractice();
+  const { nav, practiceSessions, isPatron } = usePractice();
+
+  const handleEnterLastAfter = () => {
+    if (!isPatron && practiceSessions.length >= 3) {
+      const oldest = practiceSessions[practiceSessions.length - 1];
+      const ok = window.confirm(
+        `연습 기록이 가득 찼습니다 (최대 3개).\n가장 오래된 세션 "${oldest?.scoreName ?? '알 수 없음'}"의 기록이 삭제됩니다.\n계속할까요?`
+      );
+      if (!ok) return;
+    }
+    onClose();
+    nav.enterLastAfter();
+  };
   const sheetRef = useRef(null);
   const dragRef = useRef({ startY: 0, dragging: false, currentDelta: 0 });
 
@@ -92,7 +104,7 @@ export function AfterBottomSheet({ isOpen, onClose }) {
           </span>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => { onClose(); nav.enterLastAfter(); }}
+              onClick={handleEnterLastAfter}
               className="flex items-center gap-1.5 px-2.5 h-7 rounded-lg border text-[11px] font-semibold transition-all"
               style={{
                 background: 'rgba(224,112,112,.08)',

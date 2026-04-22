@@ -72,6 +72,9 @@ export const INITIAL_STATE = {
 
   // ─ During Phase 진입 시각 (연습시간 계산용) ─
   duringStartTime: null,   // number | null (ms timestamp)
+
+  // ─ 후원자 여부 (세션 기록 제한 해제) ─
+  isPatron: false,         // true면 3개 상한 없음
 };
 
 // ── 액션 타입 ──────────────────────────────────────────────────────────────
@@ -177,6 +180,9 @@ export const ACTIONS = {
   ENTER_LAST_AFTER:        'ENTER_LAST_AFTER',
   EXIT_LAST_AFTER:         'EXIT_LAST_AFTER',
   SET_REVIEW_SEGMENT_INDEX:'SET_REVIEW_SEGMENT_INDEX',
+
+  // 후원자 설정
+  SET_PATRON:              'SET_PATRON',
 };
 
 // ── 유틸 ───────────────────────────────────────────────────────────────────
@@ -897,7 +903,10 @@ export function reducer(state, action) {
         tempSegments: [],
         pickerSessionId: null,
         duringStartTime: null,
-        practiceSessions: [sessionRecord, ...state.practiceSessions],
+        practiceSessions: (() => {
+          const all = [sessionRecord, ...state.practiceSessions];
+          return state.isPatron ? all : all.slice(0, 3);
+        })(),
       };
     }
 
@@ -911,6 +920,9 @@ export function reducer(state, action) {
 
     case ACTIONS.SET_REVIEW_SEGMENT_INDEX:
       return { ...state, reviewSegmentIndex: action.index };
+
+    case ACTIONS.SET_PATRON:
+      return { ...state, isPatron: action.value };
 
     default:
       return state;
@@ -1033,6 +1045,9 @@ export function usePracticeSession() {
 
   const setGrapeBpmIncrement = useCallback((value) =>
     dispatch({ type: ACTIONS.SET_GRAPE_BPM_INCREMENT, value: Number(value) }), []);
+
+  const setPatron = useCallback((value) =>
+    dispatch({ type: ACTIONS.SET_PATRON, value }), []);
 
   // ── XP 액션 ──────────────────────────────────────────────────────
   const logXp = useCallback((skillId, result, scoreId = null, segmentId = null) =>
@@ -1168,7 +1183,7 @@ export function usePracticeSession() {
     metro: { setBpm, setBeatsPerBar, setMetroPlaying, setCurrentBeat, setSubdivision, setGhostTrainBars, setGhostTrainReadyBars },
     tuner: { setTunerActive, setTunerNote },
     grape: { toggleGrape, resetGrapes, adjustGrapeTotal },
-    settings: { setGrapeBpmIncrement },
+    settings: { setGrapeBpmIncrement, setPatron },
     xp: { logXp },
     ui: { toggleImmersion, setPracticeFullscreen },
   };

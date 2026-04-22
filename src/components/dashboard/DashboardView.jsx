@@ -693,6 +693,10 @@ export function DashboardView() {
 
   // ── 악보 업로드 핸들러 ────────────────────────────────────────────
   const handleFile = useCallback(async (file) => {
+    if (file.size > 50 * 1024 * 1024) {
+      alert('파일 용량이 50MB를 초과합니다.\n50MB 이하의 악보만 업로드할 수 있습니다.');
+      return;
+    }
     try {
       const { name, pages } = await fileToPageData(file);
       scoreActs.addScore(name, pages);
