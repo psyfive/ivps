@@ -21,7 +21,8 @@ export const categoryB = [
       cause: "손가락들이 활을 충분히 '감싸지' 않고 평평하게 놓임",
       prescription: "활 그립 없이 빈 손으로 'C' 모양을 만들고 그 형태 그대로 활에 얹는 드릴"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -40,7 +41,8 @@ export const categoryB = [
       cause: "활이 기울어져 털의 일부만 현에 접촉",
       prescription: "거울 앞에서 플랫 헤어 상태를 시각으로 확인하며 팔꿈치 높이 조정 훈련"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -59,7 +61,8 @@ export const categoryB = [
       cause: "팔꿈치 회전 없이 팔 전체가 수평 이동",
       prescription: "벽에 가까이 서서 활을 당길 때 팔꿈치가 벽에 닿지 않는 범위에서 직선 훈련"
     }
-  ]
+  ],
+  resources: [],
 },
 
 // ══════════════════════════════════════════════════════════════════
@@ -86,7 +89,8 @@ export const categoryB = [
       cause: "속도·압력이 모두 불충분하거나 접촉점이 지판에 너무 가까움",
       prescription: "접촉점을 브릿지 방향으로 1cm 이동 후 소리 변화 확인"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -105,7 +109,8 @@ export const categoryB = [
       cause: "팔 무게 대신 근육 힘으로 누르고 있음 (긴장된 소리)",
       prescription: "팔을 완전히 이완하여 활 위에 무게를 맡기는 '팔 무게 실험' 5분"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -124,7 +129,8 @@ export const categoryB = [
       cause: "SP를 변경하지 않고 압력만으로 음량을 조절하려고 시도",
       prescription: "SP를 브릿지-중간-지판 3위치로 명확히 구분하여 각각에서만 켜는 드릴"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -143,7 +149,8 @@ export const categoryB = [
       cause: "프레이즈 초반에 활을 너무 빠르게 소비",
       prescription: "악보에 활 위치 표시(근처/중간/끝)를 기입하고 그 위치를 지키는 드릴"
     }
-  ]
+  ],
+  resources: [],
 },
 
 // ══════════════════════════════════════════════════════════════════
@@ -165,7 +172,8 @@ export const categoryB = [
       cause: "손가락 유연성 없이 팔이 직접 방향 전환",
       prescription: "초극느리게 활 전환하며 손가락이 먼저 접히는 선행 운동 느끼기"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -184,7 +192,8 @@ export const categoryB = [
       cause: "각 음에 동일한 압력과 속도를 사용하여 방향성 없음",
       prescription: "크레센도와 데크레센도를 의도적으로 과장하여 방향성 감각 키우기"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -203,7 +212,8 @@ export const categoryB = [
       cause: "팔꿈치 준비 없이 손목이나 손가락으로 교차 시도",
       prescription: "느린 템포에서 팔꿈치 주도 현 교차 드릴; 팔꿈치 움직임을 과장하여 인식"
     }
-  ]
+  ],
+  resources: [],
 },
 
 // ══════════════════════════════════════════════════════════════════
@@ -225,7 +235,8 @@ export const categoryB = [
       cause: "손가락 스냅이 충분히 빠르지 않거나 팔이 같이 움직임",
       prescription: "팔을 테이블 위에 올려두고 손가락만 스냅하는 격리 드릴"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -244,7 +255,8 @@ export const categoryB = [
       cause: "압력이 너무 강하여 활의 탄성이 억제됨",
       prescription: "활 무게를 최소화하고 팔꿈치 높이를 낮추어 '자연 반동' 찾기"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -263,7 +275,8 @@ export const categoryB = [
       cause: "손가락·손목이 긴장되어 활의 자연 진동을 억제",
       prescription: "긴장도를 50% 낮추고 활 속도만 빠르게 하는 실험; 이완이 핵심"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -282,7 +295,8 @@ export const categoryB = [
       cause: "착지 시 팔에 의도적인 힘이 들어가 반동 패턴이 불일치",
       prescription: "팔 완전 이완 후 자유 낙하 감각 드릴; 무거운 팔이 활을 데려간다는 이미지"
     }
-  ]
+  ],
+  resources: [],
 },
 
 // ══════════════════════════════════════════════════════════════════
@@ -304,7 +318,8 @@ export const categoryB = [
       cause: "출발 시 압력이 부족하거나 출발이 너무 느림",
       prescription: "현에 압력을 주고 3초 정지 후 폭발하는 드릴 훈련"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -323,7 +338,8 @@ export const categoryB = [
       cause: "팔꿈치 방향 전환 타이밍이 늦음",
       prescription: "초느리게 팔꿈치만 먼저 움직이는 드릴 반복"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -342,7 +358,8 @@ export const categoryB = [
       cause: "악센트 순간의 압력·속도 대비가 충분하지 않음",
       prescription: "악센트 음을 악보에서 골라 그것만 10번 반복; 대비를 과장할수록 효과적"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -361,7 +378,8 @@ export const categoryB = [
       cause: "손가락 집기 타이밍이 불규칙하거나 팔이 개입",
       prescription: "메트로놈으로 1박 = 1음씩 손가락 집기 드릴부터 시작"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -380,7 +398,8 @@ export const categoryB = [
       cause: "압력 펄스가 너무 강하거나(스타카토) 너무 약함(레가토)",
       prescription: "압력 펄스 강도를 3단계(약/중/강)로 실험하여 '포르타토 존' 찾기"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -399,7 +418,8 @@ export const categoryB = [
       cause: "검지 동작이 너무 가볍거나 당기는 방향이 불일치",
       prescription: "천천히 검지를 현 아래에서 위로 스냅하는 동작 10회 집중 연습"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -418,7 +438,8 @@ export const categoryB = [
       cause: "브릿지 가까이에서 활 속도가 충분히 빠르지 않음",
       prescription: "브릿지에서 활 속도를 점진적으로 빠르게 하며 깨끗한 소리 찾기"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -437,6 +458,7 @@ export const categoryB = [
       cause: "스틱이 현에 너무 가볍게 닿거나 타격 후 바로 현을 눌러버림",
       prescription: "활 없이 연필로 현 타격 드릴로 감각 익히기"
     }
-  ]
+  ],
+  resources: [],
 },
 ];

@@ -26,7 +26,8 @@ export const categoryA = [
       cause: "손의 프레임(Frame) 폭이 너무 좁게 고정됨",
       prescription: "1번과 4번 손가락만 현 위에 놓고 프레임 폭을 의식적으로 넓히는 스트레칭 연습"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -50,7 +51,8 @@ export const categoryA = [
       cause: "손가락이 준비 자세 없이 높은 곳에서 낙하하여 정확한 위치 예측 불가",
       prescription: "BPM 40 이하에서 모든 손가락을 최소 높이로 유지하며 매우 느리게 연주"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -69,7 +71,8 @@ export const categoryA = [
       cause: "손가락이 현을 눌러놓고 릴리즈하지 않아 현의 진동이 제한됨",
       prescription: "각 음표마다 의도적으로 '꾹 → 즉시 살짝'으로 압력 사이클을 반복하는 드릴"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -93,7 +96,8 @@ export const categoryA = [
       cause: "장시간 넥을 집어서 발생하는 근육 과부하",
       prescription: "10분 연습 후 엄지 스트레칭 1분; 턱받침·어깨받침 높이 재조정 검토"
     }
-  ]
+  ],
+  resources: [],
 },
 
 // ══════════════════════════════════════════════════════════════════
@@ -115,7 +119,8 @@ export const categoryA = [
       cause: "손가락 위치가 정확한 공명점에서 미세하게 벗어남",
       prescription: "해당 음만 30초 동안 천천히 켜며 공명이 극대화되는 위치를 탐색하는 '공명 채광' 드릴"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -134,7 +139,8 @@ export const categoryA = [
       cause: "프레임 기준이 불명확하여 음이 바뀔 때마다 위치를 재계산",
       prescription: "1번만 놓고 나머지 3개를 한 번에 내려놓는 '프레임 스냅' 드릴"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -158,7 +164,8 @@ export const categoryA = [
       cause: "1번과 4번 손가락 간 프레임 폭이 일관되지 않음",
       prescription: "옥타브만 골라서 각 포지션에서 '프레임 고정' 훈련; 활 없이 왼손만"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -177,7 +184,8 @@ export const categoryA = [
       cause: "이동 전 목표 음정을 청각적으로 준비하지 않음",
       prescription: "이동 전 항상 3초 멈추고 목표 음을 노래한 뒤 이동하는 'sing before shift' 드릴"
     }
-  ]
+  ],
+  resources: [],
 },
 
 // ══════════════════════════════════════════════════════════════════
@@ -199,7 +207,8 @@ export const categoryA = [
       cause: "올라갈 때와 내려올 때 손 프레임 각도가 달라짐",
       prescription: "하행만 집중 연습; 상행 음정 기억을 하행에 적용하는 의식적 훈련"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -218,7 +227,8 @@ export const categoryA = [
       cause: "활의 현 교차와 왼손 포지션 이동이 동시 발생하는 복합 변화 미숙",
       prescription: "해당 전환 지점 4음만 격리하여 BPM 50에서 100회 반복"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -237,7 +247,8 @@ export const categoryA = [
       cause: "반음 이행 패턴을 미리 외우지 않아 그때그때 오류 발생",
       prescription: "3도 스케일의 반음·온음 패턴을 악보에 표시하고 외운 후 연주"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -256,7 +267,8 @@ export const categoryA = [
       cause: "활의 현 교차와 왼손의 음정 이동이 동시 발생하지 않고 어긋남",
       prescription: "아르페지오를 슬로우 모션으로 분해, 활 교차 타이밍을 의도적으로 '앞당기는' 훈련"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -275,7 +287,8 @@ export const categoryA = [
       cause: "어떤 손가락이 어느 반음을 담당하는지 패턴이 미확립",
       prescription: "느린 템포에서 각 반음에 번호 붙여 외우기: 1-1-2-2-3-4-1(shift)..."
     }
-  ]
+  ],
+  resources: [],
 },
 
 // ══════════════════════════════════════════════════════════════════
@@ -297,7 +310,8 @@ export const categoryA = [
       cause: "이동 중 손가락 압력을 유지한 채 이동하여 소리가 묻어남",
       prescription: "이동 직전 압력을 50% 이하로 낮추는 '소프트 시프트' 드릴"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -316,7 +330,8 @@ export const categoryA = [
       cause: "이동마다 가이드 핑거 경로가 달라 반복성 없음",
       prescription: "이동 구간만 50회 반복, 매번 같은 경로·속도·압력을 목표로"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -335,7 +350,8 @@ export const categoryA = [
       cause: "이동 중 손가락 교체 타이밍이 너무 이르거나 늦음",
       prescription: "해당 이동만 격리하여 교체 타이밍을 5단계로 분리 연습"
     }
-  ]
+  ],
+  resources: [],
 },
 
 // ══════════════════════════════════════════════════════════════════
@@ -362,7 +378,8 @@ export const categoryA = [
       cause: "비브라토의 방향 개념이 '아래만'이 아닌 '위아래' 양방향으로 형성됨",
       prescription: "음정보다 약간 낮은 상태를 '출발점'으로 설정, 기준음으로 돌아오는 단방향 연습"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -381,7 +398,8 @@ export const categoryA = [
       cause: "비브라토 속도·폭 제어를 한 번도 의식적으로 훈련하지 않음",
       prescription: "메트로놈으로 ♩= 60에서 2, 4, 6분음표마다 비브라토 속도 전환 훈련"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -400,7 +418,8 @@ export const categoryA = [
       cause: "다음 손가락이 현에 닿는 순간 집중이 비브라토에서 이탈",
       prescription: "2개 음 슬러에서 첫 음 비브라토가 두 번째 음으로 자연스럽게 전달되는 드릴"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -419,7 +438,8 @@ export const categoryA = [
       cause: "4번 독립 근력 부족 또는 손 전체 긴장",
       prescription: "3번 얹기 드릴 2주, 그 후 서서히 3번 지지를 줄여가는 점진적 독립 훈련"
     }
-  ]
+  ],
+  resources: [],
 },
 
 // ══════════════════════════════════════════════════════════════════
@@ -446,7 +466,8 @@ export const categoryA = [
       cause: "두 손가락의 독립성 부족",
       prescription: "아랫 손가락에 가벼운 물체(지우개 조각)를 얹고 떨어지지 않도록 유지하는 드릴"
     }
-  ]
+  ],
+  resources: [],
 },
 
 // ══════════════════════════════════════════════════════════════════
@@ -468,7 +489,8 @@ export const categoryA = [
       cause: "스냅 동작이 약하거나 손가락이 현을 충분히 당기지 않음",
       prescription: "활 없이 최대한 강한 스냅으로 현을 튕기는 전용 훈련; 점차 활과 함께"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -487,7 +509,8 @@ export const categoryA = [
       cause: "손가락 압력이 너무 강하거나 접촉 위치가 절점에서 벗어남",
       prescription: "눈으로 절점 위치(현의 정확히 1/2, 1/3 지점)를 확인하며 위치 탐색"
     }
-  ]
+  ],
+  resources: [],
 },
 
 // ══════════════════════════════════════════════════════════════════
@@ -509,6 +532,7 @@ export const categoryA = [
       cause: "해당 조합의 근육 패턴이 저속에서만 형성되고 고속에서 미형성",
       prescription: "해당 조합 4음만 격리, 현재 오류 속도 70%에서 완벽하게 익힌 후 속도 증가"
     }
-  ]
+  ],
+  resources: [],
 },
 ];

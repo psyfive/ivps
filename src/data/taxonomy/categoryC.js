@@ -21,7 +21,8 @@ export const categoryC = [
       cause: "클라이막스 계획 없이 모든 음을 동일하게 연주",
       prescription: "악보에 ▲(상승) ▼(하강) 화살표로 에너지 방향 표시 후 의식적으로 연주"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -40,7 +41,8 @@ export const categoryC = [
       cause: "pp 시도 시 활 속도와 접촉점이 적절히 변하지 않음",
       prescription: "접촉점을 지판 위로 이동하고 활 속도를 반으로 줄여 실험"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -59,7 +61,8 @@ export const categoryC = [
       cause: "보잉을 음악적 의도 없이 기술적 편의로만 결정",
       prescription: "악보에 모든 보잉 표시 후 각 선택의 음악적 이유를 메모"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -78,7 +81,8 @@ export const categoryC = [
       cause: "활 기울기 조절 없이 두 현에 동일 압력 적용",
       prescription: "화음만 격리하여 위 성부만, 아래 성부만 따로 켜본 후 합치기"
     }
-  ]
+  ],
+  resources: [],
 },
 
 // ══════════════════════════════════════════════════════════════════
@@ -100,7 +104,8 @@ export const categoryC = [
       cause: "손가락이 빠를 때 내면 펄스를 잃고 손가락 속도를 박자로 착각",
       prescription: "발로 박자를 치며 연주하는 드릴; 발 박자가 흔들리지 않아야 합격"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -119,7 +124,8 @@ export const categoryC = [
       cause: "루바토의 예측 가능성이 부족하여 파트너가 읽지 못함",
       prescription: "루바토 지점에 몸짓(호흡, 눈맞춤)으로 신호를 미리 보내는 연습"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -138,7 +144,8 @@ export const categoryC = [
       cause: "시간적 연장 없이 음량 변화만 사용",
       prescription: "메트로놈으로 해당 음을 정확히 1.5박자로 늘이는 실험"
     }
-  ]
+  ],
+  resources: [],
 },
 
 // ══════════════════════════════════════════════════════════════════
@@ -160,7 +167,8 @@ export const categoryC = [
       cause: "호흡 없이 기계적으로 음표를 처리",
       prescription: "모든 프레이즈 시작 전 눈에 보이는 호흡을 의무화하는 2주 훈련"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -179,6 +187,7 @@ export const categoryC = [
       cause: "공연 상황에서 '평가받는다'는 인식이 긴장과 집중력 분산 유발",
       prescription: "작은 청중 앞에서의 연주 기회 늘리기; '들어주는 사람에게 선물하기' 마인드셋"
     }
-  ]
+  ],
+  resources: [],
 },
 ];

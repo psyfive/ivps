@@ -21,7 +21,8 @@ export const categoryD = [
       cause: "받침 높이가 체형에 맞지 않아 근육이 악기를 보조 지지",
       prescription: "턱받침 높이 5mm 조정 후 재평가; 전문 교사나 악기 제작자와 상담"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -40,7 +41,8 @@ export const categoryD = [
       cause: "악기 각도 때문에 그 현에 대한 보잉 각도가 최적이 아님",
       prescription: "그 현을 켜며 악기 각도를 5° 씩 조정하며 최적점 탐색"
     }
-  ]
+  ],
+  resources: [],
 },
 
 // ══════════════════════════════════════════════════════════════════
@@ -62,7 +64,8 @@ export const categoryD = [
       cause: "활 장력이 너무 강하거나 오래된 활털로 교체 필요",
       prescription: "장력을 반 바퀴씩 풀어가며 소리 변화 확인; 마지막 리헤어가 언제인지 확인"
     }
-  ]
+  ],
+  resources: [],
 },
 
 {
@@ -81,6 +84,7 @@ export const categoryD = [
       cause: "현 수명 초과 또는 브릿지·사운드포스트 위치 문제",
       prescription: "현 교체 후 소리 변화 확인; 개선 없으면 전문 루티어(악기 제작자)에 점검 의뢰"
     }
-  ]
+  ],
+  resources: [],
 },
 ];
