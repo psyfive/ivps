@@ -57,7 +57,7 @@ export const INITIAL_STATE = {
   // ─ 필기 (Drawing) ─
   drawingMode: false,
   drawingTool: 'pen',         // 'pen' | 'downBow' | 'upBow' | 'eraser' | 'text'
-  drawingColor: '#e05555',
+  drawingColor: '#000000',
   drawingFontSize: 2,         // 1=Small(14px) / 2=Medium(22px) / 3=Large(32px)
 
   // ─ UI ─

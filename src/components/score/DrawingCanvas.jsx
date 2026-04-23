@@ -8,6 +8,7 @@
 //   downBow  — 활 내림 ∏ 스탬프
 //   upBow    — 활 올림 ∨ 스탬프
 //   eraser   — 가장 가까운 스트로크 삭제
+//   text     — 텍스트 입력 (클릭→입력→외부클릭으로 확정, 클릭으로 재편집)
 // ─────────────────────────────────────────────────────────────────────────────
 import { useRef, useEffect, useCallback, useState } from 'react';
 import { usePractice } from '../../context/PracticeContext';
@@ -86,7 +87,19 @@ export function DrawingCanvas({ currentPageIndex }) {
   const activeStrokeRef = useRef(null);
   const strokesRef      = useRef([]);
   const isErasingRef    = useRef(false);
-  const [textInput, setTextInput] = useState(null); // { x, y, pageIdx }
+  const [textInput, setTextInput] = useState(null); // { x, y, pageIdx, prefill }
+
+  // ── 텍스트 입력 동기 ref ────────────────────────────────────────────────────
+  // pointerdown이 blur보다 먼저 실행되므로 React 상태 대신 ref로 즉시 참조
+  const textInputRef         = useRef(null);   // textInput 상태의 즉시 동기 미러
+  const currentInputValueRef = useRef('');     // onChange로 추적하는 현재 입력값
+  const transitioningRef     = useRef(false);  // 텍스트→텍스트 전환 시 blur commit 억제
+
+  // 상태와 ref를 함께 업데이트하는 동기 래퍼
+  const setTextInputSync = useCallback((val) => {
+    textInputRef.current = val;
+    setTextInput(val);
+  }, []);
 
   // 항상 최신 strokes를 ref에 동기화 (이벤트 핸들러 stale closure 방지)
   const strokes = (activeScore?.drawings ?? []).filter(d => d.pageIndex === currentPageIndex);
@@ -181,6 +194,55 @@ export function DrawingCanvas({ currentPageIndex }) {
     return false;
   }, []);
 
+  // ── 텍스트 스트로크 바운딩박스 히트 테스트 ─────────────────────────
+  // measureText()로 실제 텍스트 너비를 계산해 정확한 클릭 감지
+  const findNearestTextStroke = useCallback((pt, pageIdx, canvasEl) => {
+    const allDrawings = activeScoreRef.current?.drawings ?? [];
+    const textStrokes = allDrawings.filter(d => d.pageIndex === pageIdx && d.tool === 'text');
+    if (textStrokes.length === 0 || !canvasEl) return null;
+    const ctx = canvasEl.getContext('2d');
+    const w = canvasEl.width;
+    const h = canvasEl.height;
+    const ptPx = { x: pt.x * w, y: pt.y * h };
+    const pad = 6;
+    for (const stroke of textStrokes) {
+      const ax = stroke.points[0].x * w;
+      const ay = stroke.points[0].y * h;
+      const fontSize = FONT_SIZE_MAP[stroke.strokeWidth] ?? 22;
+      ctx.font = `bold ${fontSize}px sans-serif`;
+      const textWidth = ctx.measureText(stroke.text ?? '').width;
+      if (
+        ptPx.x >= ax - pad &&
+        ptPx.x <= ax + textWidth + pad &&
+        ptPx.y >= ay - fontSize - pad &&
+        ptPx.y <= ay + pad
+      ) {
+        return stroke;
+      }
+    }
+    return null;
+  }, []);
+
+  // ── 텍스트 확정 ──────────────────────────────────────────────────
+  // textInputRef 기반 — blur/Enter/전환 모두 이 함수로 처리
+  const commitText = useCallback((value) => {
+    const ti = textInputRef.current;
+    if (!ti) return;
+    if (value.trim()) {
+      drawingActsRef.current.addStroke({
+        id: uid(),
+        tool: 'text',
+        color: drawingColorRef.current,
+        strokeWidth: drawingFontSizeRef.current,
+        points: [{ x: ti.x, y: ti.y }],
+        text: value.trim(),
+        pageIndex: ti.pageIdx,
+      });
+    }
+    textInputRef.current = null;
+    setTextInput(null);
+  }, []);
+
   // ── 포인터 이벤트 ────────────────────────────────────────────────
   const onPointerDown = useCallback((e) => {
     if (!drawingModeRef.current) return;
@@ -194,33 +256,52 @@ export function DrawingCanvas({ currentPageIndex }) {
 
     if (tool === 'eraser') {
       isErasingRef.current = true;
-      const erased = eraseNear(pt, pageIdx, acts);
-      if (!erased) { /* 첫 클릭에 아무것도 없어도 드래그 허용 */ }
+      eraseNear(pt, pageIdx, acts);
       return;
     }
 
     if (tool === 'text') {
-      // 기존 text 스트로크 근처 클릭 시 편집 모드
-      const allDrawings = activeScoreRef.current?.drawings ?? [];
-      const textStrokes = allDrawings.filter(d => d.pageIndex === pageIdx && d.tool === 'text');
-      const el = canvasRef.current;
-      if (el && textStrokes.length > 0) {
-        const tw = el.width, th = el.height;
-        let nearestText = null, nearestDist = Infinity;
-        for (const stroke of textStrokes) {
-          const p = stroke.points[0];
-          const dx = (p.x - pt.x) * tw;
-          const dy = (p.y - pt.y) * th;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < nearestDist) { nearestDist = dist; nearestText = stroke; }
+      const el           = canvasRef.current;
+      const existingText = findNearestTextStroke(pt, pageIdx, el);
+      const currentTi    = textInputRef.current;
+
+      if (existingText) {
+        if (currentTi) {
+          // 다른 텍스트 클릭: 현재 입력 먼저 커밋 후 클릭 대상 편집
+          const val = currentInputValueRef.current;
+          if (val.trim()) {
+            acts.addStroke({
+              id: uid(),
+              tool: 'text',
+              color: drawingColorRef.current,
+              strokeWidth: drawingFontSizeRef.current,
+              points: [{ x: currentTi.x, y: currentTi.y }],
+              text: val.trim(),
+              pageIndex: currentTi.pageIdx,
+            });
+          }
+          transitioningRef.current = true; // 뒤따라오는 blur가 재커밋하지 않도록
         }
-        if (nearestText && nearestDist < 40) {
-          acts.removeStroke(nearestText.id);
-          setTextInput({ x: nearestText.points[0].x, y: nearestText.points[0].y, pageIdx, prefill: nearestText.text ?? '' });
-          return;
-        }
+        acts.removeStroke(existingText.id);
+        currentInputValueRef.current = existingText.text ?? '';
+        setTextInputSync({
+          x: existingText.points[0].x,
+          y: existingText.points[0].y,
+          pageIdx,
+          prefill: existingText.text ?? '',
+        });
+        return;
       }
-      setTextInput({ x: pt.x, y: pt.y, pageIdx, prefill: '' });
+
+      // 빈 공간 클릭
+      if (currentTi) {
+        // 입력창이 열린 상태에서 빈 곳 클릭 → blur가 커밋 처리하도록 위임
+        return;
+      }
+
+      // 새 텍스트 입력창 열기
+      currentInputValueRef.current = '';
+      setTextInputSync({ x: pt.x, y: pt.y, pageIdx, prefill: '' });
       return;
     }
 
@@ -238,7 +319,7 @@ export function DrawingCanvas({ currentPageIndex }) {
       points: [pt],
       pageIndex: pageIdx,
     };
-  }, [getRelPt]);
+  }, [getRelPt, eraseNear, findNearestTextStroke, setTextInputSync]);
 
   const onPointerMove = useCallback((e) => {
     if (!drawingModeRef.current) return;
@@ -285,22 +366,6 @@ export function DrawingCanvas({ currentPageIndex }) {
     : drawingTool === 'text'   ? 'text'
     : 'crosshair';
 
-  const commitText = useCallback((value) => {
-    if (!textInput) return;
-    if (value.trim()) {
-      drawingActsRef.current.addStroke({
-        id: uid(),
-        tool: 'text',
-        color: drawingColorRef.current,
-        strokeWidth: drawingFontSizeRef.current,
-        points: [{ x: textInput.x, y: textInput.y }],
-        text: value.trim(),
-        pageIndex: textInput.pageIdx,
-      });
-    }
-    setTextInput(null);
-  }, [textInput]);
-
   return (
     <div
       className="absolute inset-0 w-full h-full"
@@ -332,11 +397,15 @@ export function DrawingCanvas({ currentPageIndex }) {
             outline: 'none',
             minWidth: 80,
           }}
+          onChange={(e) => { currentInputValueRef.current = e.target.value; }}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') commitText(e.target.value);
-            if (e.key === 'Escape') setTextInput(null);
+            if (e.key === 'Enter') commitText(currentInputValueRef.current);
+            if (e.key === 'Escape') { textInputRef.current = null; setTextInput(null); }
           }}
-          onBlur={(e) => commitText(e.target.value)}
+          onBlur={() => {
+            if (transitioningRef.current) { transitioningRef.current = false; return; }
+            commitText(currentInputValueRef.current);
+          }}
         />
       )}
     </div>
