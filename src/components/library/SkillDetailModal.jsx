@@ -239,8 +239,8 @@ export function SkillDetailModal({ skill, onClose, onStartPractice }) {
         {/* ── 본문 스크롤 ── */}
         <div className="flex-1 overflow-y-auto px-[26px] py-5">
 
-          {/* 핵심 원리 */}
-          <PhaseBlock label="핵심 원리" dotColor="#d4a843">
+          {/* 스킬 정의 */}
+          <PhaseBlock label="스킬 정의" dotColor="#d4a843">
             <p className="text-[13px] text-[var(--ivps-text1)] leading-[1.75]">
               {skill.corePrinciple}
             </p>

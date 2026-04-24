@@ -4,7 +4,7 @@
 //
 // 탭 구조:
 //   "준비" — Skill Cart(오늘의 스킬) + 구간 매핑(dnd-kit Drag-and-Drop)
-//   "상세" — 선택된 스킬의 핵심 원리·감각 가이드·체크포인트 미리보기
+//   "상세" — 선택된 스킬의 정의·감각 가이드·체크포인트 미리보기
 //
 // dnd-kit 흐름:
 //   Skill Cart 아이템(Draggable) → 구간 리스트 행(Droppable)으로 드랍
@@ -286,7 +286,7 @@ function SkillDetail({ skill }) {
         </div>
       </div>
 
-      <BriefingCard label="핵심 원리" dotColor="#d4a843">
+      <BriefingCard label="스킬 정의" dotColor="#d4a843">
         <p className="text-[13.5px] text-[var(--ivps-text1)] leading-[1.75]">{skill.corePrinciple}</p>
       </BriefingCard>
 

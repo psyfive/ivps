@@ -156,6 +156,7 @@ export const ACTIONS = {
 
   // 필기 (Drawing)
   ADD_STROKE:        'ADD_STROKE',
+  UPDATE_STROKE:     'UPDATE_STROKE',
   REMOVE_STROKE:     'REMOVE_STROKE',
   UNDO_STROKE:       'UNDO_STROKE',
   CLEAR_DRAWINGS:    'CLEAR_DRAWINGS',
@@ -745,6 +746,16 @@ export function reducer(state, action) {
         })),
       };
 
+    case ACTIONS.UPDATE_STROKE:
+      return {
+        ...state,
+        scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
+          drawings: (s.drawings ?? []).map(d =>
+            d.id === action.strokeId ? { ...d, ...action.patch } : d
+          ),
+        })),
+      };
+
     case ACTIONS.REMOVE_STROKE:
       return {
         ...state,
@@ -1033,6 +1044,9 @@ export function usePracticeSession() {
   const addStroke = useCallback((stroke) =>
     dispatch({ type: ACTIONS.ADD_STROKE, stroke }), []);
 
+  const updateStroke = useCallback((strokeId, patch) =>
+    dispatch({ type: ACTIONS.UPDATE_STROKE, strokeId, patch }), []);
+
   const removeStroke = useCallback((strokeId) =>
     dispatch({ type: ACTIONS.REMOVE_STROKE, strokeId }), []);
 
@@ -1084,7 +1098,7 @@ export function usePracticeSession() {
     session: { addSession, deleteSession, selectSession, assignSkill, removeSkill, toggleCheck, openPicker, closePicker },
     cart: { addToCart, removeFromCart },
     segment: { toggleSegmentCheck, toggleSegmentMode, startAddToSegment, selectSegment, deleteSegment, deleteSegmentCoord, setSegmentMeta, updateSegmentCoord, mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment, commitTempSegments, setSegmentDifficulty },
-    drawing: { addStroke, removeStroke, undoStroke, clearDrawings, setDrawingMode, setDrawingTool, setDrawingColor, setDrawingFontSize },
+    drawing: { addStroke, updateStroke, removeStroke, undoStroke, clearDrawings, setDrawingMode, setDrawingTool, setDrawingColor, setDrawingFontSize },
     metro: { setBpm, setBeatsPerBar, setMetroPlaying, setCurrentBeat, setSubdivision, setGhostTrainBars, setGhostTrainReadyBars },
     tuner: { setTunerActive, setTunerNote },
     grape: { toggleGrape, resetGrapes, adjustGrapeTotal },

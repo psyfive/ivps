@@ -293,3 +293,44 @@ describe('불변성 보장', () => {
     expect(next).toBe(INITIAL_STATE);
   });
 });
+
+describe('Drawing strokes', () => {
+  it('UPDATE_STROKE: updates an existing text stroke without changing other drawings', () => {
+    const textStroke = {
+      id: 'text-1',
+      tool: 'text',
+      color: '#000000',
+      strokeWidth: 2,
+      points: [{ x: 0.2, y: 0.3 }],
+      text: 'old',
+      pageIndex: 0,
+    };
+    const penStroke = {
+      id: 'pen-1',
+      tool: 'pen',
+      color: '#111111',
+      strokeWidth: 2,
+      points: [{ x: 0.1, y: 0.1 }, { x: 0.2, y: 0.2 }],
+      pageIndex: 0,
+    };
+    const score = makeScore({ id: 's1', drawings: [textStroke, penStroke] });
+    const state = { ...INITIAL_STATE, scores: [score], activeScoreId: 's1' };
+
+    const next = reducer(state, {
+      type: ACTIONS.UPDATE_STROKE,
+      strokeId: 'text-1',
+      patch: {
+        text: 'new',
+        points: [{ x: 0.45, y: 0.5 }],
+      },
+    });
+
+    expect(next.scores[0].drawings[0]).toMatchObject({
+      id: 'text-1',
+      text: 'new',
+      points: [{ x: 0.45, y: 0.5 }],
+    });
+    expect(next.scores[0].drawings[1]).toEqual(penStroke);
+    expect(next.scores[0].drawings[0]).not.toBe(textStroke);
+  });
+});

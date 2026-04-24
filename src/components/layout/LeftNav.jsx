@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { usePractice } from '../../context/PracticeContext';
 import { ThemeToggle } from './ThemeToggle';
+import { AuthPanel } from './AuthPanel';
 
 const NAV_ITEMS = [
   { id: 'dashboard', icon: '📊', label: '대시보드' },
@@ -382,6 +383,8 @@ export function LeftNav() {
           </button>
         ))}
       </nav>
+
+      <AuthPanel />
 
       {/* 설정 패널 */}
       {settingsOpen && (
