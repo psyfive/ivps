@@ -101,7 +101,7 @@ function SymptomQuickEntry({ query = '', onSelect }) {
           ))}
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {randomFour.map((entry, i) => (
             <button
               key={i}
