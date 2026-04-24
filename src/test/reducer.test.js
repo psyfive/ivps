@@ -280,7 +280,6 @@ describe('불변성 보장', () => {
       { type: ACTIONS.SET_SCREEN, screen: 'library' },
       { type: ACTIONS.SET_PHASE, phase: 'during' },
       { type: ACTIONS.SET_BPM, bpm: 120 },
-      { type: ACTIONS.TOGGLE_IMMERSION },
       { type: ACTIONS.RESET_GRAPES },
     ];
     for (const action of actions) {

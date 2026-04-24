@@ -1,5 +1,5 @@
 // src/hooks/usePracticeSession.js
-import { useReducer, useCallback, useRef } from 'react';
+import { useReducer, useCallback } from 'react';
 import { getSkillById } from '../data/taxonomy';
 
 // ── 초기 상태 ──────────────────────────────────────────────────────────────
@@ -11,7 +11,6 @@ export const INITIAL_STATE = {
   // ─ 스킬 ─
   activeSkillId: null,        // 현재 연습 중인 스킬 ID
   selectedSkillId: null,      // 모달 등에서 선택된 스킬 ID (미리보기)
-  filterCategory: '전체',     // 라이브러리 필터
 
   // ─ 악보 (Score) ─
   scores: [],                 // [{ id, name, dataUrl, uploadedAt, sessions, pageData, currentPageIndex }]
@@ -51,9 +50,6 @@ export const INITIAL_STATE = {
   addingToSegmentId: null,    // 기존 구간에 박스 추가 중일 때 대상 구간 ID
   tempSegments: [],           // 미확정 구간 버퍼 [{id, coordinates, mappedSkills}]
 
-  // ─ 현재 마디 (During Phase 연동) ─
-  currentBar: null,           // number | null
-
   // ─ 필기 (Drawing) ─
   drawingMode: false,
   drawingTool: 'pen',         // 'pen' | 'downBow' | 'upBow' | 'eraser' | 'text'
@@ -61,7 +57,6 @@ export const INITIAL_STATE = {
   drawingFontSize: 2,         // 1=Small(14px) / 2=Medium(22px) / 3=Large(32px)
 
   // ─ UI ─
-  immersionMode: false,
   practiceFullscreen: false, // During 진입 시 양 사이드 패널 접기
 
   // ─ 연습 종합 리뷰 (Last After Phase) ─
@@ -92,7 +87,6 @@ export const ACTIONS = {
   // 스킬
   SET_ACTIVE_SKILL:  'SET_ACTIVE_SKILL',
   SET_SELECTED_SKILL:'SET_SELECTED_SKILL',
-  SET_FILTER_CAT:    'SET_FILTER_CAT',
 
   // 악보
   ADD_SCORE:         'ADD_SCORE',
@@ -142,7 +136,6 @@ export const ACTIONS = {
   TOGGLE_SEGMENT_MODE:     'TOGGLE_SEGMENT_MODE',
   START_ADD_TO_SEGMENT:    'START_ADD_TO_SEGMENT',
   SELECT_SEGMENT:          'SELECT_SEGMENT',
-  ADD_SEGMENT:             'ADD_SEGMENT',
   DELETE_SEGMENT:          'DELETE_SEGMENT',
   DELETE_SEGMENT_COORD:    'DELETE_SEGMENT_COORD',
   UPDATE_SEGMENT_COORD:    'UPDATE_SEGMENT_COORD',
@@ -155,12 +148,8 @@ export const ACTIONS = {
   COMMIT_TEMP_SEGMENTS:    'COMMIT_TEMP_SEGMENTS',
 
   // Sections (Before Phase 마디 매핑)
-  ADD_SECTION:          'ADD_SECTION',
-  DELETE_SECTION:       'DELETE_SECTION',
-  ASSIGN_SECTION_SKILL: 'ASSIGN_SECTION_SKILL',
 
   // 현재 마디 (During Phase)
-  SET_CURRENT_BAR:   'SET_CURRENT_BAR',
 
   // 구간 난이도
   SET_SEGMENT_DIFFICULTY: 'SET_SEGMENT_DIFFICULTY',
@@ -176,7 +165,6 @@ export const ACTIONS = {
   SET_DRAWING_FONT_SIZE: 'SET_DRAWING_FONT_SIZE',
 
   // UI
-  TOGGLE_IMMERSION:       'TOGGLE_IMMERSION',
   SET_PRACTICE_FULLSCREEN:'SET_PRACTICE_FULLSCREEN',
 
   // 연습 세션 기록
@@ -188,7 +176,6 @@ export const ACTIONS = {
   SET_REVIEW_SEGMENT_INDEX:'SET_REVIEW_SEGMENT_INDEX',
 
   // 후원자 설정
-  SET_PATRON:              'SET_PATRON',
 
   // 악기 설정
   SET_INSTRUMENT:          'SET_INSTRUMENT',
@@ -241,9 +228,6 @@ export function reducer(state, action) {
     case ACTIONS.SET_SELECTED_SKILL:
       return { ...state, selectedSkillId: action.skillId };
 
-    case ACTIONS.SET_FILTER_CAT:
-      return { ...state, filterCategory: action.category };
-
     // ── 악보 ────────────────────────────────────────────────────────
     case ACTIONS.ADD_SCORE: {
       const { name, pageData } = action;
@@ -255,7 +239,6 @@ export function reducer(state, action) {
         dataUrl: normalizedPageData[0].dataUrl,
         uploadedAt: Date.now(),
         sessions: [],
-        sections: [],
         segments: [],
         drawings: [],
         pageData: normalizedPageData,
@@ -559,28 +542,6 @@ export function reducer(state, action) {
     case ACTIONS.SELECT_SEGMENT:
       return { ...state, selectedSegmentId: action.segmentId };
 
-    case ACTIONS.ADD_SEGMENT: {
-      // coordinates: 단일 rect 또는 rect[] — 항상 배열로 저장
-      const coordsArr = Array.isArray(action.coordinates)
-        ? action.coordinates
-        : [action.coordinates];
-      const newSegment = {
-        id: uid(),
-        coordinates: coordsArr, // [{ x, y, width, height }, ...] — 0~1 상대 좌표
-        measures: { start: null, end: null },
-        mappedSkills: [],
-        checks: [],
-      };
-      return {
-        ...state,
-        scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
-          segments: [...(s.segments ?? []), newSegment],
-        })),
-        selectedSegmentId: newSegment.id,
-      };
-    }
-
-    // ── 임시 구간 버퍼 ────────────────────────────────────────────────
     case ACTIONS.ADD_TEMP_SEGMENT: {
       const activeScoreForTemp = getActiveScore(state);
       const coordWithPage = {
@@ -776,51 +737,6 @@ export function reducer(state, action) {
     case ACTIONS.REMOVE_FROM_CART:
       return { ...state, skillCart: state.skillCart.filter(id => id !== action.skillId) };
 
-    // ── Sections (마디 매핑) ──────────────────────────────────────────
-    case ACTIONS.ADD_SECTION: {
-      const newSection = {
-        id: uid(),
-        range: action.range,         // [startBar, endBar]
-        activeSkillId: null,
-        p2_data: [],
-      };
-      return {
-        ...state,
-        scores: updateActiveScore(state.scores, state.activeScoreId, s => {
-          // replaceId가 있으면 기존 겹침 구간 삭제 후 추가
-          const base = action.replaceId
-            ? (s.sections ?? []).filter(sec => sec.id !== action.replaceId)
-            : (s.sections ?? []);
-          return { sections: [...base, newSection] };
-        }),
-      };
-    }
-
-    case ACTIONS.DELETE_SECTION:
-      return {
-        ...state,
-        scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
-          sections: (s.sections ?? []).filter(sec => sec.id !== action.sectionId),
-        })),
-      };
-
-    case ACTIONS.ASSIGN_SECTION_SKILL:
-      return {
-        ...state,
-        scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
-          sections: (s.sections ?? []).map(sec =>
-            sec.id === action.sectionId
-              ? { ...sec, activeSkillId: action.skillId, p2_data: action.p2Data }
-              : sec
-          ),
-        })),
-      };
-
-    // ── 현재 마디 ─────────────────────────────────────────────────────
-    case ACTIONS.SET_CURRENT_BAR:
-      return { ...state, currentBar: action.bar };
-
-    // ── 필기 ─────────────────────────────────────────────────────────
     case ACTIONS.ADD_STROKE:
       return {
         ...state,
@@ -878,8 +794,6 @@ export function reducer(state, action) {
       return { ...state, drawingFontSize: action.size };
 
     // ── UI ───────────────────────────────────────────────────────────
-    case ACTIONS.TOGGLE_IMMERSION:
-      return { ...state, immersionMode: !state.immersionMode };
 
     case ACTIONS.SET_PRACTICE_FULLSCREEN:
       return { ...state, practiceFullscreen: action.value };
@@ -933,9 +847,6 @@ export function reducer(state, action) {
     case ACTIONS.SET_REVIEW_SEGMENT_INDEX:
       return { ...state, reviewSegmentIndex: action.index };
 
-    case ACTIONS.SET_PATRON:
-      return { ...state, isPatron: action.value };
-
     case ACTIONS.SET_INSTRUMENT:
       return { ...state, activeInstrument: action.value };
 
@@ -957,7 +868,6 @@ export function usePracticeSession() {
   const selectedSkill = getSkillById(state.selectedSkillId);
   const activeSession = activeScore?.sessions.find(s => s.id === state.activeSessionId) ?? null;
   const selectedSegment = activeScore?.segments?.find(s => s.id === state.selectedSegmentId) ?? null;
-  const currentSection = getSectionByBar(activeScore?.sections, state.currentBar);
 
   // ── 네비게이션 액션 ────────────────────────────────────────────────
   const navigate = useCallback((screen) =>
@@ -974,10 +884,6 @@ export function usePracticeSession() {
 
   const closeSkillModal = useCallback(() =>
     dispatch({ type: ACTIONS.SET_SELECTED_SKILL, skillId: null }), []);
-
-  const setFilterCategory = useCallback((category) =>
-    dispatch({ type: ACTIONS.SET_FILTER_CAT, category }), []);
-
   // ── 악보 액션 ─────────────────────────────────────────────────────
   const addScore = useCallback((name, pageData) =>
     dispatch({ type: ACTIONS.ADD_SCORE, name, pageData }), []);
@@ -1064,9 +970,6 @@ export function usePracticeSession() {
   const setGrapeBpmIncrement = useCallback((value) =>
     dispatch({ type: ACTIONS.SET_GRAPE_BPM_INCREMENT, value: Number(value) }), []);
 
-  const setPatron = useCallback((value) =>
-    dispatch({ type: ACTIONS.SET_PATRON, value }), []);
-
   const setInstrument = useCallback((value) =>
     dispatch({ type: ACTIONS.SET_INSTRUMENT, value }), []);
 
@@ -1086,10 +989,6 @@ export function usePracticeSession() {
 
   const selectSegment = useCallback((segmentId) =>
     dispatch({ type: ACTIONS.SELECT_SEGMENT, segmentId }), []);
-
-  const addSegment = useCallback((coordinates) =>
-    dispatch({ type: ACTIONS.ADD_SEGMENT, coordinates }), []);
-
   const deleteSegment = useCallback((segmentId) =>
     dispatch({ type: ACTIONS.DELETE_SEGMENT, segmentId }), []);
 
@@ -1130,19 +1029,6 @@ export function usePracticeSession() {
   const removeFromCart = useCallback((skillId) =>
     dispatch({ type: ACTIONS.REMOVE_FROM_CART, skillId }), []);
 
-  // ── Section 액션 ─────────────────────────────────────────────────
-  const addSection = useCallback((range, replaceId = null) =>
-    dispatch({ type: ACTIONS.ADD_SECTION, range, replaceId }), []);
-
-  const deleteSection = useCallback((sectionId) =>
-    dispatch({ type: ACTIONS.DELETE_SECTION, sectionId }), []);
-
-  const assignSectionSkill = useCallback((sectionId, skillId, p2Data) =>
-    dispatch({ type: ACTIONS.ASSIGN_SECTION_SKILL, sectionId, skillId, p2Data }), []);
-
-  const setCurrentBar = useCallback((bar) =>
-    dispatch({ type: ACTIONS.SET_CURRENT_BAR, bar }), []);
-
   // ── 필기 액션 ────────────────────────────────────────────────────
   const addStroke = useCallback((stroke) =>
     dispatch({ type: ACTIONS.ADD_STROKE, stroke }), []);
@@ -1169,9 +1055,6 @@ export function usePracticeSession() {
     dispatch({ type: ACTIONS.SET_DRAWING_FONT_SIZE, size }), []);
 
   // ── UI 액션 ──────────────────────────────────────────────────────
-  const toggleImmersion = useCallback(() =>
-    dispatch({ type: ACTIONS.TOGGLE_IMMERSION }), []);
-
   const setPracticeFullscreen = useCallback((value) =>
     dispatch({ type: ACTIONS.SET_PRACTICE_FULLSCREEN, value }), []);
 
@@ -1193,30 +1076,21 @@ export function usePracticeSession() {
     selectedSkill,
     activeSession,
     selectedSegment,
-    currentSection,
 
     // 액션 (그룹화)
     nav: { navigate, setPhase, goSkillPractice, enterLastAfter, exitLastAfter, setReviewIndex },
-    skill: { openSkillModal, closeSkillModal, setFilterCategory, setSymptomFilter },
+    skill: { openSkillModal, closeSkillModal, setSymptomFilter },
     score: { addScore, setActiveScore, deleteScore, renameScore, changePage, setPage },
     session: { addSession, deleteSession, selectSession, assignSkill, removeSkill, toggleCheck, openPicker, closePicker },
     cart: { addToCart, removeFromCart },
-    segment: { toggleSegmentCheck, toggleSegmentMode, startAddToSegment, selectSegment, addSegment, deleteSegment, deleteSegmentCoord, setSegmentMeta, updateSegmentCoord, mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment, commitTempSegments, setSegmentDifficulty },
-    before: { addSection, deleteSection, assignSectionSkill, setCurrentBar },
+    segment: { toggleSegmentCheck, toggleSegmentMode, startAddToSegment, selectSegment, deleteSegment, deleteSegmentCoord, setSegmentMeta, updateSegmentCoord, mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment, commitTempSegments, setSegmentDifficulty },
     drawing: { addStroke, removeStroke, undoStroke, clearDrawings, setDrawingMode, setDrawingTool, setDrawingColor, setDrawingFontSize },
     metro: { setBpm, setBeatsPerBar, setMetroPlaying, setCurrentBeat, setSubdivision, setGhostTrainBars, setGhostTrainReadyBars },
     tuner: { setTunerActive, setTunerNote },
     grape: { toggleGrape, resetGrapes, adjustGrapeTotal },
-    settings: { setGrapeBpmIncrement, setPatron, setInstrument },
+    settings: { setGrapeBpmIncrement, setInstrument },
     xp: { logXp },
-    ui: { toggleImmersion, setPracticeFullscreen },
+    ui: { setPracticeFullscreen },
   };
 }
 
-// ── 셀렉터 유틸 ───────────────────────────────────────────────────────────
-
-/** 현재 마디 번호에 해당하는 Section을 반환한다. */
-export function getSectionByBar(sections, barNumber) {
-  if (!sections || barNumber == null) return null;
-  return sections.find(s => barNumber >= s.range[0] && barNumber <= s.range[1]) ?? null;
-}
