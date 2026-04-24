@@ -6,59 +6,10 @@
 import { useRef, useCallback, useState, useMemo } from 'react';
 import { usePractice } from '../../context/PracticeContext';
 import { TAXONOMY, getCategoryMeta, getSkillById } from '../../data/taxonomy';
+import { fileToPageData } from '../../utils/fileToPageData';
 import { SkillDetailModal } from '../library/SkillDetailModal';
 import { PracticeHeatmap } from './PracticeHeatmap';
 
-// ── 파일 → pageData 변환 (ScoreViewer와 동일한 로직, 공통 util로 이동 가능) ──
-async function fileToPageData(file, onProgress) {
-  const name = file.name.replace(/\.[^.]+$/, '');
-  const isImage = file.type.startsWith('image/') || /\.(png|jpe?g|gif|webp)$/i.test(file.name);
-  const isPDF   = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
-
-  if (isImage) {
-    const dataUrl = await new Promise((res, rej) => {
-      const reader = new FileReader();
-      reader.onload = e => res(e.target.result);
-      reader.onerror = rej;
-      reader.readAsDataURL(file);
-    });
-    return { name, pages: [{ dataUrl, sessions: [] }] };
-  }
-
-  if (isPDF) {
-    // pdf.js CDN 동적 로드
-    if (!window.pdfjsLib) {
-      await new Promise(res => {
-        const s = document.createElement('script');
-        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js';
-        s.onload = () => {
-          window.pdfjsLib = window['pdfjs-dist/build/pdf'];
-          window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-            'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
-          res();
-        };
-        document.head.appendChild(s);
-      });
-    }
-    const ab = await file.arrayBuffer();
-    const pdf = await window.pdfjsLib.getDocument(new Uint8Array(ab)).promise;
-    const pages = [];
-    for (let i = 1; i <= pdf.numPages; i++) {
-      onProgress?.(i, pdf.numPages);
-      const pg = await pdf.getPage(i);
-      const vp = pg.getViewport({ scale: 1.5 });
-      const cv = document.createElement('canvas');
-      cv.width = vp.width; cv.height = vp.height;
-      await pg.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
-      pages.push({ dataUrl: cv.toDataURL('image/png'), sessions: [] });
-    }
-    return { name, pages };
-  }
-
-  throw new Error('이미지 또는 PDF 파일만 지원합니다.');
-}
-
-// ── 날짜 포맷 ──────────────────────────────────────────────────────────────
 function formatDate(ts) {
   return new Date(ts).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
 }
@@ -72,9 +23,7 @@ function formatDateLong(ts) {
 function calcStats(xpLog) {
   const totalXP     = xpLog.reduce((s, e) => s + e.xp, 0);
   const level       = Math.floor(totalXP / 500) + 1;
-  const xpToNext    = 500 - (totalXP % 500);
-  const xpPct       = Math.round(((totalXP % 500) / 500) * 100);
-  return { totalXP, level, xpToNext, xpPct };
+  return { totalXP, level };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -624,7 +573,7 @@ export function DashboardView() {
   const [symptomSkillId, setSymptomSkillId] = useState(null);
   const symptomSkill = symptomSkillId ? getSkillById(symptomSkillId) : null;
 
-  const { totalXP, level, xpToNext, xpPct } = calcStats(xpLog);
+  const { totalXP, level } = calcStats(xpLog);
   const today = formatDateLong(Date.now());
   const recentSessions = practiceSessions.slice(0, 5);
 
