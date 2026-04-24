@@ -344,6 +344,8 @@ function GrapeChecker() {
 // RightUtilPanel 최상위
 // ─────────────────────────────────────────────────────────────────────────────
 export function RightUtilPanel() {
+  const { phase } = usePractice();
+
   return (
     <aside className="w-[230px] flex-shrink-0 bg-[var(--ivps-nav)] border-l border-[var(--ivps-border)] flex flex-col overflow-hidden">
       <div className="px-3.5 pt-3.5 pb-2 flex-shrink-0">
@@ -354,7 +356,7 @@ export function RightUtilPanel() {
       <div className="flex-1 overflow-y-auto px-3.5 pb-3.5">
         <Metronome />
         <Tuner />
-        <GrapeChecker />
+        {phase !== 'before' && <GrapeChecker />}
       </div>
     </aside>
   );

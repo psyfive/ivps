@@ -10,7 +10,7 @@
 //   Skill Cart 아이템(Draggable) → 구간 리스트 행(Droppable)으로 드랍
 //   → mapSkillToSegment(segmentId, skillId) 호출
 // ─────────────────────────────────────────────────────────────────────────────
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -354,6 +354,52 @@ function SkillDetail({ skill }) {
 // ════════════════════════════════════════════════════════════════════════════
 // 5. CognitiveBriefing — 메인 컴포넌트
 // ════════════════════════════════════════════════════════════════════════════
+function BeforeSkillDetail({ skill }) {
+  const meta = getCategoryMeta(skill.id);
+
+  return (
+    <div className="flex-1 overflow-y-auto px-5 pb-5">
+      <div className="pt-5 pb-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="font-mono text-[10.5px] mb-1 flex items-center gap-1.5" style={{ color: meta.color }}>
+              <span className="inline-block px-1.5 py-0.5 rounded text-[10px]"
+                style={{ background: meta.color + '18', color: meta.color }}>{skill.id}</span>
+              <span className="text-[var(--ivps-text3)]">{skill.groupId}</span>
+            </div>
+            <h2 className="font-serif text-[20px] font-bold text-[var(--ivps-text1)] leading-tight">{skill.name}</h2>
+          </div>
+          <div className="flex-shrink-0">
+            <div className="font-mono text-[10px] text-[var(--ivps-text3)] mb-1">Lv.{skill.level}</div>
+            <div className="h-1 w-14 bg-[var(--ivps-surface2)] rounded-full overflow-hidden">
+              <div className="h-full rounded-full" style={{ width: Math.round((skill.xp / skill.maxXp) * 100) + '%', background: meta.color }} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <BriefingCard label="스킬 정의" dotColor="#d4a843">
+        <p className="text-[13.5px] text-[var(--ivps-text1)] leading-[1.75]">{skill.corePrinciple}</p>
+      </BriefingCard>
+
+      {skill.before && (
+        <BriefingCard label="Before 연습 가이드" dotColor="#7ea890">
+          <p className="text-[13px] text-[#8a96a8] leading-[1.8]">{skill.before}</p>
+        </BriefingCard>
+      )}
+
+      {skill.beforeHtml && (
+        <BriefingCard label="Before Detail" dotColor="#7ea890">
+          <div
+            className="text-[13px] text-[var(--ivps-text1)] leading-[1.75] [&_strong]:text-[var(--ivps-moss)] [&_ul]:list-disc [&_ul]:pl-5 [&_li]:mb-1.5 [&_p]:mb-2"
+            dangerouslySetInnerHTML={{ __html: skill.beforeHtml }}
+          />
+        </BriefingCard>
+      )}
+    </div>
+  );
+}
+
 export function CognitiveBriefing() {
   const {
     activeScore,
@@ -374,6 +420,18 @@ export function CognitiveBriefing() {
 
   const segments   = activeScore?.segments ?? [];
   const cartSkills = skillCart.map(id => getSkillById(id)).filter(Boolean);
+  const selectedSegment = segments.find(seg => seg.id === selectedSegmentId) ?? null;
+  const selectedSegmentSkills = useMemo(() => (
+    selectedSegment?.mappedSkills?.map(id => getSkillById(id)).filter(Boolean) ?? []
+  ), [selectedSegment]);
+  const [detailSkillId, setDetailSkillId] = useState(null);
+  const detailSkill = selectedSegmentSkills.find(skill => skill.id === detailSkillId)
+    ?? selectedSegmentSkills[0]
+    ?? null;
+
+  useEffect(() => {
+    setDetailSkillId(selectedSegmentSkills[0]?.id ?? null);
+  }, [selectedSegmentId, selectedSegmentSkills]);
 
   // dnd-kit 센서 (Pointer + Touch 통합)
   const sensors = useSensors(
@@ -409,7 +467,7 @@ export function CognitiveBriefing() {
             { id: 'setup',  label: '준비', sub: '구간·스킬' },
             { id: 'detail', label: '상세', sub: '스킬 내용' },
           ].map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)}
+            <button key={t.id} onClick={(e) => { e.stopPropagation(); setTab(t.id); }}
               className={[
                 'pb-2.5 text-left border-b-2 transition-colors',
                 tab === t.id
@@ -549,23 +607,61 @@ export function CognitiveBriefing() {
             TAB: 상세
         ══════════════════ */}
         {tab === 'detail' && (
-          activeSkill ? (
-            <SkillDetail skill={activeSkill} />
-          ) : (
-            <div className="flex flex-col items-center justify-center flex-1 gap-4 px-8 text-center">
-              <div className="text-[38px] opacity-20">🎛</div>
-              <div className="text-[13px] text-[var(--ivps-text3)] leading-relaxed">
-                스킬 라이브러리에서<br />연습할 기술을 선택해주세요.
+          <div className="flex flex-col flex-1 min-h-0" onClick={e => e.stopPropagation()}>
+            {selectedSegment ? (
+              selectedSegmentSkills.length > 0 ? (
+                <>
+                  {selectedSegmentSkills.length > 1 && (
+                    <div className="flex-shrink-0 flex gap-1.5 px-5 pt-4 pb-1 overflow-x-auto">
+                      {selectedSegmentSkills.map(skill => {
+                        const meta = getCategoryMeta(skill.id);
+                        const isActive = detailSkill?.id === skill.id;
+                        return (
+                          <button
+                            key={skill.id}
+                            onClick={() => setDetailSkillId(skill.id)}
+                            className={[
+                              'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] transition-all whitespace-nowrap',
+                              isActive
+                                ? 'bg-[var(--ivps-surface)]'
+                                : 'bg-transparent border-[var(--ivps-border)] text-[var(--ivps-text4)] hover:text-[var(--ivps-text2)]',
+                            ].join(' ')}
+                            style={isActive ? { borderColor: meta.color + '55', color: meta.color } : {}}
+                          >
+                            <span className="font-mono">{skill.id}</span>
+                            <span className="max-w-[90px] truncate">{skill.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {detailSkill && <BeforeSkillDetail skill={detailSkill} />}
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center flex-1 gap-4 px-8 text-center">
+                  <div className="text-[38px] opacity-20">+</div>
+                  <div className="text-[13px] text-[var(--ivps-text3)] leading-relaxed">
+                    선택한 구간에 매핑된 스킬이 없습니다.<br />준비 탭에서 스킬을 이 구간으로 드래그하세요.
+                  </div>
+                </div>
+              )
+            ) : activeSkill ? (
+              <BeforeSkillDetail skill={activeSkill} />
+            ) : (
+              <div className="flex flex-col items-center justify-center flex-1 gap-4 px-8 text-center">
+                <div className="text-[38px] opacity-20">?</div>
+                <div className="text-[13px] text-[var(--ivps-text3)] leading-relaxed">
+                  구간을 선택하면<br />해당 구간의 Before 연습상세를 볼 수 있습니다.
+                </div>
+                <button onClick={() => nav.navigate('library')}
+                  className="px-4 py-2 bg-[rgba(212,168,67,.08)] border border-[rgba(212,168,67,.3)] rounded-lg text-[var(--ivps-gold)] text-[12.5px] hover:bg-[rgba(212,168,67,.14)] transition-colors">
+                  스킬 라이브러리로 가기
+                </button>
               </div>
-              <button onClick={() => nav.navigate('library')}
-                className="px-4 py-2 bg-[rgba(212,168,67,.08)] border border-[rgba(212,168,67,.3)] rounded-lg text-[var(--ivps-gold)] text-[12.5px] hover:bg-[rgba(212,168,67,.14)] transition-colors">
-                스킬 라이브러리 가기
-              </button>
-            </div>
-          )
+            )}
+          </div>
         )}
 
-        {/* ── 하단 CTA ── */}
         <div className="px-5 pb-5 pt-3 flex-shrink-0">
           <button
             onClick={() => { nav.setPhase('during'); ui.setPracticeFullscreen(true); }}
