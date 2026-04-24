@@ -1,4 +1,4 @@
-# IVPS — Intelligent Violin Practice System
+# Opus
 
 바이올린 연주자를 위한 지능형 연습 관리 웹 앱.
 

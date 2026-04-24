@@ -1,11 +1,11 @@
-# CLAUDE.md - IVPS 프로젝트 지침
+# CLAUDE.md - Opus 프로젝트 지침
 
 > Claude Code가 이 저장소에서 코딩 작업을 할 때 참고하는 프로젝트별 규칙입니다.
 > 마지막 점검: 2026-04-24, `ivps-branch2` 기준.
 
 ## 프로젝트 개요
 
-**IVPS (Intelligent Violin Practice System)** 는 바이올린 연주자를 위한 지능형 연습 관리 앱입니다.
+**Opus** 는 바이올린 연주자를 위한 지능형 연습 관리 앱입니다.
 
 - PDF/이미지 악보를 업로드하고, 악보 위에 구간을 지정한다.
 - 지정한 구간에 스킬 Taxonomy(A~D 카테고리)를 매핑한다.

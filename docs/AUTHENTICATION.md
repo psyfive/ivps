@@ -1,6 +1,6 @@
-# IVPS Authentication
+# Opus Authentication
 
-IVPS uses Supabase Auth for social-only login. The app does not implement email/password signup, and the IVPS profile table stores only the minimal display metadata needed by the product shell.
+Opus uses Supabase Auth for social-only login. The app does not implement email/password signup, and the Opus profile table stores only the minimal display metadata needed by the product shell.
 
 ## Providers
 
@@ -14,7 +14,7 @@ IVPS uses Supabase Auth for social-only login. The app does not implement email/
 2. Enable the social providers in Supabase Auth.
 3. Add local and production redirect URLs in Supabase Auth URL configuration:
    - `http://localhost:5173`
-   - Production site origin, for example `https://ivps.example.com`
+   - Production site origin, for example `https://opus.example.com`
 4. Copy `.env.example` to `.env.local` and fill in:
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
@@ -36,7 +36,7 @@ The app does not duplicate email into `public.profiles`. Supabase Auth may still
 ## Security requirements
 
 - Enable Row Level Security on every user-owned table.
-- Use `auth.uid() = user_id` policies for future IVPS tables such as scores, practice sessions, heatmap rows, custom skill cards, and uploaded score metadata.
+- Use `auth.uid() = user_id` policies for future Opus tables such as scores, practice sessions, heatmap rows, custom skill cards, and uploaded score metadata.
 - Keep uploaded score files in private Supabase Storage buckets and read them with signed URLs.
 - Add account deletion before production so a user can delete profile rows, score metadata, storage objects, practice sessions, and custom skill cards.
 

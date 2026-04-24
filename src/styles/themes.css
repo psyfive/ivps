@@ -1,10 +1,10 @@
 /* src/styles/themes.css
  * ─────────────────────────────────────────────────────────────────────────────
- * IVPS 테마 CSS 변수 시스템
+ * Opus 테마 CSS 변수 시스템
  *
  * 사용 방법:
  *   - src/main.jsx 또는 src/index.css 최상단에서 import './styles/themes.css'
- *   - 컴포넌트는 var(--ivps-*) 변수를 직접 사용하거나
+ *   - 컴포넌트는 legacy internal namespace인 var(--ivps-*) 변수를 직접 사용하거나
  *     tailwind.config.js 에 연결된 bg-theme-* 유틸리티 클래스를 사용
  *
  * 모드 전환:

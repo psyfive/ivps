@@ -180,7 +180,7 @@
 
 ### `src/styles/themes.css`
 - **역할**: 다크/라이트 테마 CSS 변수 정의.
-- **주요 변수**: `--ivps-bg`, `--ivps-surface`, `--ivps-nav`, `--ivps-border`, `--ivps-text1~4`, `--ivps-gold`
+- **주요 변수**: legacy internal namespace인 `--ivps-bg`, `--ivps-surface`, `--ivps-nav`, `--ivps-border`, `--ivps-text1~4`, `--ivps-gold`
 - **선택자**: `body.dark` / `body.light`
 
 ### `src/index.css`
