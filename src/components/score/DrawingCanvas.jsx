@@ -442,7 +442,7 @@ export function DrawingCanvas({ currentPageIndex }) {
       <canvas
         ref={canvasRef}
         className="absolute inset-0 w-full h-full"
-        style={{ cursor, touchAction: 'none', pointerEvents: 'auto' }}
+        style={{ cursor, touchAction: 'none', pointerEvents: drawingMode ? 'auto' : 'none' }}
         onPointerDown={onPointerDown}
       />
       {textInput && (
