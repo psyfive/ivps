@@ -166,7 +166,7 @@ export function DifficultyMarker({ segment, segmentActs }) {
 }
 
 function XpLogger({ skills = [], scoreId, segmentId, onHardResult }) {
-  const { xp, nav } = usePractice();
+  const { xp } = usePractice();
   const [logged, setLogged] = useState(false);
   const skillKey = skills.join('|');
 
@@ -214,16 +214,6 @@ function XpLogger({ skills = [], scoreId, segmentId, onHardResult }) {
           </button>
         ))}
       </div>
-      {logged && (
-        <div className="mt-3 text-center">
-          <button
-            onClick={() => nav.setPhase('before')}
-            className="text-[11px] text-[var(--ivps-text3)] hover:text-[var(--ivps-text2)] transition-colors"
-          >
-            {'\uB2E4\uC74C \uC2A4\uD0AC \uC5F0\uC2B5\uD558\uAE30'}
-          </button>
-        </div>
-      )}
     </div>
   );
 }
