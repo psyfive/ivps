@@ -5,7 +5,7 @@
 // 선택된 구간(segment)의 mappedSkills 기반으로 증상/원인/처방 표시 + 체크리스트.
 // XP 결과 기록.
 // ─────────────────────────────────────────────────────────────────────────────
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { usePractice } from '../../context/PracticeContext';
 import { getSkillById, getCategoryMeta } from '../../data/taxonomy';
 import { requestNativeFullscreen } from '../../utils/nativeFullscreen';
@@ -63,9 +63,23 @@ function CheckItem({ text, checked, onToggle }) {
 }
 
 // ── 단일 스킬 진단 패널 ────────────────────────────────────────────────────
-function SkillDiagPanel({ skill, segmentId, checks, onToggleCheck }) {
+function SkillDiagPanel({
+  skill,
+  segmentId,
+  checks,
+  onToggleCheck,
+  skillIndex = 0,
+  skillCount = 1,
+  onPrevSkill,
+  onNextSkill,
+}) {
   const [activeDiagIdx, setActiveDiagIdx] = useState(0);
   const catMeta = getCategoryMeta(skill.id);
+  const showSkillSwitcher = skillCount > 1 && onPrevSkill && onNextSkill;
+
+  useEffect(() => {
+    setActiveDiagIdx(0);
+  }, [skill.id]);
 
   const afterArr = Array.isArray(skill.after) ? skill.after : [skill.after];
   const activeDiag = afterArr[activeDiagIdx] ?? afterArr[0];
@@ -86,12 +100,39 @@ function SkillDiagPanel({ skill, segmentId, checks, onToggleCheck }) {
           >
             {skill.id}
           </span>
-          <span className="font-serif text-[14px] font-semibold text-[var(--ivps-text1)]">
+          <span className="font-serif text-[14px] font-semibold text-[var(--ivps-text1)] truncate min-w-0">
             {skill.name}
           </span>
-          <span className="ml-auto font-mono text-[10px] text-[var(--ivps-plum)]">
-            {checkedCount}/{total}
-          </span>
+          <div className="ml-auto flex items-center gap-2 flex-shrink-0">
+            {showSkillSwitcher && (
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={onPrevSkill}
+                  aria-label="이전 스킬 보기"
+                  title="이전 스킬 보기"
+                  className="w-7 h-7 flex items-center justify-center rounded-md border border-[var(--ivps-border)] text-[13px] font-mono text-[var(--ivps-text3)] hover:text-[var(--ivps-text1)] hover:bg-[var(--ivps-surface2)] transition-colors"
+                >
+                  &lt;
+                </button>
+                <span className="min-w-[32px] text-center font-mono text-[10px] text-[var(--ivps-text4)]">
+                  {skillIndex + 1}/{skillCount}
+                </span>
+                <button
+                  type="button"
+                  onClick={onNextSkill}
+                  aria-label="다음 스킬 보기"
+                  title="다음 스킬 보기"
+                  className="w-7 h-7 flex items-center justify-center rounded-md border border-[var(--ivps-border)] text-[13px] font-mono text-[var(--ivps-text3)] hover:text-[var(--ivps-text1)] hover:bg-[var(--ivps-surface2)] transition-colors"
+                >
+                  &gt;
+                </button>
+              </div>
+            )}
+            <span className="font-mono text-[10px] text-[var(--ivps-plum)]">
+              {checkedCount}/{total}
+            </span>
+          </div>
         </div>
 
         {/* During 체크리스트 */}
@@ -514,6 +555,37 @@ export function DiagnosticContent() {
     segment: segmentActs,
   } = usePractice();
 
+  const mappedSkillIds = selectedSegment?.mappedSkills ?? [];
+  const mappedSkillKey = mappedSkillIds.join('|');
+  const [activeSkillIdx, setActiveSkillIdx] = useState(0);
+
+  useEffect(() => {
+    setActiveSkillIdx(0);
+  }, [selectedSegmentId, mappedSkillKey]);
+
+  const segmentSkills = mappedSkillIds
+    .map(id => getSkillById(id))
+    .filter(Boolean);
+  const skillCount = segmentSkills.length;
+  const safeSkillIdx = skillCount > 0 && activeSkillIdx < skillCount ? activeSkillIdx : 0;
+  const activeSkill = segmentSkills[safeSkillIdx] ?? null;
+
+  const handlePrevSkill = useCallback(() => {
+    setActiveSkillIdx(idx => {
+      if (skillCount <= 0) return 0;
+      const safeIdx = idx < skillCount ? idx : 0;
+      return (safeIdx - 1 + skillCount) % skillCount;
+    });
+  }, [skillCount]);
+
+  const handleNextSkill = useCallback(() => {
+    setActiveSkillIdx(idx => {
+      if (skillCount <= 0) return 0;
+      const safeIdx = idx < skillCount ? idx : 0;
+      return (safeIdx + 1) % skillCount;
+    });
+  }, [skillCount]);
+
   if (!selectedSegment) {
     return (
       <div className="flex flex-col items-center justify-center py-10 gap-3 text-center">
@@ -525,9 +597,6 @@ export function DiagnosticContent() {
     );
   }
 
-  const segmentSkills = (selectedSegment.mappedSkills ?? [])
-    .map(id => getSkillById(id))
-    .filter(Boolean);
   const checks = selectedSegment.checks ?? [];
 
   return (
@@ -537,19 +606,16 @@ export function DiagnosticContent() {
           이 구간에 매핑된 스킬이 없습니다.
         </div>
       ) : (
-        <div className="flex flex-col gap-6">
-          {segmentSkills.map((sk, idx) => (
-            <div key={sk.id}>
-              {idx > 0 && <div className="h-px bg-[var(--ivps-surface2)] mb-6" />}
-              <SkillDiagPanel
-                skill={sk}
-                segmentId={selectedSegment.id}
-                checks={checks}
-                onToggleCheck={segmentActs.toggleSegmentCheck}
-              />
-            </div>
-          ))}
-        </div>
+        <SkillDiagPanel
+          skill={activeSkill}
+          segmentId={selectedSegment.id}
+          checks={checks}
+          onToggleCheck={segmentActs.toggleSegmentCheck}
+          skillIndex={safeSkillIdx}
+          skillCount={skillCount}
+          onPrevSkill={handlePrevSkill}
+          onNextSkill={handleNextSkill}
+        />
       )}
 
       <div className="grid grid-cols-2 gap-2.5 mt-5">
