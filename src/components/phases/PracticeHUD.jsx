@@ -6,6 +6,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { usePractice } from '../../context/PracticeContext';
 import { getSkillById, getCategoryMeta } from '../../data/taxonomy';
+import { requestNativeFullscreen } from '../../utils/nativeFullscreen';
 
 // ── HUD 체크포인트 아이템 ─────────────────────────────────────────────────
 function HudItem({ index, text, isFirst, checked, onToggle }) {
@@ -193,7 +194,7 @@ export function PracticeHUD({ onOpenAfterSheet }) {
   // ── 전체화면 복귀 버튼 ───────────────────────────────────────────────
   const FullscreenBtn = () => (
     <button
-      onClick={() => ui.setPracticeFullscreen(true)}
+      onClick={() => { ui.setPracticeFullscreen(true); requestNativeFullscreen(); }}
       className="mx-5 mt-3 mb-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border text-[11px] font-semibold transition-all flex-shrink-0 bg-[rgba(155,127,200,.07)] border-[rgba(155,127,200,.25)] text-[#9b7fc8] hover:bg-[rgba(155,127,200,.14)]"
     >
       <span className="text-[12px]">⛶</span>

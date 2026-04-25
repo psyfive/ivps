@@ -19,6 +19,7 @@
 import { useCallback, useState, useEffect } from 'react';
 import { usePractice } from '../../context/PracticeContext';
 import { getCategoryMeta } from '../../data/taxonomy';
+import { requestNativeFullscreen, exitNativeFullscreen } from '../../utils/nativeFullscreen';
 import { ScoreViewer } from '../score/ScoreViewer';
 import { CognitiveBriefing } from '../phases/CognitiveBriefing';
 import { PracticeHUD } from '../phases/PracticeHUD';
@@ -126,8 +127,12 @@ export function CockpitView() {
   const segments = activeScore?.segments ?? [];
   const selectedSegment = segments.find(s => s.id === selectedSegmentId) ?? null;
   const selectedSegmentIndex = segments.findIndex(s => s.id === selectedSegmentId);
+  const isPracticeFullscreenDuring = practiceFullscreen && phase === 'during';
 
-  const handleBack = useCallback(() => nav.navigate('library'), [nav]);
+  const handleBack = useCallback(() => {
+    exitNativeFullscreen();
+    nav.navigate('library');
+  }, [nav]);
 
   const [afterSheetOpen, setAfterSheetOpen] = useState(false);
 
@@ -136,9 +141,26 @@ export function CockpitView() {
     if (phase !== 'during') setAfterSheetOpen(false);
   }, [phase]);
 
+  useEffect(() => {
+    if (phase !== 'during') exitNativeFullscreen();
+  }, [phase]);
+
+  const handlePhaseChange = useCallback((nextPhase) => {
+    if (nextPhase === 'during') {
+      ui.setPracticeFullscreen(true);
+      requestNativeFullscreen();
+      nav.setPhase('during');
+      return;
+    }
+
+    exitNativeFullscreen();
+    nav.setPhase(nextPhase);
+  }, [nav, ui]);
+
   // 비전체화면에서 CTA 클릭 시 전체화면 전환 + 시트 열기
   const handleOpenAfterSheet = useCallback(() => {
     ui.setPracticeFullscreen(true);
+    requestNativeFullscreen();
     setAfterSheetOpen(true);
   }, [ui]);
 
@@ -148,14 +170,16 @@ export function CockpitView() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
 
-      <TopBar
-        skill={activeSkill}
-        score={activeScore}
-        phase={phase}
-        bpm={bpm}
-        onBack={handleBack}
-        onPhaseChange={nav.setPhase}
-      />
+      {!isPracticeFullscreenDuring && (
+        <TopBar
+          skill={activeSkill}
+          score={activeScore}
+          phase={phase}
+          bpm={bpm}
+          onBack={handleBack}
+          onPhaseChange={handlePhaseChange}
+        />
+      )}
 
       {/* During phase 전용 — 최상단 HUD 바 */}
       <TopHUD />

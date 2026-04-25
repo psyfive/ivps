@@ -24,6 +24,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { usePractice } from '../../context/PracticeContext';
 import { getCategoryMeta, TAXONOMY, getSkillById } from '../../data/taxonomy';
+import { requestNativeFullscreen } from '../../utils/nativeFullscreen';
 
 // ════════════════════════════════════════════════════════════════════════════
 // 1. Skill Cart Picker — 인라인 검색창
@@ -664,7 +665,7 @@ export function CognitiveBriefing() {
 
         <div className="px-5 pb-5 pt-3 flex-shrink-0">
           <button
-            onClick={() => { nav.setPhase('during'); ui.setPracticeFullscreen(true); }}
+            onClick={() => { ui.setPracticeFullscreen(true); requestNativeFullscreen(); nav.setPhase('during'); }}
             className="w-full py-3 rounded-xl text-[#0d1117] font-semibold text-[13.5px] flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
             style={{ background: 'linear-gradient(135deg,#7ea890,#5a8070)' }}
           >

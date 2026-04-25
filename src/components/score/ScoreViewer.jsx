@@ -12,9 +12,14 @@ import { useRef, useState, useCallback, useEffect } from 'react';
 import { usePractice } from '../../context/PracticeContext';
 import { TAXONOMY } from '../../data/taxonomy';
 import { fileToPageData } from '../../utils/fileToPageData';
+import { requestNativeFullscreen, exitNativeFullscreen } from '../../utils/nativeFullscreen';
+import { fitContainedSize } from '../../utils/scorePageFit';
 import { SegmentCanvas } from './SegmentCanvas';
 import { SegmentHeatmap } from './SegmentHeatmap';
 import { DrawingCanvas } from './DrawingCanvas';
+
+const FULLSCREEN_STAGE_PAD_X = 16;
+const FULLSCREEN_STAGE_PAD_Y = 66;
 
 function UploadZone({ onFile }) {
   const [dragging, setDragging] = useState(false);
@@ -443,14 +448,19 @@ export function ScoreViewer({ phase }) {
     tempSegments,
     xpLog,
     drawingMode,
+    practiceFullscreen,
     score: scoreActs,
     session: sessionActs,
     segment: segmentActs,
     nav,
+    ui,
   } = usePractice();
 
   const [loading, setLoading] = useState({ active: false, current: 0, total: 0 });
   const [globalDragOver, setGlobalDragOver] = useState(false);
+  const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
+  const [pageNaturalSize, setPageNaturalSize] = useState({ width: 0, height: 0 });
+  const viewportRef = useRef(null);
   const fileInputRef = useRef(null);
 
   // ── 파일 처리 ───────────────────────────────────────────────────────────
@@ -488,6 +498,25 @@ export function ScoreViewer({ phase }) {
     };
   }, [handleFile]);
 
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+
+    const updateSize = () => {
+      const rect = el.getBoundingClientRect();
+      setViewportSize({ width: rect.width, height: rect.height });
+    };
+
+    updateSize();
+    const ro = new ResizeObserver(updateSize);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    setPageNaturalSize({ width: 0, height: 0 });
+  }, [activeScore?.dataUrl]);
+
   const hasScore   = !!activeScore?.dataUrl;
   const sessions   = activeScore?.sessions ?? [];
   const segments   = activeScore?.segments ?? [];
@@ -497,6 +526,32 @@ export function ScoreViewer({ phase }) {
   const isBefore = phase === 'before';
   const isDuring = phase === 'during';
   const isAfter  = phase === 'after';
+  const isFullscreenDuring = isDuring && practiceFullscreen;
+  const fitBox = {
+    width: Math.max(0, viewportSize.width - FULLSCREEN_STAGE_PAD_X),
+    height: Math.max(0, viewportSize.height - FULLSCREEN_STAGE_PAD_Y),
+  };
+  const fullscreenFit = fitContainedSize(
+    pageNaturalSize.width,
+    pageNaturalSize.height,
+    fitBox.width,
+    fitBox.height,
+  );
+  const hasMeasuredPage = fullscreenFit.width > 0;
+  const fullscreenFrameStyle = hasMeasuredPage
+    ? { width: `${fullscreenFit.width}px`, height: `${fullscreenFit.height}px` }
+    : { width: 'fit-content', maxWidth: '100%' };
+
+  const enterDuringFullscreen = useCallback(() => {
+    ui.setPracticeFullscreen(true);
+    requestNativeFullscreen();
+    nav.setPhase('during');
+  }, [nav, ui]);
+
+  const leaveDuring = useCallback((nextPhase) => {
+    exitNativeFullscreen();
+    nav.setPhase(nextPhase);
+  }, [nav]);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -511,7 +566,13 @@ export function ScoreViewer({ phase }) {
       />
 
       {/* 메인 뷰 */}
-      <div className="flex-1 relative overflow-auto bg-[#1a1f2e]">
+      <div
+        ref={viewportRef}
+        className={[
+          'flex-1 relative bg-[#1a1f2e]',
+          isFullscreenDuring ? 'overflow-hidden' : 'overflow-auto',
+        ].join(' ')}
+      >
         {loading.active && (
           <LoadingOverlay current={loading.current} total={loading.total} />
         )}
@@ -530,14 +591,37 @@ export function ScoreViewer({ phase }) {
 
         {/* ── 악보 있음 ── */}
         {hasScore && (
-          <div className="relative min-h-full flex items-start justify-center">
+          <div
+            className={[
+              'relative flex justify-center',
+              isFullscreenDuring
+                ? 'h-full w-full items-center overflow-hidden px-2 pt-2 pb-[58px]'
+                : 'min-h-full items-start',
+            ].join(' ')}
+          >
+            <div
+              className={[
+                'relative flex-shrink-0',
+                isFullscreenDuring ? '' : 'max-w-full',
+              ].join(' ')}
+              style={isFullscreenDuring ? fullscreenFrameStyle : { width: 'fit-content', maxWidth: '100%' }}
+            >
             {/* 악보 이미지 */}
             <img
               src={activeScore.dataUrl}
               alt={activeScore.name}
-              className="max-w-full h-auto select-none block"
+                className={[
+                  'select-none block',
+                  isFullscreenDuring && hasMeasuredPage ? 'w-full h-full object-contain' : 'max-w-full h-auto',
+                ].join(' ')}
               draggable={false}
               style={{ userSelect: 'none', WebkitUserDrag: 'none' }}
+              onLoad={(e) => {
+                setPageNaturalSize({
+                  width: e.currentTarget.naturalWidth,
+                  height: e.currentTarget.naturalHeight,
+                });
+              }}
             />
 
             {/* Before 단계: 시각적 구간 캔버스 오버레이 */}
@@ -689,12 +773,13 @@ export function ScoreViewer({ phase }) {
             {activeScore.pageData?.length > 1 && (
               <PdfPager score={activeScore} onChangePage={scoreActs.changePage} />
             )}
+            </div>
           </div>
         )}
       </div>
 
       {/* 하단 힌트 푸터 */}
-      {hasScore && (
+      {hasScore && !isFullscreenDuring && (
         <div className={[
           'h-11 flex items-center px-4 gap-3 flex-shrink-0',
           'bg-[var(--ivps-nav)] border-t border-[var(--ivps-border)]',
@@ -703,7 +788,7 @@ export function ScoreViewer({ phase }) {
           {isDuring && (
             <>
               <button
-                onClick={() => nav.setPhase('before')}
+                onClick={() => leaveDuring('before')}
                 className="text-[11.5px] text-[var(--ivps-text3)] hover:text-[var(--ivps-text2)] transition-colors flex items-center gap-1"
               >
                 ← Before
@@ -718,7 +803,7 @@ export function ScoreViewer({ phase }) {
                 </span>
               </div>
               <button
-                onClick={() => nav.setPhase('after')}
+                onClick={() => leaveDuring('after')}
                 className="px-3 py-1.5 bg-gradient-to-r from-[#d4a843] to-[#b8891f] rounded-md text-[#0d1117] text-[11.5px] font-semibold"
               >
                 완료 → After
@@ -730,7 +815,7 @@ export function ScoreViewer({ phase }) {
           {isAfter && (
             <>
               <button
-                onClick={() => nav.setPhase('during')}
+                onClick={enterDuringFullscreen}
                 className="text-[11.5px] text-[var(--ivps-text3)] hover:text-[var(--ivps-text2)] transition-colors"
               >
                 ← 다시 연습

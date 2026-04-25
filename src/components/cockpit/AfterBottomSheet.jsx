@@ -6,6 +6,7 @@
 import { useRef } from 'react';
 import { DiagnosticContent } from '../phases/DiagnosticInterface';
 import { usePractice } from '../../context/PracticeContext';
+import { exitNativeFullscreen } from '../../utils/nativeFullscreen';
 
 export function AfterBottomSheet({ isOpen, onClose }) {
   const { nav, practiceSessions, isPatron } = usePractice();
@@ -19,6 +20,7 @@ export function AfterBottomSheet({ isOpen, onClose }) {
       if (!ok) return;
     }
     onClose();
+    exitNativeFullscreen();
     nav.enterLastAfter();
   };
   const sheetRef = useRef(null);

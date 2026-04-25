@@ -334,3 +334,13 @@ describe('Drawing strokes', () => {
     expect(next.scores[0].drawings[0]).not.toBe(textStroke);
   });
 });
+
+describe('Practice fullscreen phase behavior', () => {
+  it('SET_PHASE: during turns practiceFullscreen on and leaving turns it off', () => {
+    const during = reducer(INITIAL_STATE, { type: ACTIONS.SET_PHASE, phase: 'during' });
+    expect(during.practiceFullscreen).toBe(true);
+
+    const before = reducer(during, { type: ACTIONS.SET_PHASE, phase: 'before' });
+    expect(before.practiceFullscreen).toBe(false);
+  });
+});

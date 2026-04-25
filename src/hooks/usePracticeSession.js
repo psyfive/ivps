@@ -211,7 +211,7 @@ export function reducer(state, action) {
         ...state,
         phase: action.phase,
         activeSessionId: null,
-        practiceFullscreen: action.phase === 'during' ? state.practiceFullscreen : false,
+        practiceFullscreen: action.phase === 'during',
         // During 진입 시 시작 시각 기록 (연습시간 계산용)
         duringStartTime: action.phase === 'during' ? Date.now() : state.duringStartTime,
       };

@@ -7,6 +7,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePractice } from '../../context/PracticeContext';
 import { useMetronome } from '../../hooks/useMetronome';
+import { exitNativeFullscreen } from '../../utils/nativeFullscreen';
 
 // ── 경과 시간 포맷 ─────────────────────────────────────────────────────────
 function fmtElapsed(sec) {
@@ -98,6 +99,7 @@ export function DuringMiniControls() {
       );
       if (!ok) return;
     }
+    exitNativeFullscreen();
     nav.enterLastAfter();
   };
 
@@ -314,7 +316,7 @@ export function DuringMiniControls() {
         }}
       >
         {/* ── 좌: Before로 돌아가기 ── */}
-        <MiniBtn onClick={() => nav.setPhase('before')} title="Before 단계로">
+        <MiniBtn onClick={() => { exitNativeFullscreen(); nav.setPhase('before'); }} title="Before 단계로">
           ↩ Before
         </MiniBtn>
 

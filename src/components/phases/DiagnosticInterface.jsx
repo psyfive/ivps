@@ -8,6 +8,7 @@
 import { useState, useCallback } from 'react';
 import { usePractice } from '../../context/PracticeContext';
 import { getSkillById, getCategoryMeta } from '../../data/taxonomy';
+import { requestNativeFullscreen } from '../../utils/nativeFullscreen';
 
 // ── 진단 셀 ────────────────────────────────────────────────────────────────
 function DiagCell({ label, color, value }) {
@@ -281,6 +282,7 @@ export function DiagnosticInterface() {
     selectedSegment,
     segment: segmentActs,
     nav,
+    ui,
   } = usePractice();
 
   const segments = activeScore?.segments ?? [];
@@ -291,6 +293,11 @@ export function DiagnosticInterface() {
     .filter(Boolean);
 
   const hasContent = selectedSegment || activeSkill;
+  const returnToDuring = useCallback(() => {
+    ui.setPracticeFullscreen(true);
+    requestNativeFullscreen();
+    nav.setPhase('during');
+  }, [nav, ui]);
 
   if (!hasContent) {
     return (
@@ -308,7 +315,7 @@ export function DiagnosticInterface() {
           )}
         </div>
         <button
-          onClick={() => nav.setPhase('during')}
+          onClick={returnToDuring}
           className="px-4 py-2 bg-[var(--ivps-surface2)] border border-[var(--ivps-border2)] rounded-lg text-[var(--ivps-text2)] text-[12px] hover:bg-[#222b3d] transition-colors"
         >
           ← During으로 돌아가기
@@ -330,7 +337,7 @@ export function DiagnosticInterface() {
               ✓ 자가 평가 · {segmentIndex + 1}구간
             </div>
             <button
-              onClick={() => nav.setPhase('during')}
+              onClick={returnToDuring}
               className="text-[10px] text-[var(--ivps-text3)] hover:text-[var(--ivps-text2)] transition-colors"
             >
               ← 다시 연습
