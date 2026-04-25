@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { usePractice } from '../../context/PracticeContext';
 import { getSkillById, getCategoryMeta } from '../../data/taxonomy';
 import { DifficultyMarker } from '../phases/DiagnosticInterface';
+import { requestNativeFullscreen } from '../../utils/nativeFullscreen';
 
 // ── DiagCell ─────────────────────────────────────────────────────────────────
 function DiagCell({ label, color, value }) {
@@ -191,6 +192,10 @@ export function LastAfterPhase() {
 
   const goPrev = useCallback(() => { if (hasPrev) nav.setReviewIndex(safeIdx - 1); }, [hasPrev, safeIdx, nav]);
   const goNext = useCallback(() => { if (hasNext) nav.setReviewIndex(safeIdx + 1); }, [hasNext, safeIdx, nav]);
+  const returnToDuring = useCallback(() => {
+    nav.setPhase('during');
+    requestNativeFullscreen();
+  }, [nav]);
 
   // 키보드 내비게이션
   useEffect(() => {
@@ -220,6 +225,12 @@ export function LastAfterPhase() {
           className="text-[var(--ivps-text3)] hover:text-[var(--ivps-text2)] text-[12px] flex items-center gap-1 px-2 py-1 rounded transition-colors flex-shrink-0"
         >
           ‹ 대시보드
+        </button>
+        <button
+          onClick={returnToDuring}
+          className="text-[#d4a843] bg-[rgba(212,168,67,.08)] border border-[rgba(212,168,67,.25)] hover:bg-[rgba(212,168,67,.14)] text-[12px] flex items-center gap-1 px-2.5 py-1 rounded transition-colors flex-shrink-0"
+        >
+          {'During\uC73C\uB85C \uB3CC\uC544\uAC00\uAE30'}
         </button>
         <div className="w-px h-3.5 bg-[var(--ivps-surface2)] flex-shrink-0" />
         <span className="font-semibold text-[14px] text-[var(--ivps-text1)] truncate flex-1">
@@ -399,6 +410,19 @@ export function LastAfterPhase() {
                 ← 이전 구간
               </button>
 
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={returnToDuring}
+                  className="px-4 py-2.5 rounded-lg border text-[12px] font-medium transition-all"
+                  style={{
+                    borderColor: 'rgba(212,168,67,.3)',
+                    color: '#d4a843',
+                    background: 'rgba(212,168,67,.08)',
+                  }}
+                >
+                  {'During\uC73C\uB85C \uB3CC\uC544\uAC00\uAE30'}
+                </button>
+
               <button
                 onClick={nav.exitLastAfter}
                 className="px-4 py-2.5 rounded-lg border text-[12px] font-medium transition-all"
@@ -410,6 +434,7 @@ export function LastAfterPhase() {
               >
                 대시보드로 →
               </button>
+              </div>
 
               <button
                 onClick={goNext}
