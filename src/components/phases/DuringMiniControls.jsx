@@ -107,7 +107,7 @@ export function DuringMiniControls() {
   const selIdx     = segments.findIndex(s => s.id === selectedSegmentId);
   const selSegment = selIdx >= 0 ? segments[selIdx] : null;
   const hasPrev    = selIdx > 0;
-  const hasNext    = selIdx < segments.length - 1 && selIdx !== -1;
+  const hasNext    = (selIdx === -1 && segments.length > 0) || (selIdx < segments.length - 1 && selIdx !== -1);
   const targetReps = selSegment?.targetReps ?? null;
   const effectiveBpm = selSegment?.targetBpm ?? bpm;
 
@@ -239,7 +239,7 @@ export function DuringMiniControls() {
 
   const goNext = useCallback(() => {
     if (!hasNext) return;
-    const target = segments[selIdx + 1];
+    const target = segments[selIdx === -1 ? 0 : selIdx + 1];
     segmentActs.selectSegment(target.id);
     const targetPage = getSegmentMinPage(target);
     if (targetPage !== activeScore?.currentPageIndex) scoreActs.setPage(targetPage);
