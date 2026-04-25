@@ -350,9 +350,17 @@ export function LeftNav() {
           <InstrumentBadge instrument={currentInstrument} />
         </button>
         <div>
-          <div className="font-serif text-[15px] font-bold text-[var(--ivps-text1)] tracking-wide">
+          <button
+            type="button"
+            onClick={() => {
+              closeAll();
+              nav.navigate('dashboard');
+            }}
+            className="font-serif text-[15px] font-bold text-[var(--ivps-text1)] tracking-wide hover:text-[var(--ivps-gold)] transition-colors"
+            title="메인화면으로 이동"
+          >
             Opus
-          </div>
+          </button>
         </div>
       </div>
 
