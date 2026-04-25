@@ -255,9 +255,14 @@ export function DifficultyMarker({ segment, segmentActs }) {
 }
 
 // ── XP 결과 기록 ──────────────────────────────────────────────────────────
-function XpLogger({ skills, scoreId, segmentId, onHardResult }) {
+function XpLogger({ skills = [], scoreId, segmentId, onHardResult }) {
   const { xp, nav } = usePractice();
   const [logged, setLogged] = useState(false);
+  const skillKey = skills.join('|');
+
+  useEffect(() => {
+    setLogged(false);
+  }, [skillKey, scoreId, segmentId]);
 
   const handleLog = useCallback((result) => {
     skills.forEach(skillId => xp.logXp(skillId, result, scoreId, segmentId));
@@ -569,6 +574,7 @@ export function DiagnosticContent() {
   const skillCount = segmentSkills.length;
   const safeSkillIdx = skillCount > 0 && activeSkillIdx < skillCount ? activeSkillIdx : 0;
   const activeSkill = segmentSkills[safeSkillIdx] ?? null;
+  const xpTargetSkillIds = activeSkill ? [activeSkill.id] : [];
 
   const handlePrevSkill = useCallback(() => {
     setActiveSkillIdx(idx => {
@@ -633,7 +639,7 @@ export function DiagnosticContent() {
       {segmentSkills.length > 0 && (
         <div className="mt-4 flex flex-col gap-3">
           <XpLogger
-            skills={selectedSegment.mappedSkills}
+            skills={xpTargetSkillIds}
             scoreId={activeScore?.id ?? null}
             segmentId={selectedSegmentId}
             onHardResult={() => segmentActs.setSegmentDifficulty(selectedSegment.id, 'hard')}
