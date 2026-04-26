@@ -68,6 +68,195 @@ function pickInterleavedSuggestion(segments, currentId) {
   return weighted[Math.floor(Math.random() * weighted.length)] ?? candidates[0] ?? null;
 }
 
+function getRadialAttempt(point, menuEl) {
+  if (!point || !menuEl) return null;
+  const rect = menuEl.getBoundingClientRect();
+  const inset = 12;
+  const withinX = point.x >= rect.left - inset && point.x <= rect.right + inset;
+  const withinY = point.y >= rect.top - inset && point.y <= rect.bottom + inset;
+  if (!withinX || !withinY) return null;
+  return point.x < rect.left + rect.width / 2 ? 'success' : 'shaky';
+}
+
+function GrapeAttemptRadial({ disabled, streak, completedAt, bpmIncrement, onSuccess, onShaky }) {
+  const [open, setOpen] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const [hoverAction, setHoverAction] = useState(null);
+  const [toast, setToast] = useState('');
+  const menuRef = useRef(null);
+  const movedRef = useRef(false);
+  const startPointRef = useRef(null);
+  const shownStreak = Math.min(3, Math.max(0, streak ?? 0));
+  const isComplete = shownStreak >= 3;
+  const label = shownStreak > 0 ? `🍇 ${shownStreak}/3` : '🍇';
+
+  useEffect(() => {
+    if (!completedAt) return undefined;
+    setToast(bpmIncrement > 0 ? `충분합니다 · BPM +${bpmIncrement}` : '충분합니다');
+    const timer = window.setTimeout(() => setToast(''), 1700);
+    return () => window.clearTimeout(timer);
+  }, [completedAt, bpmIncrement]);
+
+  const commit = useCallback((action) => {
+    if (disabled) return;
+    if (action === 'success') onSuccess();
+    if (action === 'shaky') onShaky();
+    setOpen(false);
+    setDragging(false);
+    setHoverAction(null);
+  }, [disabled, onSuccess, onShaky]);
+
+  const updateHover = useCallback((event) => {
+    const point = { x: event.clientX, y: event.clientY };
+    if (startPointRef.current) {
+      const dx = point.x - startPointRef.current.x;
+      const dy = point.y - startPointRef.current.y;
+      if (Math.hypot(dx, dy) > 8) movedRef.current = true;
+    }
+    setHoverAction(getRadialAttempt(point, menuRef.current));
+  }, []);
+
+  const onPointerDown = useCallback((event) => {
+    if (disabled) return;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    startPointRef.current = { x: event.clientX, y: event.clientY };
+    movedRef.current = false;
+    setOpen(true);
+    setDragging(true);
+    setHoverAction(null);
+  }, [disabled]);
+
+  const onPointerMove = useCallback((event) => {
+    if (!open || !dragging) return;
+    updateHover(event);
+  }, [dragging, open, updateHover]);
+
+  const onPointerUp = useCallback((event) => {
+    if (!open) return;
+    const action = getRadialAttempt({ x: event.clientX, y: event.clientY }, menuRef.current);
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    if (action) {
+      commit(action);
+      return;
+    }
+    if (movedRef.current) {
+      setOpen(false);
+    }
+    setDragging(false);
+    setHoverAction(null);
+  }, [commit, open]);
+
+  const levelStyle = [
+    {
+      background: 'linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.035))',
+      borderColor: 'rgba(255,255,255,.16)',
+      color: 'rgba(255,255,255,.76)',
+      boxShadow: 'inset 0 1px 0 rgba(255,255,255,.12)',
+    },
+    {
+      background: 'linear-gradient(150deg, rgba(126,168,144,.22), rgba(60,110,96,.16))',
+      borderColor: 'rgba(126,168,144,.42)',
+      color: '#b8dcc8',
+      boxShadow: '0 8px 22px rgba(126,168,144,.08), inset 0 1px 0 rgba(255,255,255,.16)',
+    },
+    {
+      background: 'linear-gradient(145deg, rgba(126,168,144,.30), rgba(212,168,67,.16))',
+      borderColor: 'rgba(212,168,67,.42)',
+      color: '#d7e6c9',
+      boxShadow: '0 10px 26px rgba(126,168,144,.12), inset 0 1px 0 rgba(255,255,255,.2)',
+    },
+    {
+      background: 'linear-gradient(145deg, rgba(126,168,144,.42), rgba(212,168,67,.34))',
+      borderColor: 'rgba(220,190,104,.72)',
+      color: '#f4e7b6',
+      boxShadow: '0 12px 30px rgba(212,168,67,.16), 0 0 0 1px rgba(126,168,144,.18), inset 0 1px 0 rgba(255,255,255,.24)',
+    },
+  ][shownStreak];
+
+  return (
+    <div className="relative">
+      {toast && (
+        <div
+          className="absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 z-[60] whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] font-semibold"
+          style={{
+            background: 'rgba(18,22,30,.86)',
+            border: '1px solid rgba(212,168,67,.34)',
+            color: '#f4e7b6',
+            boxShadow: '0 12px 30px rgba(0,0,0,.22)',
+            backdropFilter: 'blur(14px)',
+          }}
+        >
+          {toast}
+        </div>
+      )}
+
+      {open && (
+        <div
+          ref={menuRef}
+          className="absolute bottom-[calc(100%+12px)] left-1/2 z-50 flex w-[188px] -translate-x-1/2 items-end justify-center gap-2 rounded-[22px] px-2.5 py-2.5"
+          style={{
+            background: 'rgba(18,22,30,.72)',
+            border: '1px solid rgba(255,255,255,.12)',
+            boxShadow: '0 18px 42px rgba(0,0,0,.32)',
+            backdropFilter: 'blur(18px) saturate(1.25)',
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => commit('success')}
+            onPointerEnter={() => setHoverAction('success')}
+            className="h-16 flex-1 rounded-l-[28px] rounded-r-[14px] border text-[12px] font-bold transition-all"
+            style={{
+              transform: hoverAction === 'success' ? 'translateY(-4px) scale(1.04)' : 'rotate(-7deg)',
+              transformOrigin: 'bottom right',
+              background: hoverAction === 'success' ? 'rgba(126,168,144,.30)' : 'rgba(126,168,144,.16)',
+              borderColor: hoverAction === 'success' ? 'rgba(126,168,144,.62)' : 'rgba(126,168,144,.28)',
+              color: '#c8ead6',
+              boxShadow: hoverAction === 'success' ? '0 10px 22px rgba(126,168,144,.16)' : 'none',
+            }}
+          >
+            성공
+          </button>
+          <button
+            type="button"
+            onClick={() => commit('shaky')}
+            onPointerEnter={() => setHoverAction('shaky')}
+            className="h-16 flex-1 rounded-l-[14px] rounded-r-[28px] border text-[12px] font-bold transition-all"
+            style={{
+              transform: hoverAction === 'shaky' ? 'translateY(-4px) scale(1.04)' : 'rotate(7deg)',
+              transformOrigin: 'bottom left',
+              background: hoverAction === 'shaky' ? 'rgba(224,112,112,.24)' : 'rgba(224,112,112,.12)',
+              borderColor: hoverAction === 'shaky' ? 'rgba(224,112,112,.52)' : 'rgba(224,112,112,.24)',
+              color: '#f0b3b3',
+              boxShadow: hoverAction === 'shaky' ? '0 10px 22px rgba(224,112,112,.12)' : 'none',
+            }}
+          >
+            흔들림
+          </button>
+        </div>
+      )}
+
+      <button
+        type="button"
+        disabled={disabled}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        title="포도송이를 길게 누른 뒤 성공 또는 흔들림으로 드래그"
+        className="flex h-[34px] min-w-[48px] items-center justify-center rounded-[11px] border px-3 text-[12px] font-bold transition-all select-none"
+        style={{
+          ...levelStyle,
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          opacity: disabled ? 0.42 : 1,
+          scale: open ? '1.03' : '1',
+        }}
+      >
+        <span className={isComplete ? 'tracking-[.01em]' : ''}>{label}</span>
+      </button>
+    </div>
+  );
+}
+
 // ── Ghost Train HUD 콘텐츠 ────────────────────────────────────────────────
 // showBeats=true 이면 박자 도트를 함께 표시 (countIn/break 전용)
 function ghostHudContent(ghostPhase) {
@@ -130,10 +319,11 @@ export function DuringMiniControls() {
   const hasPrev    = !isInterleaved && selIdx > 0;
   const orderedHasNext = (selIdx === -1 && segments.length > 0) || (selIdx < segments.length - 1 && selIdx !== -1);
   const hasNext    = isInterleaved ? segments.length > 1 || (selIdx === -1 && segments.length > 0) : orderedHasNext;
-  const targetReps = selSegment?.targetReps ?? null;
   const effectiveBpm = selSegment?.targetBpm ?? bpm;
   const practiceStats = getPracticeStats(selSegment);
-  const ruleOfThreeDone = practiceStats.successStreak >= 3;
+  const wholeScoreStreak = Math.min(3, grapeFilled);
+  const grapeStreak = selectedSegmentId ? practiceStats.successStreak : wholeScoreStreak;
+  const grapeCompletedAt = selectedSegmentId ? practiceStats.completedTodayAt : null;
 
   const [interleaveSuggestionId, setInterleaveSuggestionId] = useState(null);
   const interleaveSuggestion = segments.find(seg => seg.id === interleaveSuggestionId) ?? null;
@@ -285,19 +475,17 @@ export function DuringMiniControls() {
   }, [hasNext, isInterleaved, interleaveSuggestion, selectedSegmentId, segments, selIdx, segmentActs, scoreActs, activeScore]);
 
   const recordSuccess = useCallback(() => {
-    if (!selectedSegmentId) return;
+    if (!selectedSegmentId) {
+      if (grapeFilled < grapeTotal) grape.toggleGrape(grapeFilled);
+      return;
+    }
     segmentActs.recordAttempt(selectedSegmentId, 'success');
-  }, [selectedSegmentId, segmentActs]);
+  }, [grape, grapeFilled, grapeTotal, selectedSegmentId, segmentActs]);
 
   const recordShaky = useCallback(() => {
     if (!selectedSegmentId) return;
     segmentActs.recordAttempt(selectedSegmentId, 'shaky');
   }, [selectedSegmentId, segmentActs]);
-
-  const resetRuleTracker = useCallback(() => {
-    grape.resetGrapes();
-    if (selectedSegmentId) segmentActs.resetPracticeStats(selectedSegmentId);
-  }, [grape, selectedSegmentId, segmentActs]);
 
   // ── Ghost Train HUD ──────────────────────────────────────────────
   const hudContent = ghostHudContent(ghostPhase);
@@ -704,56 +892,14 @@ export function DuringMiniControls() {
 
           {/* Rule of Three + 필기 모드 */}
           <div className="flex items-center gap-1.5">
-            <button
-              onClick={recordSuccess}
-              disabled={!selectedSegmentId}
-              title="이번 패스 성공"
-              className="flex items-center gap-1 px-2.5 h-[34px] rounded-lg border font-mono text-[11px] font-bold transition-colors"
-              style={{
-                background: 'rgba(126,168,144,.13)',
-                borderColor: 'rgba(126,168,144,.35)',
-                color: '#7ea890',
-                cursor: selectedSegmentId ? 'pointer' : 'not-allowed',
-              }}
-            >
-              ✓ 성공
-            </button>
-            <button
-              onClick={recordShaky}
-              disabled={!selectedSegmentId}
-              title="흔들림: 연속 성공 리셋"
-              className="flex items-center gap-1 px-2.5 h-[34px] rounded-lg border font-mono text-[11px] font-bold transition-colors"
-              style={{
-                background: 'rgba(224,112,112,.1)',
-                borderColor: 'rgba(224,112,112,.28)',
-                color: '#e07070',
-                cursor: selectedSegmentId ? 'pointer' : 'not-allowed',
-              }}
-            >
-              흔들림
-            </button>
-            <div
-              className="flex items-center gap-1 px-2.5 h-[34px] rounded-lg border font-mono text-[10.5px]"
-              title="Rule of Three 진행"
-              style={{
-                background: ruleOfThreeDone ? 'rgba(126,168,144,.12)' : 'rgba(155,127,200,.07)',
-                borderColor: ruleOfThreeDone ? 'rgba(126,168,144,.35)' : 'rgba(155,127,200,.2)',
-                color: ruleOfThreeDone ? '#7ea890' : '#9b7fc8',
-              }}
-            >
-              <span>{Math.min(3, practiceStats.successStreak)}/3</span>
-              <span style={{ opacity: 0.45 }}>·</span>
-              <span>{grapeFilled}/{grapeTotal}</span>
-              {targetReps && (
-                <span style={{ opacity: 0.4, fontSize: 9 }}> (목표 {targetReps})</span>
-              )}
-              {ruleOfThreeDone && (
-                <span style={{ color: '#d4a843', marginLeft: 2 }}>
-                  ♩+{grapeBpmIncrement}
-                </span>
-              )}
-            </div>
-            <MiniBtn onClick={resetRuleTracker} title="Rule of Three 초기화">↺</MiniBtn>
+            <GrapeAttemptRadial
+              disabled={!activeScore}
+              streak={grapeStreak}
+              completedAt={grapeCompletedAt}
+              bpmIncrement={grapeBpmIncrement}
+              onSuccess={recordSuccess}
+              onShaky={recordShaky}
+            />
 
             {/* 필기 모드 버튼 */}
             <div className="relative">

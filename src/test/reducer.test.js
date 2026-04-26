@@ -266,6 +266,23 @@ describe('포도 체크', () => {
   });
 });
 
+describe('시각적 구간 추가', () => {
+  it('START_ADD_TO_SEGMENT: 선택 구간에 박스 추가 모드로 진입한다', () => {
+    const state = {
+      ...INITIAL_STATE,
+      selectedSegmentId: 'seg-1',
+      tempSegments: [{ id: 'tmp-old', coordinates: { pageIndex: 0, x: 0, y: 0, width: 0.1, height: 0.1 } }],
+    };
+
+    const next = reducer(state, { type: ACTIONS.START_ADD_TO_SEGMENT, segmentId: 'seg-1' });
+
+    expect(next.isSelectingSegment).toBe(true);
+    expect(next.addingToSegmentId).toBe('seg-1');
+    expect(next.selectedSegmentId).toBe('seg-1');
+    expect(next.tempSegments).toEqual([]);
+  });
+});
+
 describe('Rule of Three 안정성 트래커', () => {
   it('RECORD_SEGMENT_ATTEMPT: 성공 3회 시 streak와 목표 BPM을 올린다', () => {
     const segment = makeSegment({ id: 'seg-1' });

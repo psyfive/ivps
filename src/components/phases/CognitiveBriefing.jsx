@@ -10,7 +10,7 @@
 //   Skill Cart 아이템(Draggable) → 구간 리스트 행(Droppable)으로 드랍
 //   → mapSkillToSegment(segmentId, skillId) 호출
 // ─────────────────────────────────────────────────────────────────────────────
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -244,60 +244,167 @@ function DroppableSegmentRow({ segment, index, onDelete, onUnmap, isSelected, on
   );
 }
 
-function PracticeFlowSelector({ mode, onSetMode, disabled }) {
-  const options = [
-    { id: 'ordered', label: '순서', desc: '구간 번호대로 이동' },
-    { id: 'interleaved', label: '교차', desc: '반복 회피 랜덤' },
-  ];
+function getStartFlowFromPoint(point, menuEl, interleavedDisabled) {
+  if (!point || !menuEl) return null;
+  const rect = menuEl.getBoundingClientRect();
+  const inset = 14;
+  const withinX = point.x >= rect.left - inset && point.x <= rect.right + inset;
+  const withinY = point.y >= rect.top - inset && point.y <= rect.bottom + inset;
+  if (!withinX || !withinY) return null;
+  const mode = point.x < rect.left + rect.width / 2 ? 'ordered' : 'interleaved';
+  return mode === 'interleaved' && interleavedDisabled ? null : mode;
+}
+
+function StartPracticeRadialButton({ mode, segmentCount, onSetMode, onStart }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [hoverMode, setHoverMode] = useState(null);
+  const [longPressed, setLongPressed] = useState(false);
+  const menuRef = useRef(null);
+  const timerRef = useRef(null);
+  const interleavedDisabled = segmentCount < 2;
+
+  const closeMenu = useCallback(() => {
+    setMenuOpen(false);
+    setHoverMode(null);
+    setLongPressed(false);
+  }, []);
+
+  const chooseMode = useCallback((nextMode) => {
+    if (!nextMode) return;
+    onSetMode(nextMode);
+    closeMenu();
+    onStart();
+  }, [closeMenu, onSetMode, onStart]);
+
+  const clearLongPressTimer = useCallback(() => {
+    if (timerRef.current) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => () => clearLongPressTimer(), [clearLongPressTimer]);
+
+  const onPointerDown = useCallback((event) => {
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    clearLongPressTimer();
+    setLongPressed(false);
+    timerRef.current = window.setTimeout(() => {
+      setLongPressed(true);
+      setMenuOpen(true);
+      setHoverMode(null);
+    }, 420);
+  }, [clearLongPressTimer]);
+
+  const onPointerMove = useCallback((event) => {
+    if (!menuOpen) return;
+    const nextMode = getStartFlowFromPoint(
+      { x: event.clientX, y: event.clientY },
+      menuRef.current,
+      interleavedDisabled
+    );
+    setHoverMode(nextMode);
+  }, [interleavedDisabled, menuOpen]);
+
+  const onPointerUp = useCallback((event) => {
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    clearLongPressTimer();
+    if (!longPressed) {
+      onStart();
+      return;
+    }
+    const nextMode = getStartFlowFromPoint(
+      { x: event.clientX, y: event.clientY },
+      menuRef.current,
+      interleavedDisabled
+    );
+    if (nextMode) {
+      chooseMode(nextMode);
+      return;
+    }
+    closeMenu();
+  }, [chooseMode, clearLongPressTimer, closeMenu, interleavedDisabled, longPressed, onStart]);
+
+  const activeLabel = mode === 'interleaved' ? '교차' : '순서';
 
   return (
-    <div
-      className="rounded-xl border border-[var(--ivps-border)] bg-[var(--ivps-surface)] p-3 mb-4"
-      onClick={e => e.stopPropagation()}
-    >
-      <div className="flex items-center justify-between gap-3 mb-2.5">
-        <div>
-          <div className="text-[10px] text-[var(--ivps-text3)] uppercase tracking-[.07em] font-semibold flex items-center gap-1.5">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#7ea890]" />
-            연습 흐름
-          </div>
-          <div className="text-[10.5px] text-[var(--ivps-text4)] mt-1">
-            During 하단바의 다음 구간 안내 방식을 정합니다.
-          </div>
+    <div className="relative">
+      {menuOpen && (
+        <div
+          ref={menuRef}
+          className="absolute bottom-[calc(100%+12px)] left-1/2 z-40 flex w-[214px] -translate-x-1/2 items-end justify-center gap-2 rounded-[24px] px-3 py-3"
+          style={{
+            background: 'rgba(18,22,30,.76)',
+            border: '1px solid rgba(255,255,255,.12)',
+            boxShadow: '0 22px 52px rgba(0,0,0,.32)',
+            backdropFilter: 'blur(18px) saturate(1.28)',
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => chooseMode('ordered')}
+            onPointerEnter={() => setHoverMode('ordered')}
+            className="h-[72px] flex-1 rounded-l-[30px] rounded-r-[15px] border text-[12.5px] font-bold transition-all"
+            style={{
+              transform: hoverMode === 'ordered' ? 'translateY(-5px) scale(1.04)' : 'rotate(-6deg)',
+              transformOrigin: 'bottom right',
+              background: hoverMode === 'ordered' || mode === 'ordered' ? 'rgba(126,168,144,.28)' : 'rgba(255,255,255,.07)',
+              borderColor: hoverMode === 'ordered' || mode === 'ordered' ? 'rgba(126,168,144,.55)' : 'rgba(255,255,255,.14)',
+              color: hoverMode === 'ordered' || mode === 'ordered' ? '#c8ead6' : 'rgba(255,255,255,.76)',
+            }}
+          >
+            순서
+          </button>
+          <button
+            type="button"
+            disabled={interleavedDisabled}
+            onClick={() => chooseMode(interleavedDisabled ? null : 'interleaved')}
+            onPointerEnter={() => !interleavedDisabled && setHoverMode('interleaved')}
+            className="h-[72px] flex-1 rounded-l-[15px] rounded-r-[30px] border text-[12.5px] font-bold transition-all"
+            style={{
+              transform: hoverMode === 'interleaved' ? 'translateY(-5px) scale(1.04)' : 'rotate(6deg)',
+              transformOrigin: 'bottom left',
+              background: interleavedDisabled
+                ? 'rgba(255,255,255,.035)'
+                : hoverMode === 'interleaved' || mode === 'interleaved'
+                ? 'rgba(155,127,200,.26)'
+                : 'rgba(255,255,255,.07)',
+              borderColor: interleavedDisabled
+                ? 'rgba(255,255,255,.08)'
+                : hoverMode === 'interleaved' || mode === 'interleaved'
+                ? 'rgba(155,127,200,.55)'
+                : 'rgba(255,255,255,.14)',
+              color: interleavedDisabled
+                ? 'rgba(255,255,255,.28)'
+                : hoverMode === 'interleaved' || mode === 'interleaved'
+                ? '#ddccff'
+                : 'rgba(255,255,255,.76)',
+              cursor: interleavedDisabled ? 'not-allowed' : 'pointer',
+            }}
+          >
+            교차
+          </button>
         </div>
-        {disabled && (
-          <span className="text-[9.5px] text-[var(--ivps-text4)] font-mono flex-shrink-0">
-            구간 필요
-          </span>
-        )}
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        {options.map(option => {
-          const active = mode === option.id;
-          return (
-            <button
-              key={option.id}
-              type="button"
-              disabled={disabled}
-              onClick={() => onSetMode(option.id)}
-              className={[
-                'px-3 py-2 rounded-lg border text-left transition-all',
-                active
-                  ? 'bg-[rgba(126,168,144,.13)] border-[rgba(126,168,144,.45)]'
-                  : 'bg-[var(--ivps-surface2)] border-[var(--ivps-border2)] hover:border-[rgba(126,168,144,.25)]',
-                disabled ? 'opacity-45 cursor-not-allowed' : '',
-              ].join(' ')}
-            >
-              <div className={active ? 'text-[#7ea890] text-[12px] font-semibold' : 'text-[var(--ivps-text2)] text-[12px] font-semibold'}>
-                {option.label}
-              </div>
-              <div className="text-[9.5px] text-[var(--ivps-text4)] mt-0.5">
-                {option.desc}
-              </div>
-            </button>
-          );
-        })}
-      </div>
+      )}
+
+      <button
+        type="button"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        className="w-full py-3 rounded-xl text-[#0d1117] font-semibold text-[13.5px] flex items-center justify-center gap-2 transition-all hover:opacity-95 select-none"
+        style={{
+          background: 'linear-gradient(135deg,#7ea890,#5a8070)',
+          boxShadow: menuOpen ? '0 16px 34px rgba(126,168,144,.18)' : '0 8px 18px rgba(126,168,144,.08)',
+          scale: menuOpen ? '1.01' : '1',
+        }}
+        title="탭하면 시작, 길게 누르면 순서/교차 선택"
+      >
+        연습 시작 — During
+        <span className="rounded-full bg-[rgba(13,17,23,.14)] px-2 py-0.5 text-[10px] font-bold">
+          {activeLabel}
+        </span>
+      </button>
     </div>
   );
 }
@@ -466,6 +573,7 @@ export function CognitiveBriefing() {
     skillCart,
     isSelectingSegment,
     selectedSegmentId,
+    addingToSegmentId,
     tempSegments,
     nav,
     cart,
@@ -590,12 +698,6 @@ export function CognitiveBriefing() {
               )}
             </div>
 
-            <PracticeFlowSelector
-              mode={practiceFlowMode}
-              onSetMode={practiceFlow.setMode}
-              disabled={segments.length < 2}
-            />
-
             {/* ── SEGMENT LIST ── */}
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -611,24 +713,48 @@ export function CognitiveBriefing() {
                 </div>
                 {/* 구간 설정 토글 버튼 (ScoreViewer 오버레이와 동일 기능) */}
                 {!isSelectingSegment ? (
-                  <button
-                    onClick={segmentActs.toggleSegmentMode}
-                    className="flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-semibold transition-all bg-[rgba(155,127,200,.07)] border-[rgba(155,127,200,.3)] text-[#9b7fc8] hover:bg-[rgba(155,127,200,.15)]"
-                  >
-                    <span className="text-[11px] leading-none">＋</span>
-                    구간 설정
-                  </button>
+                  selectedSegmentId ? (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        segmentActs.startAddToSegment(selectedSegmentId);
+                      }}
+                      className="flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-semibold transition-all bg-[rgba(212,168,67,.1)] border-[rgba(212,168,67,.4)] text-[#d4a843] hover:bg-[rgba(212,168,67,.18)]"
+                    >
+                      <span className="text-[11px] leading-none">＋</span>
+                      구간 추가
+                    </button>
+                  ) : (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        segmentActs.toggleSegmentMode();
+                      }}
+                      className="flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-semibold transition-all bg-[rgba(155,127,200,.07)] border-[rgba(155,127,200,.3)] text-[#9b7fc8] hover:bg-[rgba(155,127,200,.15)]"
+                    >
+                      <span className="text-[11px] leading-none">＋</span>
+                      구간 설정
+                    </button>
+                  )
                 ) : tempSegments.length > 0 ? (
                   <button
-                    onClick={segmentActs.commitTempSegments}
-                    className="flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-semibold transition-all bg-[rgba(155,127,200,.2)] border-[rgba(155,127,200,.6)] text-[#c4a8ff] animate-pulse hover:animate-none hover:bg-[rgba(155,127,200,.3)]"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      segmentActs.commitTempSegments();
+                    }}
+                    className={[
+                      'flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-semibold transition-all animate-pulse hover:animate-none',
+                      addingToSegmentId
+                        ? 'bg-[rgba(212,168,67,.18)] border-[rgba(212,168,67,.58)] text-[#d4a843] hover:bg-[rgba(212,168,67,.26)]'
+                        : 'bg-[rgba(155,127,200,.2)] border-[rgba(155,127,200,.6)] text-[#c4a8ff] hover:bg-[rgba(155,127,200,.3)]',
+                    ].join(' ')}
                   >
                     <span className="text-[11px] leading-none">✓</span>
-                    확정 {tempSegments.length}개
+                    {addingToSegmentId ? `추가 확정 ${tempSegments.length}개` : `확정 ${tempSegments.length}개`}
                   </button>
                 ) : (
                   <span className="text-[9.5px] text-[#9b7fc8] animate-pulse">
-                    그리는 중…
+                    {addingToSegmentId ? '추가 중…' : '그리는 중…'}
                   </span>
                 )}
               </div>
@@ -730,13 +856,16 @@ export function CognitiveBriefing() {
         )}
 
         <div className="px-5 pb-5 pt-3 flex-shrink-0">
-          <button
-            onClick={() => { ui.setPracticeFullscreen(true); requestNativeFullscreen(); nav.setPhase('during'); }}
-            className="w-full py-3 rounded-xl text-[#0d1117] font-semibold text-[13.5px] flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
-            style={{ background: 'linear-gradient(135deg,#7ea890,#5a8070)' }}
-          >
-            연습 시작 — During ›
-          </button>
+          <StartPracticeRadialButton
+            mode={practiceFlowMode}
+            segmentCount={segments.length}
+            onSetMode={practiceFlow.setMode}
+            onStart={() => {
+              ui.setPracticeFullscreen(true);
+              requestNativeFullscreen();
+              nav.setPhase('during');
+            }}
+          />
         </div>
       </div>
 
