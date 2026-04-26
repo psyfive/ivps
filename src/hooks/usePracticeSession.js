@@ -36,7 +36,7 @@ export const INITIAL_STATE = {
   // ─ 포도송이 체크 ─
   grapeTotal: 10,
   grapeFilled: 0,
-  grapeBpmIncrement: 2,   // 포도 하나 체크 시 BPM 증가량
+  grapeBpmIncrement: 2,   // Rule of Three 달성 시 BPM 증가량
 
   // ─ XP (세션 결과) ─
   xpLog: [],                  // [{ skillId, result, xp, timestamp }]
@@ -64,6 +64,11 @@ export const INITIAL_STATE = {
 
   // ─ 연습 세션 기록 ─
   practiceSessions: [],    // [{ id, scoreId, scoreName, skillIds, xpGained, durationMinutes, date }]
+
+  // ─ 학습심리 기반 연습 흐름 ─
+  practiceFlowMode: 'ordered', // 'ordered' | 'interleaved'
+  interleaveHistory: [],       // segmentId[]
+  reviewReminders: [],         // [{ id, scoreId, scoreName, segmentId, segmentIndex, skillIds, dueAt, intervalDays, status, isHard }]
 
   // ─ During Phase 진입 시각 (연습시간 계산용) ─
   duringStartTime: null,   // number | null (ms timestamp)
@@ -153,6 +158,15 @@ export const ACTIONS = {
 
   // 구간 난이도
   SET_SEGMENT_DIFFICULTY: 'SET_SEGMENT_DIFFICULTY',
+  RECORD_SEGMENT_ATTEMPT: 'RECORD_SEGMENT_ATTEMPT',
+  RESET_SEGMENT_PRACTICE_STATS: 'RESET_SEGMENT_PRACTICE_STATS',
+
+  // 연습 흐름
+  SET_PRACTICE_FLOW_MODE: 'SET_PRACTICE_FLOW_MODE',
+  PICK_NEXT_SEGMENT:      'PICK_NEXT_SEGMENT',
+
+  // 복습 알리미
+  MARK_REVIEW_REMINDER_DONE: 'MARK_REVIEW_REMINDER_DONE',
 
   // 필기 (Drawing)
   ADD_STROKE:        'ADD_STROKE',
@@ -187,6 +201,21 @@ export const ACTIONS = {
 
 // ── 유틸 ───────────────────────────────────────────────────────────────────
 const uid = () => Math.random().toString(36).slice(2, 9);
+const REVIEW_INTERVAL_DAYS = [1, 3, 7];
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function emptyPracticeStats() {
+  return {
+    successStreak: 0,
+    successTotal: 0,
+    shakyTotal: 0,
+    completedTodayAt: null,
+  };
+}
+
+function normalizePracticeStats(stats) {
+  return { ...emptyPracticeStats(), ...(stats ?? {}) };
+}
 
 function getActiveScore(state) {
   return state.scores.find(s => s.id === state.activeScoreId) ?? null;
@@ -196,6 +225,16 @@ function updateActiveScore(scores, activeScoreId, updater) {
   return scores.map(s =>
     s.id === activeScoreId ? { ...s, ...updater(s) } : s
   );
+}
+
+function pickInterleavedSegment(segments, selectedSegmentId, randomValue = Math.random()) {
+  if (segments.length === 0) return null;
+  if (segments.length === 1) return segments[0];
+
+  const candidates = segments.filter(seg => seg.id !== selectedSegmentId);
+  const weighted = candidates.flatMap(seg => seg.difficulty === 'hard' ? [seg, seg] : [seg]);
+  const index = Math.min(weighted.length - 1, Math.floor(randomValue * weighted.length));
+  return weighted[index] ?? candidates[0] ?? null;
 }
 
 // ── Reducer ────────────────────────────────────────────────────────────────
@@ -458,10 +497,6 @@ export function reducer(state, action) {
       return {
         ...state,
         grapeFilled: isChecking ? action.index + 1 : action.index,
-        // 체크 시에만 BPM 증가 (해제 시 BPM 유지)
-        bpm: isChecking
-          ? Math.min(240, state.bpm + state.grapeBpmIncrement)
-          : state.bpm,
       };
     }
 
@@ -603,6 +638,7 @@ export function reducer(state, action) {
         checks: [],
         targetBpm: null,
         targetReps: null,
+        practiceStats: emptyPracticeStats(),
         pageIndex: activeScoreForSeg?.currentPageIndex ?? 0,
       };
       return {
@@ -730,6 +766,89 @@ export function reducer(state, action) {
         })),
       };
 
+    case ACTIONS.RECORD_SEGMENT_ATTEMPT: {
+      const { segmentId, result } = action;
+      if (!segmentId || (result !== 'success' && result !== 'shaky')) return state;
+
+      const scores = updateActiveScore(state.scores, state.activeScoreId, s => ({
+        segments: (s.segments ?? []).map(seg => {
+          if (seg.id !== segmentId) return seg;
+          const stats = normalizePracticeStats(seg.practiceStats);
+          if (result === 'shaky') {
+            return {
+              ...seg,
+              practiceStats: {
+                ...stats,
+                successStreak: 0,
+                shakyTotal: stats.shakyTotal + 1,
+              },
+            };
+          }
+
+          const nextStreak = stats.successStreak + 1;
+          const crossedRuleOfThree = stats.successStreak < 3 && nextStreak === 3;
+          const nextTargetBpm = crossedRuleOfThree && state.grapeBpmIncrement > 0
+            ? Math.min(240, (seg.targetBpm ?? state.bpm) + state.grapeBpmIncrement)
+            : seg.targetBpm;
+          return {
+            ...seg,
+            targetBpm: nextTargetBpm,
+            practiceStats: {
+              ...stats,
+              successStreak: nextStreak,
+              successTotal: stats.successTotal + 1,
+              completedTodayAt: crossedRuleOfThree ? Date.now() : stats.completedTodayAt,
+            },
+          };
+        }),
+      }));
+
+      return {
+        ...state,
+        scores,
+        grapeFilled: result === 'success' ? Math.min(state.grapeTotal, state.grapeFilled + 1) : state.grapeFilled,
+      };
+    }
+
+    case ACTIONS.RESET_SEGMENT_PRACTICE_STATS:
+      return {
+        ...state,
+        scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
+          segments: (s.segments ?? []).map(seg =>
+            seg.id === action.segmentId
+              ? { ...seg, practiceStats: emptyPracticeStats() }
+              : seg
+          ),
+        })),
+      };
+
+    case ACTIONS.SET_PRACTICE_FLOW_MODE:
+      return {
+        ...state,
+        practiceFlowMode: action.mode === 'interleaved' ? 'interleaved' : 'ordered',
+        interleaveHistory: [],
+      };
+
+    case ACTIONS.PICK_NEXT_SEGMENT: {
+      const score = getActiveScore(state);
+      const segments = score?.segments ?? [];
+      if (segments.length === 0) return state;
+
+      const target = state.practiceFlowMode === 'interleaved'
+        ? pickInterleavedSegment(segments, state.selectedSegmentId, action.randomValue)
+        : segments[Math.min(
+            segments.length - 1,
+            Math.max(0, segments.findIndex(seg => seg.id === state.selectedSegmentId) + 1),
+          )];
+
+      if (!target) return state;
+      return {
+        ...state,
+        selectedSegmentId: target.id,
+        interleaveHistory: [target.id, ...state.interleaveHistory].slice(0, 12),
+      };
+    }
+
     // ── Skill Cart ────────────────────────────────────────────────────
     case ACTIONS.ADD_TO_CART:
       if (state.skillCart.includes(action.skillId)) return state;
@@ -812,6 +931,7 @@ export function reducer(state, action) {
     // ── 연습 종합 리뷰 ────────────────────────────────────────────────
     case ACTIONS.ENTER_LAST_AFTER: {
       const score = getActiveScore(state);
+      const now = Date.now();
       const skillIds = [...new Set(
         (score?.segments ?? []).flatMap(seg => seg.mappedSkills ?? []),
       )];
@@ -828,8 +948,25 @@ export function reducer(state, action) {
         skillIds,
         xpGained,
         durationMinutes,
-        date: Date.now(),
+        date: now,
       };
+      const newReminders = (score?.segments ?? []).flatMap((seg, index) => {
+        const stats = normalizePracticeStats(seg.practiceStats);
+        const isHard = seg.difficulty === 'hard';
+        if (!stats.completedTodayAt && !isHard) return [];
+        return REVIEW_INTERVAL_DAYS.map(days => ({
+          id: uid(),
+          scoreId: state.activeScoreId,
+          scoreName: score?.name ?? '알 수 없음',
+          segmentId: seg.id,
+          segmentIndex: index,
+          skillIds: seg.mappedSkills ?? [],
+          dueAt: now + days * DAY_MS,
+          intervalDays: days,
+          status: 'pending',
+          isHard,
+        }));
+      });
       return {
         ...state,
         phase: 'last-after',
@@ -844,6 +981,7 @@ export function reducer(state, action) {
           const all = [sessionRecord, ...state.practiceSessions];
           return state.isPatron ? all : all.slice(0, 3);
         })(),
+        reviewReminders: [...newReminders, ...state.reviewReminders],
       };
     }
 
@@ -857,6 +995,16 @@ export function reducer(state, action) {
 
     case ACTIONS.SET_REVIEW_SEGMENT_INDEX:
       return { ...state, reviewSegmentIndex: action.index };
+
+    case ACTIONS.MARK_REVIEW_REMINDER_DONE:
+      return {
+        ...state,
+        reviewReminders: state.reviewReminders.map(reminder =>
+          reminder.id === action.reminderId
+            ? { ...reminder, status: 'done', completedAt: Date.now() }
+            : reminder
+        ),
+      };
 
     case ACTIONS.SET_INSTRUMENT:
       return { ...state, activeInstrument: action.value };
@@ -1033,6 +1181,21 @@ export function usePracticeSession() {
   const setSegmentDifficulty = useCallback((segmentId, difficulty) =>
     dispatch({ type: ACTIONS.SET_SEGMENT_DIFFICULTY, segmentId, difficulty }), []);
 
+  const recordAttempt = useCallback((segmentId, result) =>
+    dispatch({ type: ACTIONS.RECORD_SEGMENT_ATTEMPT, segmentId, result }), []);
+
+  const resetPracticeStats = useCallback((segmentId) =>
+    dispatch({ type: ACTIONS.RESET_SEGMENT_PRACTICE_STATS, segmentId }), []);
+
+  const setPracticeFlowMode = useCallback((mode) =>
+    dispatch({ type: ACTIONS.SET_PRACTICE_FLOW_MODE, mode }), []);
+
+  const pickNextSegment = useCallback(() =>
+    dispatch({ type: ACTIONS.PICK_NEXT_SEGMENT }), []);
+
+  const markReminderDone = useCallback((reminderId) =>
+    dispatch({ type: ACTIONS.MARK_REVIEW_REMINDER_DONE, reminderId }), []);
+
   // ── Skill Cart 액션 ──────────────────────────────────────────────
   const addToCart = useCallback((skillId) =>
     dispatch({ type: ACTIONS.ADD_TO_CART, skillId }), []);
@@ -1097,7 +1260,9 @@ export function usePracticeSession() {
     score: { addScore, setActiveScore, deleteScore, renameScore, changePage, setPage },
     session: { addSession, deleteSession, selectSession, assignSkill, removeSkill, toggleCheck, openPicker, closePicker },
     cart: { addToCart, removeFromCart },
-    segment: { toggleSegmentCheck, toggleSegmentMode, startAddToSegment, selectSegment, deleteSegment, deleteSegmentCoord, setSegmentMeta, updateSegmentCoord, mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment, commitTempSegments, setSegmentDifficulty },
+    segment: { toggleSegmentCheck, toggleSegmentMode, startAddToSegment, selectSegment, deleteSegment, deleteSegmentCoord, setSegmentMeta, updateSegmentCoord, mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment, commitTempSegments, setSegmentDifficulty, recordAttempt, resetPracticeStats },
+    practiceFlow: { setMode: setPracticeFlowMode, pickNextSegment },
+    review: { markReminderDone },
     drawing: { addStroke, updateStroke, removeStroke, undoStroke, clearDrawings, setDrawingMode, setDrawingTool, setDrawingColor, setDrawingFontSize },
     metro: { setBpm, setBeatsPerBar, setMetroPlaying, setCurrentBeat, setSubdivision, setGhostTrainBars, setGhostTrainReadyBars },
     tuner: { setTunerActive, setTunerNote },

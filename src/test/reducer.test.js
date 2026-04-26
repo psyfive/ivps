@@ -29,6 +29,20 @@ function makeSession(overrides = {}) {
   };
 }
 
+function makeSegment(overrides = {}) {
+  return {
+    id: 'seg-1',
+    coordinates: [{ pageIndex: 0, x: 0.1, y: 0.1, width: 0.2, height: 0.2 }],
+    measures: { start: null, end: null },
+    mappedSkills: ['A-1-1'],
+    checks: [],
+    targetBpm: null,
+    targetReps: null,
+    pageIndex: 0,
+    ...overrides,
+  };
+}
+
 // ── 네비게이션 ─────────────────────────────────────────────────────────────
 describe('네비게이션', () => {
   it('SET_SCREEN: screen을 변경하고 selectedSkillId를 초기화한다', () => {
@@ -249,6 +263,135 @@ describe('포도 체크', () => {
     const state2 = { ...INITIAL_STATE, grapeTotal: 20 };
     expect(reducer(state2, { type: ACTIONS.ADJUST_GRAPE_TOTAL, delta: 5 }).grapeTotal).toBe(20);
     expect(reducer(INITIAL_STATE, { type: ACTIONS.ADJUST_GRAPE_TOTAL, delta: 3 }).grapeTotal).toBe(13);
+  });
+});
+
+describe('Rule of Three 안정성 트래커', () => {
+  it('RECORD_SEGMENT_ATTEMPT: 성공 3회 시 streak와 목표 BPM을 올린다', () => {
+    const segment = makeSegment({ id: 'seg-1' });
+    const score = makeScore({ id: 's1', segments: [segment] });
+    const state = {
+      ...INITIAL_STATE,
+      scores: [score],
+      activeScoreId: 's1',
+      selectedSegmentId: 'seg-1',
+      bpm: 80,
+      grapeBpmIncrement: 2,
+      grapeTotal: 10,
+      grapeFilled: 0,
+    };
+
+    const one = reducer(state, { type: ACTIONS.RECORD_SEGMENT_ATTEMPT, segmentId: 'seg-1', result: 'success' });
+    const two = reducer(one, { type: ACTIONS.RECORD_SEGMENT_ATTEMPT, segmentId: 'seg-1', result: 'success' });
+    const three = reducer(two, { type: ACTIONS.RECORD_SEGMENT_ATTEMPT, segmentId: 'seg-1', result: 'success' });
+    const updated = three.scores[0].segments[0];
+
+    expect(updated.practiceStats.successStreak).toBe(3);
+    expect(updated.practiceStats.successTotal).toBe(3);
+    expect(updated.practiceStats.completedTodayAt).toBeTruthy();
+    expect(updated.targetBpm).toBe(82);
+    expect(three.grapeFilled).toBe(3);
+    expect(three.bpm).toBe(80);
+  });
+
+  it('RECORD_SEGMENT_ATTEMPT: 흔들림은 streak만 리셋하고 성공 누적은 유지한다', () => {
+    const segment = makeSegment({
+      id: 'seg-1',
+      practiceStats: {
+        successStreak: 2,
+        successTotal: 2,
+        shakyTotal: 0,
+        completedTodayAt: null,
+      },
+    });
+    const score = makeScore({ id: 's1', segments: [segment] });
+    const state = { ...INITIAL_STATE, scores: [score], activeScoreId: 's1', grapeFilled: 2 };
+
+    const next = reducer(state, { type: ACTIONS.RECORD_SEGMENT_ATTEMPT, segmentId: 'seg-1', result: 'shaky' });
+    const stats = next.scores[0].segments[0].practiceStats;
+
+    expect(stats.successStreak).toBe(0);
+    expect(stats.successTotal).toBe(2);
+    expect(stats.shakyTotal).toBe(1);
+    expect(next.grapeFilled).toBe(2);
+  });
+});
+
+describe('적응형 교차 연습', () => {
+  it('PICK_NEXT_SEGMENT: 교차 모드는 직전 구간을 후보에서 제외한다', () => {
+    const score = makeScore({
+      id: 's1',
+      segments: [
+        makeSegment({ id: 'seg-1' }),
+        makeSegment({ id: 'seg-2' }),
+      ],
+    });
+    const state = {
+      ...INITIAL_STATE,
+      scores: [score],
+      activeScoreId: 's1',
+      selectedSegmentId: 'seg-1',
+      practiceFlowMode: 'interleaved',
+    };
+
+    const next = reducer(state, { type: ACTIONS.PICK_NEXT_SEGMENT, randomValue: 0 });
+    expect(next.selectedSegmentId).toBe('seg-2');
+  });
+
+  it('PICK_NEXT_SEGMENT: 어려움 구간을 가중 후보로 사용한다', () => {
+    const score = makeScore({
+      id: 's1',
+      segments: [
+        makeSegment({ id: 'seg-1' }),
+        makeSegment({ id: 'seg-2', difficulty: 'hard' }),
+        makeSegment({ id: 'seg-3' }),
+      ],
+    });
+    const state = {
+      ...INITIAL_STATE,
+      scores: [score],
+      activeScoreId: 's1',
+      selectedSegmentId: 'seg-1',
+      practiceFlowMode: 'interleaved',
+    };
+
+    const next = reducer(state, { type: ACTIONS.PICK_NEXT_SEGMENT, randomValue: 0.5 });
+    expect(next.selectedSegmentId).toBe('seg-2');
+  });
+});
+
+describe('망각 곡선 스케줄러', () => {
+  it('ENTER_LAST_AFTER: 1/3/7일 복습 알리미를 만들고 세션 3개 제한과 독립적으로 유지한다', () => {
+    const segment = makeSegment({
+      id: 'seg-1',
+      difficulty: 'hard',
+      practiceStats: {
+        successStreak: 3,
+        successTotal: 3,
+        shakyTotal: 0,
+        completedTodayAt: Date.now(),
+      },
+    });
+    const score = makeScore({ id: 's1', segments: [segment] });
+    const existingSessions = [
+      { id: 'old-1', scoreId: 'old-1', scoreName: 'old 1', skillIds: [], xpGained: 0, durationMinutes: 1, date: 1 },
+      { id: 'old-2', scoreId: 'old-2', scoreName: 'old 2', skillIds: [], xpGained: 0, durationMinutes: 1, date: 2 },
+      { id: 'old-3', scoreId: 'old-3', scoreName: 'old 3', skillIds: [], xpGained: 0, durationMinutes: 1, date: 3 },
+    ];
+    const state = {
+      ...INITIAL_STATE,
+      scores: [score],
+      activeScoreId: 's1',
+      practiceSessions: existingSessions,
+      isPatron: false,
+    };
+
+    const next = reducer(state, { type: ACTIONS.ENTER_LAST_AFTER });
+    expect(next.practiceSessions).toHaveLength(3);
+    expect(next.reviewReminders).toHaveLength(3);
+    expect(next.reviewReminders.map(r => r.intervalDays)).toEqual([1, 3, 7]);
+    expect(next.reviewReminders.every(r => r.isHard)).toBe(true);
+    expect(next.reviewReminders.every(r => r.status === 'pending')).toBe(true);
   });
 });
 

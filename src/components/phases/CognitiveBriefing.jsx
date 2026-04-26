@@ -244,6 +244,64 @@ function DroppableSegmentRow({ segment, index, onDelete, onUnmap, isSelected, on
   );
 }
 
+function PracticeFlowSelector({ mode, onSetMode, disabled }) {
+  const options = [
+    { id: 'ordered', label: '순서', desc: '구간 번호대로 이동' },
+    { id: 'interleaved', label: '교차', desc: '반복 회피 랜덤' },
+  ];
+
+  return (
+    <div
+      className="rounded-xl border border-[var(--ivps-border)] bg-[var(--ivps-surface)] p-3 mb-4"
+      onClick={e => e.stopPropagation()}
+    >
+      <div className="flex items-center justify-between gap-3 mb-2.5">
+        <div>
+          <div className="text-[10px] text-[var(--ivps-text3)] uppercase tracking-[.07em] font-semibold flex items-center gap-1.5">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#7ea890]" />
+            연습 흐름
+          </div>
+          <div className="text-[10.5px] text-[var(--ivps-text4)] mt-1">
+            During 하단바의 다음 구간 안내 방식을 정합니다.
+          </div>
+        </div>
+        {disabled && (
+          <span className="text-[9.5px] text-[var(--ivps-text4)] font-mono flex-shrink-0">
+            구간 필요
+          </span>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        {options.map(option => {
+          const active = mode === option.id;
+          return (
+            <button
+              key={option.id}
+              type="button"
+              disabled={disabled}
+              onClick={() => onSetMode(option.id)}
+              className={[
+                'px-3 py-2 rounded-lg border text-left transition-all',
+                active
+                  ? 'bg-[rgba(126,168,144,.13)] border-[rgba(126,168,144,.45)]'
+                  : 'bg-[var(--ivps-surface2)] border-[var(--ivps-border2)] hover:border-[rgba(126,168,144,.25)]',
+                disabled ? 'opacity-45 cursor-not-allowed' : '',
+              ].join(' ')}
+            >
+              <div className={active ? 'text-[#7ea890] text-[12px] font-semibold' : 'text-[var(--ivps-text2)] text-[12px] font-semibold'}>
+                {option.label}
+              </div>
+              <div className="text-[9.5px] text-[var(--ivps-text4)] mt-0.5">
+                {option.desc}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // 4. 상세 탭 — 스킬 Briefing (기존 보존)
 // ════════════════════════════════════════════════════════════════════════════
@@ -412,6 +470,8 @@ export function CognitiveBriefing() {
     nav,
     cart,
     segment: segmentActs,
+    practiceFlow,
+    practiceFlowMode,
     ui,
   } = usePractice();
 
@@ -529,6 +589,12 @@ export function CognitiveBriefing() {
                 </div>
               )}
             </div>
+
+            <PracticeFlowSelector
+              mode={practiceFlowMode}
+              onSetMode={practiceFlow.setMode}
+              disabled={segments.length < 2}
+            />
 
             {/* ── SEGMENT LIST ── */}
             <div>

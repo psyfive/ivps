@@ -50,6 +50,24 @@ function getSegmentMinPage(seg) {
   return pages.length > 0 ? Math.min(...pages) : (seg.pageIndex ?? 0);
 }
 
+function getPracticeStats(segment) {
+  return {
+    successStreak: 0,
+    successTotal: 0,
+    shakyTotal: 0,
+    completedTodayAt: null,
+    ...(segment?.practiceStats ?? {}),
+  };
+}
+
+function pickInterleavedSuggestion(segments, currentId) {
+  if (segments.length === 0) return null;
+  if (segments.length === 1) return segments[0];
+  const candidates = segments.filter(seg => seg.id !== currentId);
+  const weighted = candidates.flatMap(seg => seg.difficulty === 'hard' ? [seg, seg] : [seg]);
+  return weighted[Math.floor(Math.random() * weighted.length)] ?? candidates[0] ?? null;
+}
+
 // ── Ghost Train HUD 콘텐츠 ────────────────────────────────────────────────
 // showBeats=true 이면 박자 도트를 함께 표시 (countIn/break 전용)
 function ghostHudContent(ghostPhase) {
@@ -71,8 +89,10 @@ export function DuringMiniControls() {
     metroPlaying,
     grapeFilled,
     grapeTotal,
+    grapeBpmIncrement,
     activeScore,
     selectedSegmentId,
+    practiceFlowMode,
     subdivision,
     ghostTrainBars,
     ghostTrainReadyBars,
@@ -106,10 +126,26 @@ export function DuringMiniControls() {
   const segments   = activeScore?.segments ?? [];
   const selIdx     = segments.findIndex(s => s.id === selectedSegmentId);
   const selSegment = selIdx >= 0 ? segments[selIdx] : null;
-  const hasPrev    = selIdx > 0;
-  const hasNext    = (selIdx === -1 && segments.length > 0) || (selIdx < segments.length - 1 && selIdx !== -1);
+  const isInterleaved = practiceFlowMode === 'interleaved';
+  const hasPrev    = !isInterleaved && selIdx > 0;
+  const orderedHasNext = (selIdx === -1 && segments.length > 0) || (selIdx < segments.length - 1 && selIdx !== -1);
+  const hasNext    = isInterleaved ? segments.length > 1 || (selIdx === -1 && segments.length > 0) : orderedHasNext;
   const targetReps = selSegment?.targetReps ?? null;
   const effectiveBpm = selSegment?.targetBpm ?? bpm;
+  const practiceStats = getPracticeStats(selSegment);
+  const ruleOfThreeDone = practiceStats.successStreak >= 3;
+
+  const [interleaveSuggestionId, setInterleaveSuggestionId] = useState(null);
+  const interleaveSuggestion = segments.find(seg => seg.id === interleaveSuggestionId) ?? null;
+
+  useEffect(() => {
+    if (!isInterleaved || segments.length === 0) {
+      setInterleaveSuggestionId(null);
+      return;
+    }
+    const suggestion = pickInterleavedSuggestion(segments, selectedSegmentId);
+    setInterleaveSuggestionId(suggestion?.id ?? null);
+  }, [isInterleaved, selectedSegmentId, segments]);
 
   // ── Ghost Train 로컬 상태 ────────────────────────────────────────
   const [ghostActive,     setGhostActive]    = useState(false);
@@ -239,11 +275,29 @@ export function DuringMiniControls() {
 
   const goNext = useCallback(() => {
     if (!hasNext) return;
-    const target = segments[selIdx === -1 ? 0 : selIdx + 1];
+    const target = isInterleaved
+      ? (interleaveSuggestion ?? pickInterleavedSuggestion(segments, selectedSegmentId))
+      : segments[selIdx === -1 ? 0 : selIdx + 1];
+    if (!target) return;
     segmentActs.selectSegment(target.id);
     const targetPage = getSegmentMinPage(target);
     if (targetPage !== activeScore?.currentPageIndex) scoreActs.setPage(targetPage);
-  }, [hasNext, selIdx, segments, segmentActs, scoreActs, activeScore]);
+  }, [hasNext, isInterleaved, interleaveSuggestion, selectedSegmentId, segments, selIdx, segmentActs, scoreActs, activeScore]);
+
+  const recordSuccess = useCallback(() => {
+    if (!selectedSegmentId) return;
+    segmentActs.recordAttempt(selectedSegmentId, 'success');
+  }, [selectedSegmentId, segmentActs]);
+
+  const recordShaky = useCallback(() => {
+    if (!selectedSegmentId) return;
+    segmentActs.recordAttempt(selectedSegmentId, 'shaky');
+  }, [selectedSegmentId, segmentActs]);
+
+  const resetRuleTracker = useCallback(() => {
+    grape.resetGrapes();
+    if (selectedSegmentId) segmentActs.resetPracticeStats(selectedSegmentId);
+  }, [grape, selectedSegmentId, segmentActs]);
 
   // ── Ghost Train HUD ──────────────────────────────────────────────
   const hudContent = ghostHudContent(ghostPhase);
@@ -648,30 +702,58 @@ export function DuringMiniControls() {
 
           <Sep />
 
-          {/* 포도 체크 + 필기 모드 */}
+          {/* Rule of Three + 필기 모드 */}
           <div className="flex items-center gap-1.5">
             <button
-              onClick={() => { if (grapeFilled < grapeTotal) grape.toggleGrape(grapeFilled); }}
-              disabled={grapeFilled >= grapeTotal}
-              title={grapeFilled < grapeTotal ? `포도 +1 (${grapeFilled + 1}/${grapeTotal})` : '모두 완료'}
-              className="flex items-center gap-1 px-2.5 h-[34px] rounded-lg border font-mono text-[11px] transition-colors"
+              onClick={recordSuccess}
+              disabled={!selectedSegmentId}
+              title="이번 패스 성공"
+              className="flex items-center gap-1 px-2.5 h-[34px] rounded-lg border font-mono text-[11px] font-bold transition-colors"
               style={{
-                background: 'rgba(155,127,200,.07)',
-                borderColor: 'rgba(155,127,200,.2)',
-                color: '#9b7fc8',
-                cursor: grapeFilled < grapeTotal ? 'pointer' : 'default',
+                background: 'rgba(126,168,144,.13)',
+                borderColor: 'rgba(126,168,144,.35)',
+                color: '#7ea890',
+                cursor: selectedSegmentId ? 'pointer' : 'not-allowed',
               }}
-              onMouseEnter={e => { if (grapeFilled < grapeTotal) e.currentTarget.style.background = 'rgba(155,127,200,.18)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(155,127,200,.07)'; }}
             >
-              <span style={{ fontSize: 12 }}>🍇</span>
-              <span className="font-bold">{grapeFilled}</span>
-              <span style={{ opacity: 0.45 }}>/{grapeTotal}</span>
+              ✓ 성공
+            </button>
+            <button
+              onClick={recordShaky}
+              disabled={!selectedSegmentId}
+              title="흔들림: 연속 성공 리셋"
+              className="flex items-center gap-1 px-2.5 h-[34px] rounded-lg border font-mono text-[11px] font-bold transition-colors"
+              style={{
+                background: 'rgba(224,112,112,.1)',
+                borderColor: 'rgba(224,112,112,.28)',
+                color: '#e07070',
+                cursor: selectedSegmentId ? 'pointer' : 'not-allowed',
+              }}
+            >
+              흔들림
+            </button>
+            <div
+              className="flex items-center gap-1 px-2.5 h-[34px] rounded-lg border font-mono text-[10.5px]"
+              title="Rule of Three 진행"
+              style={{
+                background: ruleOfThreeDone ? 'rgba(126,168,144,.12)' : 'rgba(155,127,200,.07)',
+                borderColor: ruleOfThreeDone ? 'rgba(126,168,144,.35)' : 'rgba(155,127,200,.2)',
+                color: ruleOfThreeDone ? '#7ea890' : '#9b7fc8',
+              }}
+            >
+              <span>{Math.min(3, practiceStats.successStreak)}/3</span>
+              <span style={{ opacity: 0.45 }}>·</span>
+              <span>{grapeFilled}/{grapeTotal}</span>
               {targetReps && (
                 <span style={{ opacity: 0.4, fontSize: 9 }}> (목표 {targetReps})</span>
               )}
-            </button>
-            <MiniBtn onClick={grape.resetGrapes} title="포도 초기화">↺</MiniBtn>
+              {ruleOfThreeDone && (
+                <span style={{ color: '#d4a843', marginLeft: 2 }}>
+                  ♩+{grapeBpmIncrement}
+                </span>
+              )}
+            </div>
+            <MiniBtn onClick={resetRuleTracker} title="Rule of Three 초기화">↺</MiniBtn>
 
             {/* 필기 모드 버튼 */}
             <div className="relative">
@@ -834,7 +916,9 @@ export function DuringMiniControls() {
 
           {/* 다음 구간 */}
           <MiniBtn onClick={goNext} disabled={!hasNext} title="다음 구간" accent={hasNext}>
-            {selIdx < segments.length - 1 ? `${selIdx + 2}구간` : '다음'} →
+            {isInterleaved
+              ? `${selIdx >= 0 ? `${selIdx + 1}구간` : '현재'} → ${interleaveSuggestion ? `${segments.findIndex(s => s.id === interleaveSuggestion.id) + 1}구간` : '다음'}`
+              : `${selIdx < segments.length - 1 ? `${selIdx + 2}구간` : '다음'} →`}
           </MiniBtn>
 
         </div>

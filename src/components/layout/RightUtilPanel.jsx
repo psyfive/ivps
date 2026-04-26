@@ -281,11 +281,11 @@ function GrapeChecker() {
         />
       </div>
 
-      {/* BPM 증가 힌트 */}
+      {/* Rule of Three BPM 증가 힌트 */}
       {grapeBpmIncrement > 0 && (
         <div className="flex items-center justify-between mb-2.5">
           <span className="text-[9.5px] text-[var(--ivps-text4)] font-mono">
-            체크당 +{grapeBpmIncrement} BPM
+            3회 성공 +{grapeBpmIncrement} BPM
           </span>
           <span className="text-[9.5px] text-[var(--ivps-text4)] font-mono">
             현재 <span className="text-[var(--ivps-gold)]">{bpm}</span> BPM

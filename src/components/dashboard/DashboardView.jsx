@@ -225,6 +225,144 @@ function RecentSessionRow({ session, onResume }) {
   );
 }
 
+function daysUntil(dueAt) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const due = new Date(dueAt);
+  due.setHours(0, 0, 0, 0);
+  return Math.ceil((due.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
+}
+
+function getReminderPrescription(skillIds = []) {
+  for (const skillId of skillIds) {
+    const skill = getSkillById(skillId);
+    const firstCase = skill?.after?.[0];
+    if (firstCase?.prescription) return firstCase.prescription;
+  }
+  return null;
+}
+
+function ReviewReminderRow({ reminder, onOpen, onDone }) {
+  const firstSkill = reminder.skillIds?.[0] ? getSkillById(reminder.skillIds[0]) : null;
+  const meta = firstSkill ? getCategoryMeta(firstSkill.id) : null;
+  const dueIn = daysUntil(reminder.dueAt);
+  const dueLabel = dueIn <= 0 ? '오늘' : `${dueIn}일 뒤`;
+  const prescription = reminder.isHard ? getReminderPrescription(reminder.skillIds) : null;
+
+  return (
+    <div
+      className="rounded-lg border px-3 py-2.5 mb-2"
+      style={{
+        background: reminder.isHard ? 'rgba(224,112,112,.06)' : 'var(--ivps-surface2)',
+        borderColor: reminder.isHard ? 'rgba(224,112,112,.2)' : 'var(--ivps-border)',
+      }}
+    >
+      <div className="flex items-start gap-2.5">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 mb-1">
+            <span
+              className="font-mono text-[9px] px-1.5 py-0.5 rounded"
+              style={{
+                background: reminder.isHard ? 'rgba(224,112,112,.14)' : 'rgba(212,168,67,.1)',
+                color: reminder.isHard ? '#e07070' : '#d4a843',
+              }}
+            >
+              {dueLabel}
+            </span>
+            <span className="text-[11.5px] font-semibold text-[var(--ivps-text1)] truncate">
+              {reminder.scoreName}
+            </span>
+          </div>
+          <div className="text-[10.5px] text-[var(--ivps-text4)] leading-relaxed">
+            {reminder.segmentIndex + 1}구간 · {reminder.intervalDays}일 복습
+            {reminder.isHard ? ' · 어려움' : ''}
+          </div>
+          {firstSkill && (
+            <div className="flex items-center gap-1.5 mt-1.5">
+              <span
+                className="font-mono text-[9px] px-1.5 py-0.5 rounded"
+                style={{ background: `${meta?.color ?? '#888'}16`, color: meta?.color ?? '#888' }}
+              >
+                {firstSkill.id}
+              </span>
+              <span className="text-[10.5px] text-[var(--ivps-text3)] truncate">
+                {firstSkill.name}
+              </span>
+            </div>
+          )}
+          {prescription && (
+            <div className="mt-2 text-[10.5px] leading-relaxed text-[var(--ivps-rust)]">
+              {prescription}
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col gap-1 flex-shrink-0">
+          <button
+            onClick={() => onOpen(reminder.scoreId)}
+            className="px-2.5 py-1 rounded text-[10px] font-semibold transition-all"
+            style={{
+              background: 'rgba(212,168,67,.1)',
+              border: '1px solid rgba(212,168,67,.25)',
+              color: '#d4a843',
+            }}
+          >
+            열기
+          </button>
+          <button
+            onClick={() => onDone(reminder.id)}
+            className="px-2.5 py-1 rounded text-[10px] font-semibold transition-all"
+            style={{
+              background: 'var(--ivps-surface)',
+              border: '1px solid var(--ivps-border2)',
+              color: 'var(--ivps-text3)',
+            }}
+          >
+            완료
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReviewReminderList({ reminders, onOpen, onDone }) {
+  const pending = reminders
+    .filter(reminder => reminder.status !== 'done')
+    .sort((a, b) => a.dueAt - b.dueAt);
+  const due = pending.filter(reminder => reminder.dueAt <= Date.now());
+  const upcoming = pending.filter(reminder => reminder.dueAt > Date.now());
+  const displayed = [...due, ...upcoming].slice(0, 4);
+
+  if (displayed.length === 0) {
+    return (
+      <div className="text-center py-4 text-[12px] text-[var(--ivps-text4)] border border-dashed border-[var(--ivps-border)] rounded-lg mb-3">
+        오늘 예정된 복습이 없습니다.
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-4">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10px] text-[var(--ivps-text3)] uppercase tracking-[.07em] font-semibold">
+          망각 곡선 복습
+        </span>
+        <span className="text-[10px] font-mono text-[var(--ivps-text4)]">
+          {due.length}개 오늘
+        </span>
+      </div>
+      {displayed.map(reminder => (
+        <ReviewReminderRow
+          key={reminder.id}
+          reminder={reminder}
+          onOpen={onOpen}
+          onDone={onDone}
+        />
+      ))}
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ScoreRailCard — 가로 레일 악보 카드
 // ─────────────────────────────────────────────────────────────────────────────
@@ -564,8 +702,10 @@ export function DashboardView() {
     scores,
     xpLog,
     practiceSessions,
+    reviewReminders,
     nav,
     score: scoreActs,
+    review,
   } = usePractice();
 
   const fileInputRef = useRef(null);
@@ -726,13 +866,18 @@ export function DashboardView() {
 
           {/* 우하단: 최근 연습 세션 */}
           <Panel
-            title="🕐 최근 연습 세션"
+            title="🕐 복습 / 최근 세션"
             action={
               <span className="text-[10px] font-mono text-[var(--ivps-text4)]">
-                {practiceSessions.length}회
+                {reviewReminders.filter(r => r.status !== 'done' && r.dueAt <= Date.now()).length} due
               </span>
             }
           >
+            <ReviewReminderList
+              reminders={reviewReminders}
+              onOpen={handleResume}
+              onDone={review.markReminderDone}
+            />
             {recentSessions.length === 0 ? (
               <div className="text-center py-5 text-[12px] text-[var(--ivps-text4)]">
                 아직 세션 기록이 없어요.<br />

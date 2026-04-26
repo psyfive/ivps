@@ -246,14 +246,14 @@ function SettingsPanel({ onClose }) {
 
       <div className="px-3.5 py-3">
         <div className="text-[10px] text-[var(--ivps-text3)] mb-1 leading-tight">
-          🍇 포도송이 체크
+          Rule of Three
         </div>
         <div className="text-[9.5px] text-[var(--ivps-text4)] mb-2 leading-relaxed">
-          포도 하나 체크할 때마다 BPM이 증가합니다.
+          3회 연속 성공하면 선택 구간의 목표 BPM이 증가합니다.
         </div>
         <div className="flex items-center gap-2">
           <span className="text-[10.5px] text-[var(--ivps-text3)] flex-1">
-            체크당 BPM 증가량
+            3회 성공 BPM 증가량
           </span>
           <div className="flex items-center gap-1">
             <button
