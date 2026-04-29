@@ -13,12 +13,20 @@ const COLS = 10;
 const ROWS = 10;
 const DAYS = COLS * ROWS; // 100
 
-function cellColor(durationMinutes, xpFallback) {
-  if (durationMinutes >= 60) return 'rgba(160,120,20,0.95)';
-  if (durationMinutes >= 45) return 'rgba(160,120,20,0.80)';
-  if (durationMinutes >= 30) return 'rgba(160,120,20,0.62)';
-  if (durationMinutes >= 15) return 'rgba(160,120,20,0.42)';
-  if (durationMinutes >= 1)  return 'rgba(160,120,20,0.24)';
+const DUR_LEVELS = [
+  { min: 60, op: 0.95 },
+  { min: 45, op: 0.80 },
+  { min: 30, op: 0.62 },
+  { min: 15, op: 0.42 },
+  { min:  1, op: 0.24 },
+];
+
+function cellColor(durationMinutes, xpFallback, hasQuality) {
+  const idx = DUR_LEVELS.findIndex(l => durationMinutes >= l.min);
+  if (idx !== -1) {
+    const bumped = hasQuality ? Math.max(0, idx - 1) : idx;
+    return `rgba(160,120,20,${DUR_LEVELS[bumped].op})`;
+  }
   if (xpFallback >= 60) return 'rgba(160,120,20,0.36)';
   if (xpFallback >= 30) return 'rgba(160,120,20,0.22)';
   if (xpFallback >= 1)  return 'rgba(160,120,20,0.13)';
@@ -35,9 +43,11 @@ function buildCells(practiceSessions, xpLog) {
     const dayEnd = new Date(dayStart);
     dayEnd.setHours(23, 59, 59, 999);
 
-    const durationMinutes = practiceSessions
-      .filter(s => s.date >= dayStart.getTime() && s.date <= dayEnd.getTime())
-      .reduce((sum, s) => sum + (s.durationMinutes ?? 0), 0);
+    const daySessions = practiceSessions.filter(
+      s => s.date >= dayStart.getTime() && s.date <= dayEnd.getTime()
+    );
+    const durationMinutes = daySessions.reduce((sum, s) => sum + (s.durationMinutes ?? 0), 0);
+    const hasQualityBonus = daySessions.some(s => s.hasQualityBonus);
 
     const xpTotal = xpLog
       .filter(e => e.timestamp >= dayStart.getTime() && e.timestamp <= dayEnd.getTime())
@@ -46,7 +56,7 @@ function buildCells(practiceSessions, xpLog) {
     const isToday = dayOffset === 0;
     const label   = `${dayStart.getMonth() + 1}/${dayStart.getDate()}`;
 
-    return { idx, durationMinutes, xpTotal, isToday, label };
+    return { idx, durationMinutes, xpTotal, hasQualityBonus, isToday, label };
   });
 }
 
@@ -123,7 +133,7 @@ export function PracticeHeatmap({ practiceSessions = [], xpLog = [] }) {
             style={{
               aspectRatio:  '1 / 1',
               borderRadius: 4,
-              background:   cellColor(cell.durationMinutes, cell.xpTotal),
+              background:   cellColor(cell.durationMinutes, cell.xpTotal, cell.hasQualityBonus),
               outline:      cell.isToday ? '2px solid var(--ivps-gold)' : 'none',
               outlineOffset: -1,
               cursor:       'default',

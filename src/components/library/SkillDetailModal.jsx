@@ -5,7 +5,7 @@
 // after 배열이 여러 개일 때 케이스 탭 전환.
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useCallback } from 'react';
-import { getCategoryMeta, SKILL_GROUPS, getXpPercent } from '../../data/taxonomy';
+import { getCategoryMeta, SKILL_GROUPS } from '../../data/taxonomy';
 
 // ── ResourcesSection ───────────────────────────────────────────────────────
 function extractYouTubeId(url) {
@@ -157,7 +157,6 @@ export function SkillDetailModal({ skill, onClose, onStartPractice }) {
   const [activeDiagIdx, setActiveDiagIdx] = useState(0);
   const meta    = getCategoryMeta(skill.id);
   const group   = SKILL_GROUPS.find(g => g.id === skill.groupId);
-  const pct     = getXpPercent(skill);
   const afterArr = Array.isArray(skill.after) ? skill.after : [skill.after];
 
   // ESC 닫기
@@ -212,21 +211,6 @@ export function SkillDetailModal({ skill, onClose, onStartPractice }) {
             <h2 className="font-serif text-[24px] font-bold text-[var(--ivps-text1)] leading-tight">
               {skill.name}
             </h2>
-            {/* XP 바 */}
-            <div className="flex items-center gap-2.5 mt-2">
-              <div className="h-[3px] flex-1 bg-[var(--ivps-surface2)] rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full"
-                  style={{
-                    width: `${pct}%`,
-                    background: `linear-gradient(90deg,${meta.color}88,${meta.color})`,
-                  }}
-                />
-              </div>
-              <span className="font-mono text-[10px] text-[var(--ivps-text4)] flex-shrink-0">
-                {skill.xp}/{skill.maxXp} XP · Lv.{skill.level}
-              </span>
-            </div>
           </div>
           <button
             onClick={onClose}

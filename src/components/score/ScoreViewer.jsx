@@ -408,7 +408,6 @@ function SkillPickerModal({ sessionId, session, onClose }) {
                   <div className="flex items-center gap-1.5 mb-0.5">
                     <span className="font-mono text-[10px] text-[var(--ivps-gold)]">{sk.id}</span>
                     <span className="text-[12.5px] font-medium text-[var(--ivps-text1)]">{sk.name}</span>
-                    <span className="text-[10px] text-[var(--ivps-text3)] ml-auto flex-shrink-0">Lv.{sk.level}</span>
                   </div>
                   <div className="text-[11px] text-[var(--ivps-text3)] truncate">
                     {sk.corePrinciple.slice(0, 55)}…

@@ -443,12 +443,6 @@ function SkillDetail({ skill }) {
             </div>
             <h2 className="font-serif text-[20px] font-bold text-[var(--ivps-text1)] leading-tight">{skill.name}</h2>
           </div>
-          <div className="flex-shrink-0">
-            <div className="font-mono text-[10px] text-[var(--ivps-text3)] mb-1">Lv.{skill.level}</div>
-            <div className="h-1 w-14 bg-[var(--ivps-surface2)] rounded-full overflow-hidden">
-              <div className="h-full rounded-full" style={{ width: `${Math.round((skill.xp / skill.maxXp) * 100)}%`, background: meta.color }} />
-            </div>
-          </div>
         </div>
       </div>
 
@@ -533,12 +527,6 @@ function BeforeSkillDetail({ skill }) {
               <span className="text-[var(--ivps-text3)]">{skill.groupId}</span>
             </div>
             <h2 className="font-serif text-[20px] font-bold text-[var(--ivps-text1)] leading-tight">{skill.name}</h2>
-          </div>
-          <div className="flex-shrink-0">
-            <div className="font-mono text-[10px] text-[var(--ivps-text3)] mb-1">Lv.{skill.level}</div>
-            <div className="h-1 w-14 bg-[var(--ivps-surface2)] rounded-full overflow-hidden">
-              <div className="h-full rounded-full" style={{ width: Math.round((skill.xp / skill.maxXp) * 100) + '%', background: meta.color }} />
-            </div>
           </div>
         </div>
       </div>

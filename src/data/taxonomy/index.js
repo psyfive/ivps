@@ -43,11 +43,6 @@ export function getCategoryMeta(skillId) {
   return CATEGORY_META[getCategoryCode(skillId)] ?? CATEGORY_META['A'];
 }
 
-/** XP% 계산 */
-export function getXpPercent(skill) {
-  return Math.round((skill.xp / skill.maxXp) * 100);
-}
-
 /** 모든 카테고리 목록 (필터용) */
 export const ALL_CATEGORIES = ['전체', ...Object.keys(CATEGORY_META)];
 

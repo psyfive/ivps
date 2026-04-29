@@ -13,7 +13,6 @@ import {
   CATEGORY_META,
   SKILL_GROUPS,
   getCategoryMeta,
-  getXpPercent,
 } from '../../data/taxonomy';
 import { SkillDetailModal } from './SkillDetailModal';
 
@@ -31,7 +30,6 @@ const CAT_TABS = [
 // ─────────────────────────────────────────────────────────────────────────────
 function SkillCard({ skill, onSelect }) {
   const meta = getCategoryMeta(skill.id);
-  const pct  = getXpPercent(skill);
 
   return (
     <button
@@ -41,16 +39,13 @@ function SkillCard({ skill, onSelect }) {
         'ivps-skill-card rounded-[11px] p-[18px]',
       ].join(' ')}
     >
-      {/* 상단: ID + 레벨 */}
-      <div className="flex items-center justify-between mb-0.5">
+      {/* 상단: ID */}
+      <div className="flex items-center mb-0.5">
         <span
           className="font-mono text-[10.5px] px-1.5 py-0.5 rounded"
           style={{ background: `${meta.color}18`, color: meta.color }}
         >
           {skill.id}
-        </span>
-        <span className="font-mono text-[10px] text-[var(--ivps-text4)]">
-          Lv.{skill.level}
         </span>
       </div>
 
@@ -69,7 +64,7 @@ function SkillCard({ skill, onSelect }) {
 
       {/* 스킬 정의 (2줄 클램프) */}
       <p
-        className="text-[11.5px] text-[#5a6678] leading-[1.6] mb-3"
+        className="text-[11.5px] text-[#5a6678] leading-[1.6]"
         style={{
           display: '-webkit-box',
           WebkitLineClamp: 2,
@@ -79,21 +74,6 @@ function SkillCard({ skill, onSelect }) {
       >
         {skill.corePrinciple}
       </p>
-
-      {/* XP 바 */}
-      <div className="flex items-center justify-between font-mono text-[10px] text-[var(--ivps-text4)] mb-1">
-        <span>XP</span>
-        <span>{skill.xp}/{skill.maxXp}</span>
-      </div>
-      <div className="h-[3px] bg-[var(--ivps-surface2)] rounded-full overflow-hidden">
-        <div
-          className="h-full rounded-full transition-all duration-300"
-          style={{
-            width: `${pct}%`,
-            background: `linear-gradient(90deg,${meta.color}88,${meta.color})`,
-          }}
-        />
-      </div>
     </button>
   );
 }
@@ -185,9 +165,7 @@ export function LibraryView() {
     return list;
   }, [activeCat, activeGroup, query, symptomFilter]);
 
-  // ── XP 요약 ───────────────────────────────────────────────────────
-  const totalSkills    = TAXONOMY.length;
-  const practicedCount = TAXONOMY.filter(s => s.xp > 0).length;
+  const totalSkills = TAXONOMY.length;
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -200,7 +178,7 @@ export function LibraryView() {
               스킬 라이브러리
             </h1>
             <p className="text-[12px] text-[var(--ivps-text3)] mt-1">
-              연습할 기술을 선택하세요 &middot; {totalSkills}개 스킬 &middot; {practicedCount}개 연습 기록
+              연습할 기술을 선택하세요 &middot; {totalSkills}개 스킬
             </p>
           </div>
 

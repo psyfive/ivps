@@ -941,6 +941,15 @@ export function reducer(state, action) {
         .reduce((sum, e) => sum + e.xp, 0);
       const durationMs = state.duringStartTime ? Date.now() - state.duringStartTime : 0;
       const durationMinutes = Math.round(durationMs / 60000);
+
+      const duringStart = state.duringStartTime ?? 0;
+      const sessionXpLog = state.xpLog.filter(e => e.timestamp >= duringStart);
+      const hasGrapeStreak = state.grapeFilled >= 3;
+      const hardSegIds = new Set((score?.segments ?? []).filter(s => s.difficulty === 'hard').map(s => s.id));
+      const hasHardSegment = sessionXpLog.some(e => hardSegIds.has(e.segmentId));
+      const hasSuccessStreak = sessionXpLog.filter(e => e.result === 'success').length >= 3;
+      const hasQualityBonus = hasGrapeStreak || hasHardSegment || hasSuccessStreak;
+
       const sessionRecord = {
         id: uid(),
         scoreId: state.activeScoreId,
@@ -948,6 +957,7 @@ export function reducer(state, action) {
         skillIds,
         xpGained,
         durationMinutes,
+        hasQualityBonus,
         date: now,
       };
       const newReminders = (score?.segments ?? []).flatMap((seg, index) => {
