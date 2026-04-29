@@ -11,7 +11,7 @@ function FocusItem({ index, text, isFirst, color }) {
       className={[
         'w-full flex items-start gap-3 px-3.5 py-3 rounded-xl text-left border',
         isFirst
-          ? 'border-[rgba(155,127,200,.25)] bg-[rgba(155,127,200,.08)]'
+          ? 'border-[var(--ivps-plum-border)] bg-[var(--ivps-plum-bg)]'
           : 'border-[var(--ivps-border)] bg-[var(--ivps-surface)]',
       ].join(' ')}
     >
@@ -28,13 +28,13 @@ function FocusItem({ index, text, isFirst, color }) {
       <span
         className={[
           'text-[13.5px] leading-snug flex-1',
-          isFirst ? 'font-semibold text-[var(--ivps-text1)]' : 'font-medium text-[#c8d0dc]',
+          isFirst ? 'font-semibold text-[var(--ivps-text1)]' : 'font-medium text-[var(--ivps-text2)]',
         ].join(' ')}
       >
         {text}
       </span>
       {isFirst && (
-        <span className="text-[9.5px] font-mono text-[var(--ivps-plum)] bg-[rgba(155,127,200,.15)] border border-[rgba(155,127,200,.25)] px-1.5 py-0.5 rounded flex-shrink-0">
+        <span className="text-[9.5px] font-mono text-[var(--ivps-plum)] bg-[var(--ivps-plum-bg)] border border-[var(--ivps-plum-border)] px-1.5 py-0.5 rounded flex-shrink-0">
           FOCUS
         </span>
       )}
@@ -48,7 +48,7 @@ function AdaptiveTip({ streak, bpm }) {
     ? `Streak ${streak}. Consider +5 BPM from ${bpm}.`
     : `Streak ${streak}. Keep the same focus one more pass.`;
   return (
-    <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-[rgba(212,168,67,.2)] bg-[rgba(212,168,67,.06)] mb-3">
+    <div className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-[var(--ivps-gold-border)] bg-[var(--ivps-gold-bg)] mb-3">
       <span className="text-[12px] text-[var(--ivps-gold)] flex-1">{msg}</span>
     </div>
   );
@@ -102,11 +102,11 @@ function SelectSegmentGuide({ segments, selectedSegmentId, onSelect }) {
                 className={[
                   'w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-left border transition-all',
                   isSelected
-                    ? 'bg-[rgba(155,127,200,.15)] border-[rgba(155,127,200,.5)]'
-                    : 'bg-[var(--ivps-surface)] border-[var(--ivps-border)] hover:border-[rgba(155,127,200,.3)] hover:bg-[rgba(155,127,200,.06)]',
+                    ? 'bg-[var(--ivps-seg-practice-fill)] border-[var(--ivps-seg-practice)]'
+                    : 'bg-[var(--ivps-surface)] border-[var(--ivps-border)] hover:border-[var(--ivps-plum-border)] hover:bg-[var(--ivps-plum-bg)]',
                 ].join(' ')}
               >
-                <span className="w-8 h-8 rounded-lg bg-[rgba(155,127,200,.15)] text-[var(--ivps-plum)] font-mono text-[12px] font-bold flex items-center justify-center flex-shrink-0">
+                <span className="w-8 h-8 rounded-lg bg-[var(--ivps-plum-bg)] text-[var(--ivps-plum)] font-mono text-[12px] font-bold flex items-center justify-center flex-shrink-0">
                   {idx + 1}
                 </span>
                 <div className="flex-1 min-w-0">
@@ -123,7 +123,7 @@ function SelectSegmentGuide({ segments, selectedSegmentId, onSelect }) {
                   </div>
                 </div>
                 {skillCount > 0 && (
-                  <span className="text-[10px] font-mono text-[var(--ivps-plum)] bg-[rgba(155,127,200,.12)] border border-[rgba(155,127,200,.2)] px-1.5 py-0.5 rounded flex-shrink-0">
+                  <span className="text-[10px] font-mono text-[var(--ivps-plum)] bg-[var(--ivps-plum-bg)] border border-[var(--ivps-plum-border)] px-1.5 py-0.5 rounded flex-shrink-0">
                     {skillCount}{'\uC2A4\uD0AC'}
                   </span>
                 )}
@@ -180,7 +180,7 @@ export function PracticeHUD({ onOpenAfterSheet }) {
   const FullscreenBtn = () => (
     <button
       onClick={() => { ui.setPracticeFullscreen(true); requestNativeFullscreen(); }}
-      className="mx-5 mt-3 mb-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border text-[11px] font-semibold transition-all flex-shrink-0 bg-[rgba(155,127,200,.07)] border-[rgba(155,127,200,.25)] text-[#9b7fc8] hover:bg-[rgba(155,127,200,.14)]"
+      className="mx-5 mt-3 mb-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border text-[11px] font-semibold transition-all flex-shrink-0 bg-[var(--ivps-plum-bg)] border-[var(--ivps-plum-border)] text-[var(--ivps-plum)] hover:bg-[var(--ivps-seg-practice-fill)]"
     >
       {'\uC545\uBCF4 \uC804\uCCB4\uD654\uBA74'}
     </button>
@@ -221,8 +221,12 @@ export function PracticeHUD({ onOpenAfterSheet }) {
               className={[
                 'px-2.5 py-1 rounded-lg text-[11px] font-mono font-semibold border transition-all',
                 seg.id === selectedSegmentId
-                  ? 'bg-[rgba(155,127,200,.2)] border-[rgba(155,127,200,.6)] text-[var(--ivps-plum)]'
-                  : 'bg-transparent border-[var(--ivps-border)] text-[var(--ivps-text4)] hover:border-[rgba(155,127,200,.3)] hover:text-[var(--ivps-text3)]',
+                  ? 'bg-[var(--ivps-seg-selected-fill)] border-[var(--ivps-seg-selected)] text-[var(--ivps-gold)]'
+                  : seg.difficulty === 'hard'
+                    ? 'bg-[var(--ivps-seg-hard-fill)] border-[var(--ivps-seg-hard)] text-[var(--ivps-rust)] hover:opacity-80'
+                    : (seg.mappedSkills ?? []).length > 0
+                      ? 'bg-[var(--ivps-seg-mapped-fill)] border-[var(--ivps-seg-mapped)] text-[var(--ivps-moss)] hover:opacity-80'
+                      : 'bg-[var(--ivps-seg-unmapped-fill)] border-[var(--ivps-seg-unmapped)] text-[var(--ivps-plum)] hover:opacity-80',
               ].join(' ')}
             >
               {idx + 1}{'\uAD6C\uAC04'}
@@ -283,7 +287,7 @@ export function PracticeHUD({ onOpenAfterSheet }) {
               <button
                 type="button"
                 onClick={rerollFocus}
-                className="text-[10px] text-[#d4a843] bg-[rgba(212,168,67,.08)] border border-[rgba(212,168,67,.25)] rounded px-2 py-1 hover:bg-[rgba(212,168,67,.14)] transition-colors"
+                className="text-[10px] text-[var(--ivps-gold)] bg-[var(--ivps-gold-bg)] border border-[var(--ivps-gold-border)] rounded px-2 py-1 hover:bg-[rgba(212,168,67,.14)] transition-colors"
               >
                 ROLL
               </button>
@@ -297,7 +301,7 @@ export function PracticeHUD({ onOpenAfterSheet }) {
 
         {duringItems.length > 0 && (
           <div className="text-[10px] text-[var(--ivps-text3)] uppercase tracking-[.08em] font-semibold flex items-center gap-1.5 mb-2">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#9b7fc8]" />
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--ivps-plum)]" />
             FOCUS
             <span className="ml-auto font-mono text-[var(--ivps-plum)]">
               {focusItems.length}/{duringItems.length}
@@ -352,7 +356,7 @@ export function PracticeHUD({ onOpenAfterSheet }) {
         <button
           onClick={() => onOpenAfterSheet ? onOpenAfterSheet() : nav.setPhase('after')}
           className="w-full py-3 rounded-xl text-[#0d1117] font-semibold text-[13.5px] flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
-          style={{ background: 'linear-gradient(135deg,#9b7fc8,#7b5fa8)' }}
+          style={{ background: 'linear-gradient(135deg,var(--ivps-plum),var(--ivps-plum-dim))' }}
         >
           {'\uC5F0\uC2B5 \uC885\uB8CC - \uC9C4\uB2E8\uD558\uAE30'}
         </button>

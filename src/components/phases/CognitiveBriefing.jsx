@@ -146,10 +146,10 @@ function DroppableSegmentRow({ segment, index, onDelete, onUnmap, isSelected, on
       className={[
         'rounded-xl border p-2.5 mb-2 transition-all cursor-pointer',
         isOver
-          ? 'border-[rgba(126,168,144,.6)] bg-[rgba(126,168,144,.12)] scale-[1.01]'
+          ? 'border-[var(--ivps-moss-border)] bg-[var(--ivps-moss-bg)] scale-[1.01]'
           : isSelected
-          ? 'border-[rgba(212,168,67,.5)] bg-[rgba(212,168,67,.06)]'
-          : 'border-[var(--ivps-border)] bg-[var(--ivps-surface)] hover:border-[rgba(155,127,200,.3)]',
+          ? 'border-[var(--ivps-gold-border)] bg-[var(--ivps-gold-bg)]'
+          : 'border-[var(--ivps-border)] bg-[var(--ivps-surface)] hover:border-[var(--ivps-plum-border)]',
       ].join(' ')}
     >
       {/* 헤더 */}
@@ -159,7 +159,7 @@ function DroppableSegmentRow({ segment, index, onDelete, onUnmap, isSelected, on
             {index + 1}구간
           </span>
           {isOver && (
-            <span className="text-[9.5px] text-[#7ea890] font-medium animate-pulse">
+            <span className="text-[9.5px] text-[var(--ivps-moss)] font-medium animate-pulse">
               드랍하세요
             </span>
           )}
@@ -167,7 +167,7 @@ function DroppableSegmentRow({ segment, index, onDelete, onUnmap, isSelected, on
         <button
           onPointerDown={e => e.stopPropagation()}
           onClick={e => { e.stopPropagation(); onDelete(segment.id); }}
-          className="text-[10px] text-[var(--ivps-text4)] hover:text-[#e07070] transition-colors"
+          className="text-[10px] text-[var(--ivps-text4)] hover:text-[var(--ivps-rust)] transition-colors"
         >✕</button>
       </div>
 
@@ -176,7 +176,7 @@ function DroppableSegmentRow({ segment, index, onDelete, onUnmap, isSelected, on
         <div className={[
           'text-[10.5px] py-2 text-center rounded-lg border border-dashed transition-colors',
           isOver
-            ? 'border-[rgba(126,168,144,.4)] text-[#7ea890]'
+            ? 'border-[var(--ivps-moss-border)] text-[var(--ivps-moss)]'
             : 'border-[var(--ivps-border2)] text-[var(--ivps-text4)]',
         ].join(' ')}>
           스킬을 드래그해 놓으세요
@@ -205,7 +205,7 @@ function DroppableSegmentRow({ segment, index, onDelete, onUnmap, isSelected, on
       {/* 목표 메타 — 선택 시만 표시 */}
       {isSelected && (
         <div
-          className="flex items-center gap-2 mt-2 pt-2 border-t border-[rgba(212,168,67,.12)]"
+          className="flex items-center gap-2 mt-2 pt-2 border-t border-[var(--ivps-divider)]"
           onClick={e => e.stopPropagation()}
           onPointerDown={e => e.stopPropagation()}
         >
@@ -217,7 +217,7 @@ function DroppableSegmentRow({ segment, index, onDelete, onUnmap, isSelected, on
               min="20" max="240"
               value={segment.targetBpm ?? ''}
               placeholder="BPM"
-              className="w-14 px-1.5 py-0.5 rounded text-[10.5px] font-mono bg-[rgba(212,168,67,.06)] border border-[rgba(212,168,67,.2)] text-[var(--ivps-gold)] placeholder-[rgba(212,168,67,.3)] outline-none focus:border-[rgba(212,168,67,.5)] text-center"
+              className="w-14 px-1.5 py-0.5 rounded text-[10.5px] font-mono bg-[var(--ivps-gold-bg)] border border-[var(--ivps-gold-border)] text-[var(--ivps-gold)] placeholder-[var(--ivps-text4)] outline-none focus:border-[var(--ivps-gold)] text-center"
               onChange={e => {
                 const v = e.target.value === '' ? null : Number(e.target.value);
                 onSetMeta(segment.id, { targetBpm: v });
@@ -231,7 +231,7 @@ function DroppableSegmentRow({ segment, index, onDelete, onUnmap, isSelected, on
               min="1" max="100"
               value={segment.targetReps ?? ''}
               placeholder="회"
-              className="w-12 px-1.5 py-0.5 rounded text-[10.5px] font-mono bg-[rgba(155,127,200,.06)] border border-[rgba(155,127,200,.2)] text-[var(--ivps-plum)] placeholder-[rgba(155,127,200,.3)] outline-none focus:border-[rgba(155,127,200,.5)] text-center"
+              className="w-12 px-1.5 py-0.5 rounded text-[10.5px] font-mono bg-[var(--ivps-plum-bg)] border border-[var(--ivps-plum-border)] text-[var(--ivps-plum)] placeholder-[var(--ivps-text4)] outline-none focus:border-[var(--ivps-plum)] text-center"
               onChange={e => {
                 const v = e.target.value === '' ? null : Number(e.target.value);
                 onSetMeta(segment.id, { targetReps: v });
@@ -462,12 +462,12 @@ function SkillDetail({ skill }) {
         </BriefingCard>
       )}
 
-      <div className="rounded-[11px] border border-[rgba(155,127,200,.15)] mb-3 overflow-hidden"
-        style={{ background: 'rgba(155,127,200,.04)' }}>
+      <div className="rounded-[11px] border border-[var(--ivps-plum-border)] mb-3 overflow-hidden"
+        style={{ background: 'var(--ivps-plum-bg)' }}>
         <button className="w-full flex items-center justify-between px-4 py-3"
           onClick={() => setCheckpointOpen(v => !v)}>
           <div className="text-[10.5px] font-semibold uppercase tracking-[.07em] flex items-center gap-1.5 text-[var(--ivps-plum)]">
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#9b7fc8]" />
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--ivps-plum)]" />
             During 체크포인트 미리보기
           </div>
           <span className="text-[var(--ivps-text3)] text-[12px]"
@@ -476,10 +476,9 @@ function SkillDetail({ skill }) {
         {checkpointOpen && (
           <div className="px-4 pb-4 flex flex-col gap-2">
             {skill.during.map((item, i) => (
-              <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg"
-                style={{ background: 'rgba(155,127,200,.07)', border: '1px solid rgba(155,127,200,.12)' }}>
-                <span className="w-5 h-5 rounded-full flex items-center justify-center font-mono text-[11px] flex-shrink-0"
-                  style={{ background: 'rgba(155,127,200,.18)', color: '#9b7fc8' }}>{i + 1}</span>
+              <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-[var(--ivps-plum-border)] bg-[var(--ivps-plum-bg)]">
+                <span className="w-5 h-5 rounded-full flex items-center justify-center font-mono text-[11px] flex-shrink-0 bg-[var(--ivps-plum-bg)] text-[var(--ivps-plum)]"
+                  style={{ opacity: 0.9 }}>{i + 1}</span>
                 <span className="text-[13px] text-[var(--ivps-text1)]">{item}</span>
               </div>
             ))}
@@ -704,7 +703,7 @@ export function CognitiveBriefing() {
                 <div className="text-[10px] text-[var(--ivps-text3)] uppercase tracking-[.07em] font-semibold flex items-center gap-1.5">
                   <span className={[
                     'inline-block w-1.5 h-1.5 rounded-full',
-                    isSelectingSegment ? 'bg-[#9b7fc8] animate-pulse' : 'bg-[#9b7fc8]',
+                    isSelectingSegment ? 'bg-[var(--ivps-plum)] animate-pulse' : 'bg-[var(--ivps-plum)]',
                   ].join(' ')} />
                   구간별 스킬 매핑
                   {segments.length > 0 && (
@@ -719,7 +718,7 @@ export function CognitiveBriefing() {
                         e.stopPropagation();
                         segmentActs.startAddToSegment(selectedSegmentId);
                       }}
-                      className="flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-semibold transition-all bg-[rgba(212,168,67,.1)] border-[rgba(212,168,67,.4)] text-[#d4a843] hover:bg-[rgba(212,168,67,.18)]"
+                      className="flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-semibold transition-all bg-[var(--ivps-gold-bg)] border-[var(--ivps-gold-border)] text-[var(--ivps-gold)] hover:bg-[var(--ivps-active)]"
                     >
                       <span className="text-[11px] leading-none">＋</span>
                       구간 추가
@@ -730,7 +729,7 @@ export function CognitiveBriefing() {
                         e.stopPropagation();
                         segmentActs.toggleSegmentMode();
                       }}
-                      className="flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-semibold transition-all bg-[rgba(155,127,200,.07)] border-[rgba(155,127,200,.3)] text-[#9b7fc8] hover:bg-[rgba(155,127,200,.15)]"
+                      className="flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-semibold transition-all bg-[var(--ivps-plum-bg)] border-[var(--ivps-plum-border)] text-[var(--ivps-plum)] hover:bg-[var(--ivps-hover)]"
                     >
                       <span className="text-[11px] leading-none">＋</span>
                       구간 설정
@@ -745,15 +744,15 @@ export function CognitiveBriefing() {
                     className={[
                       'flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-semibold transition-all animate-pulse hover:animate-none',
                       addingToSegmentId
-                        ? 'bg-[rgba(212,168,67,.18)] border-[rgba(212,168,67,.58)] text-[#d4a843] hover:bg-[rgba(212,168,67,.26)]'
-                        : 'bg-[rgba(155,127,200,.2)] border-[rgba(155,127,200,.6)] text-[#c4a8ff] hover:bg-[rgba(155,127,200,.3)]',
+                        ? 'bg-[var(--ivps-gold-bg)] border-[var(--ivps-gold-border)] text-[var(--ivps-gold)] hover:bg-[var(--ivps-active)]'
+                        : 'bg-[var(--ivps-plum-bg)] border-[var(--ivps-plum-border)] text-[var(--ivps-plum)] hover:bg-[var(--ivps-hover)]',
                     ].join(' ')}
                   >
                     <span className="text-[11px] leading-none">✓</span>
                     {addingToSegmentId ? `추가 확정 ${tempSegments.length}개` : `확정 ${tempSegments.length}개`}
                   </button>
                 ) : (
-                  <span className="text-[9.5px] text-[#9b7fc8] animate-pulse">
+                  <span className="text-[9.5px] text-[var(--ivps-plum)] animate-pulse">
                     {addingToSegmentId ? '추가 중…' : '그리는 중…'}
                   </span>
                 )}
@@ -764,7 +763,7 @@ export function CognitiveBriefing() {
                 <div className={[
                   'text-[11px] text-center py-5 rounded-xl border border-dashed transition-colors',
                   isSelectingSegment
-                    ? 'border-[rgba(155,127,200,.5)] text-[#9b7fc8] bg-[rgba(155,127,200,.05)]'
+                    ? 'border-[var(--ivps-plum-border)] text-[var(--ivps-plum)] bg-[var(--ivps-plum-bg)]'
                     : 'border-[var(--ivps-border2)] text-[var(--ivps-text4)]',
                 ].join(' ')}>
                   {isSelectingSegment

@@ -20,8 +20,8 @@ function fmtElapsed(sec) {
 function MiniBtn({ onClick, children, title, accent, dim, danger, disabled }) {
   const base = 'flex items-center justify-center rounded-lg border text-[11.5px] font-semibold transition-all select-none';
   let colors;
-  if (accent)       colors = 'bg-[rgba(212,168,67,.12)] border-[rgba(212,168,67,.3)] text-[#d4a843] hover:bg-[rgba(212,168,67,.2)]';
-  else if (danger)  colors = 'bg-[rgba(224,112,112,.1)] border-[rgba(224,112,112,.25)] text-[#e07070] hover:bg-[rgba(224,112,112,.18)]';
+  if (accent)       colors = 'bg-[var(--ivps-gold-bg)] border-[var(--ivps-gold-border)] text-[var(--ivps-gold)] hover:bg-[rgba(212,168,67,.2)]';
+  else if (danger)  colors = 'bg-[var(--ivps-rust-bg)] border-[var(--ivps-rust-border)] text-[var(--ivps-rust)] hover:bg-[rgba(224,112,112,.18)]';
   else if (dim)     colors = 'bg-transparent border-transparent text-[rgba(255,255,255,.25)] cursor-default';
   else              colors = 'bg-[rgba(255,255,255,.05)] border-[rgba(255,255,255,.1)] text-[rgba(255,255,255,.6)] hover:bg-[rgba(255,255,255,.1)] hover:text-white';
 
@@ -667,7 +667,7 @@ export function DuringMiniControls() {
                     </div>
                     {ghostActive && (
                       <span className="text-[9px] font-bold px-1.5 py-0.5 rounded animate-pulse"
-                        style={{ background: 'rgba(155,127,200,.15)', color: '#9b7fc8', border: '1px solid rgba(155,127,200,.3)' }}>
+                        style={{ background: 'var(--ivps-plum-bg)', color: 'var(--ivps-plum)', border: '1px solid var(--ivps-plum-border)' }}>
                         진행 중
                       </span>
                     )}
@@ -689,12 +689,12 @@ export function DuringMiniControls() {
                           value={panelGhostBars}
                           onChange={e => setPanelGhostBars(Math.max(1, Math.min(32, Number(e.target.value))))}
                           className="rounded border text-center font-mono text-[12px] font-bold bg-transparent outline-none"
-                          style={{ width: 34, height: 22, borderColor: 'rgba(155,127,200,.4)', color: '#9b7fc8' }}
+                          style={{ width: 34, height: 22, borderColor: 'var(--ivps-plum-border)', color: 'var(--ivps-plum)' }}
                         />
                         <button
                           onClick={() => setPanelGhostBars(v => Math.min(32, v + 1))}
                           className="rounded border text-[10px] font-bold flex-shrink-0"
-                          style={{ width: 22, height: 22, background: 'rgba(155,127,200,.1)', borderColor: 'rgba(155,127,200,.25)', color: '#9b7fc8' }}
+                          style={{ width: 22, height: 22, background: 'var(--ivps-plum-bg)', borderColor: 'var(--ivps-plum-border)', color: 'var(--ivps-plum)' }}
                         >+</button>
                         <span className="text-[9px] text-[rgba(255,255,255,.3)]">마디</span>
                       </div>
@@ -745,9 +745,9 @@ export function DuringMiniControls() {
                       disabled={!metroPlaying}
                       className="w-full h-8 rounded-lg text-[11.5px] font-semibold transition-all"
                       style={{
-                        background: !metroPlaying ? 'rgba(155,127,200,.06)' : 'rgba(155,127,200,.18)',
-                        border: `1px solid ${!metroPlaying ? 'rgba(155,127,200,.15)' : 'rgba(155,127,200,.45)'}`,
-                        color: !metroPlaying ? 'rgba(155,127,200,.35)' : '#9b7fc8',
+                        background: !metroPlaying ? 'var(--ivps-plum-bg)' : 'var(--ivps-seg-practice-fill)',
+                        border: `1px solid ${!metroPlaying ? 'var(--ivps-plum-border)' : 'var(--ivps-seg-practice)'}`,
+                        color: !metroPlaying ? 'rgba(155,127,200,.35)' : 'var(--ivps-plum)',
                         cursor: !metroPlaying ? 'not-allowed' : 'pointer',
                       }}
                     >
@@ -877,9 +877,9 @@ export function DuringMiniControls() {
                   onClick={confirmMetro}
                   className="w-full h-8 rounded-lg text-[12px] font-semibold transition-all"
                   style={{
-                    background: selectedSegmentId ? 'rgba(16,185,129,.18)' : 'rgba(212,168,67,.18)',
-                    border: `1px solid ${selectedSegmentId ? 'rgba(16,185,129,.4)' : 'rgba(212,168,67,.4)'}`,
-                    color: selectedSegmentId ? '#10B981' : '#d4a843',
+                    background: selectedSegmentId ? 'var(--ivps-seg-practice-fill)' : 'var(--ivps-gold-bg)',
+                    border: `1px solid ${selectedSegmentId ? 'var(--ivps-seg-practice)' : 'var(--ivps-gold-border)'}`,
+                    color: selectedSegmentId ? 'var(--ivps-plum)' : 'var(--ivps-gold)',
                   }}
                 >
                   확인

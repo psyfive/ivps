@@ -12,36 +12,40 @@
 //   • 선택된 구간 → 드래그로 이동, 모서리/가장자리 핸들로 크기 조정
 // ─────────────────────────────────────────────────────────────────────────────
 import { useRef, useEffect, useCallback } from 'react';
+import { useTheme } from '../../hooks/useTheme.js';
 
-const PALETTE = {
-  // Before / After 공통
-  unmapped:  { fill: 'rgba(155,127,200,0.15)', stroke: '#9b7fc8',               text: '#9b7fc8'               },
-  mapped:    { fill: 'rgba(126,168,144,0.22)', stroke: '#7ea890',               text: '#7ea890'               },
-  selected:  { fill: 'rgba(59,130,246,0.18)',  stroke: '#3B82F6',               text: '#3B82F6'               }, // Blue — Affordance
-  hard:      { fill: 'rgba(224,112,112,0.12)', stroke: 'rgba(224,112,112,0.75)', text: '#e07070'              }, // Red — 어려운 구간 (before/after)
-  hardDuring:{ fill: 'rgba(224,112,112,0.07)', stroke: 'rgba(224,112,112,0.35)', text: '#e07070'              }, // Red — 어려운 구간 (during, 연하게)
-  // During 전용
-  practice:  { fill: 'rgba(16,185,129,0.17)',  stroke: '#10B981',                text: '#10B981'                }, // Mint Green — Reduced Load
-  faint:     { fill: 'rgba(16,185,129,0.07)',  stroke: 'rgba(16,185,129,0.28)',  text: 'rgba(16,185,129,0.5)'  }, // 연한 초록 — 비선택 구간
-  // 공통
-  pending:   { fill: 'rgba(155,127,200,0.07)', stroke: '#9b7fc8',               text: '#9b7fc8'               },
-};
+function buildPalette() {
+  const g = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  return {
+    unmapped:   { fill: g('--ivps-seg-unmapped-fill'),  stroke: g('--ivps-seg-unmapped'),    text: g('--ivps-seg-unmapped')    },
+    mapped:     { fill: g('--ivps-seg-mapped-fill'),    stroke: g('--ivps-seg-mapped'),      text: g('--ivps-seg-mapped')      },
+    selected:   { fill: g('--ivps-seg-selected-fill'),  stroke: g('--ivps-seg-selected'),    text: g('--ivps-seg-selected')    },
+    hard:       { fill: g('--ivps-seg-hard-fill'),      stroke: g('--ivps-seg-hard-stroke'), text: g('--ivps-seg-hard')        },
+    hardDuring: { fill: g('--ivps-seg-hard-fill'),      stroke: g('--ivps-seg-hard-stroke'), text: g('--ivps-seg-hard')        },
+    practice:   { fill: g('--ivps-seg-practice-fill'),  stroke: g('--ivps-seg-practice'),    text: g('--ivps-seg-practice')   },
+    faint:      { fill: g('--ivps-seg-faint'),          stroke: g('--ivps-seg-faint-stroke'), text: g('--ivps-seg-faint-text') },
+    pending:    { fill: g('--ivps-seg-unmapped-faint'), stroke: g('--ivps-seg-unmapped'),    text: g('--ivps-seg-unmapped')    },
+    badgeBg:     g('--ivps-badge-bg'),
+    badgeBgSoft: g('--ivps-badge-bg-soft'),
+    handleFill:  g('--ivps-handle-fill'),
+    bpmLabel:    g('--ivps-gold'),
+    delBg:       g('--ivps-seg-del'),
+    delBgTemp:   g('--ivps-seg-del-temp'),
+    dragFill:    g('--ivps-segdrag-fill'),
+    dragStroke:  g('--ivps-segdrag-stroke'),
+    bracketColor: g('--ivps-seg-bracket'),
+  };
+}
 
 const HANDLE_SIZE = 7;   // 핸들 그리기 크기 (px)
 const HANDLE_HIT  = 12;  // 핸들 클릭 감지 반경 (px)
 const MIN_W = 0.03;
 const MIN_H = 0.02;
 
-function segColor(seg, isSelected, phase) {
-  if (phase === 'during') {
-    if (isSelected) return PALETTE.practice;              // Mint Green — 연습 집중
-    if (seg.difficulty === 'hard') return PALETTE.hardDuring; // 연한 빨강 — 어려운 구간
-    return PALETTE.faint;                                 // 연한 초록 — 비선택 구간
-  }
-  // Before / After
-  if (isSelected) return PALETTE.selected;               // Blue — "선택됨" 즉각 인지
-  if (seg.difficulty === 'hard') return PALETTE.hard;    // Red — 어려운 구간
-  return seg.mappedSkills.length > 0 ? PALETTE.mapped : PALETTE.unmapped;
+function segColor(seg, isSelected, pal) {
+  if (isSelected) return pal.selected;
+  if (seg.difficulty === 'hard') return pal.hard;
+  return (seg.mappedSkills ?? []).length > 0 ? pal.mapped : pal.unmapped;
 }
 
 function drawRect(ctx, px, py, pw, ph, col, dashed, lineWidth) {
@@ -55,10 +59,10 @@ function drawRect(ctx, px, py, pw, ph, col, dashed, lineWidth) {
 }
 
 // During phase 비선택 구간 — 「 」 코너 브라켓만 그리기
-function drawCornerBrackets(ctx, px, py, pw, ph) {
-  const arm = Math.min(pw, ph) * 0.22; // 코너 길이: 짧은 변의 22%
+function drawCornerBrackets(ctx, px, py, pw, ph, bracketColor) {
+  const arm = Math.min(pw, ph) * 0.22;
   const lw  = 2;
-  ctx.strokeStyle = 'rgba(16,185,129,0.55)';
+  ctx.strokeStyle = bracketColor;
   ctx.lineWidth   = lw;
   ctx.setLineDash([]);
   ctx.lineCap     = 'square';
@@ -76,7 +80,7 @@ function drawCornerBrackets(ctx, px, py, pw, ph) {
 }
 
 // 선택된 구간의 8개 크기조정 핸들 그리기
-function drawHandles(ctx, px, py, pw, ph, col) {
+function drawHandles(ctx, px, py, pw, ph, col, handleFill) {
   const HS = HANDLE_SIZE;
   const half = HS / 2;
   const positions = [
@@ -90,7 +94,7 @@ function drawHandles(ctx, px, py, pw, ph, col) {
     [px + pw - half,   py + ph - half],
   ];
   positions.forEach(([hx, hy]) => {
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = handleFill;
     ctx.fillRect(hx, hy, HS, HS);
     ctx.strokeStyle = col.stroke;
     ctx.lineWidth = 1.5;
@@ -186,6 +190,9 @@ export function SegmentCanvas({
   hideDelete = false,    // bool — × 버튼만 숨김 (readOnly=false여도 삭제 차단)
   phase = 'before',      // 'before' | 'during' | 'after' — 색상 팔레트 선택
 }) {
+  const { theme } = useTheme();
+  const paletteRef      = useRef(null);
+
   const containerRef    = useRef(null);
   const canvasRef       = useRef(null);
 
@@ -241,6 +248,8 @@ export function SegmentCanvas({
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    if (!paletteRef.current) paletteRef.current = buildPalette();
+    const pal  = paletteRef.current;
     const dpr  = window.devicePixelRatio || 1;
     const W    = canvas.width  / dpr;
     const H    = canvas.height / dpr;
@@ -267,7 +276,7 @@ export function SegmentCanvas({
       if (pageRects.length === 0) return;
 
       const isSelected = seg.id === selId;
-      const col = segColor(seg, isSelected, curPhase);
+      const col = segColor(seg, isSelected, pal);
 
       pageRects.forEach(({ x, y, width: rw, height: rh, coordIndex }, rectIdx) => {
         // 편집 드래그 중이면 해당 coordIndex의 previewCoord 사용
@@ -281,16 +290,9 @@ export function SegmentCanvas({
 
         const px = drawX * W, py = drawY * H, pw = drawW * W, ph = drawH * H;
 
-        const isFaint = (col === PALETTE.faint);
-        // 모든 구간: fill + stroke 먼저 그리기
         drawRect(ctx, px, py, pw, ph, col, false, isSelected ? 2.5 : 1.5);
-        // During 비선택 구간: 코너 브라켓을 추가로 강조
-        if (isFaint) drawCornerBrackets(ctx, px, py, pw, ph);
-
-        // 구간 번호 배지 — faint 구간은 생략 (코너 브라켓으로 충분)
-        if (isFaint) return;
         const BADGE_W = 36, BADGE_H = 17;
-        ctx.fillStyle = 'rgba(13,17,23,0.65)';
+        ctx.fillStyle = pal.badgeBg;
         ctx.fillRect(px, py, BADGE_W, BADGE_H);
         ctx.fillStyle = col.text;
         ctx.font = 'bold 10px ui-monospace, monospace';
@@ -298,24 +300,22 @@ export function SegmentCanvas({
         ctx.textAlign    = 'left';
         ctx.fillText(`${globalIdx + 1}구간`, px + 4, py + 3);
 
-        // targetBpm 배지 — 설정된 경우만
         if (seg.targetBpm) {
           const bpmLabel = `♩${seg.targetBpm}`;
           const BPM_W = bpmLabel.length * 6 + 10;
-          ctx.fillStyle = 'rgba(13,17,23,0.65)';
+          ctx.fillStyle = pal.badgeBg;
           ctx.fillRect(px + BADGE_W + 2, py, BPM_W, BADGE_H);
-          ctx.fillStyle = '#d4a843';
+          ctx.fillStyle = pal.bpmLabel;
           ctx.font = 'bold 9px ui-monospace, monospace';
           ctx.textBaseline = 'top';
           ctx.textAlign    = 'left';
           ctx.fillText(bpmLabel, px + BADGE_W + 6, py + 4);
         }
 
-        // 스킬 수 배지 — 첫 rect에만
         if (rectIdx === 0 && seg.mappedSkills.length > 0) {
           const label = `× ${seg.mappedSkills.length}스킬`;
           const BADGE_H2 = 17;
-          ctx.fillStyle = 'rgba(13,17,23,0.55)';
+          ctx.fillStyle = pal.badgeBgSoft;
           ctx.fillRect(px, py + ph - BADGE_H2, 52, BADGE_H2);
           ctx.fillStyle = col.text;
           ctx.font = '9px ui-monospace, monospace';
@@ -323,21 +323,19 @@ export function SegmentCanvas({
           ctx.fillText(label, px + 4, py + ph - 3);
         }
 
-        // 삭제 × — readOnly 또는 hideDelete 모드에서는 숨김
         if (!isReadOnly && !isHideDelete) {
           const DX = px + pw - 18, DY = py + 1, DS = 17;
-          ctx.fillStyle = 'rgba(224,112,112,0.75)';
+          ctx.fillStyle = pal.delBg;
           ctx.fillRect(DX, DY, DS, DS);
-          ctx.fillStyle = '#fff';
+          ctx.fillStyle = pal.handleFill;
           ctx.font = 'bold 11px sans-serif';
           ctx.textBaseline = 'middle';
           ctx.textAlign    = 'center';
           ctx.fillText('×', DX + DS / 2, DY + DS / 2);
         }
 
-        // 선택된 구간에 크기조정 핸들 표시 (구간 설정 모드 OFF + readOnly 아닐 때만)
         if (isSelected && !isSelectingRef.current && !isReadOnly) {
-          drawHandles(ctx, px, py, pw, ph, col);
+          drawHandles(ctx, px, py, pw, ph, col, pal.handleFill);
         }
       });
     });
@@ -347,12 +345,12 @@ export function SegmentCanvas({
       if (seg.coordinates.pageIndex !== curPage) return;
       const { x, y, width: rw, height: rh } = seg.coordinates;
       const px = x * W, py = y * H, pw = rw * W, ph = rh * H;
-      const col = PALETTE.pending;
+      const col = pal.pending;
 
       drawRect(ctx, px, py, pw, ph, col, true, 1.5);
 
       const BADGE_W = 42, BADGE_H = 17;
-      ctx.fillStyle = 'rgba(13,17,23,0.55)';
+      ctx.fillStyle = pal.badgeBgSoft;
       ctx.fillRect(px, py, BADGE_W, BADGE_H);
       ctx.fillStyle = col.text;
       ctx.font = 'bold 10px ui-monospace, monospace';
@@ -361,9 +359,9 @@ export function SegmentCanvas({
       ctx.fillText(`대기 ${globalIdx + 1}`, px + 4, py + 3);
 
       const DX = px + pw - 18, DY = py + 1, DS = 17;
-      ctx.fillStyle = 'rgba(155,127,200,0.55)';
+      ctx.fillStyle = pal.delBgTemp;
       ctx.fillRect(DX, DY, DS, DS);
-      ctx.fillStyle = '#fff';
+      ctx.fillStyle = pal.handleFill;
       ctx.font = 'bold 11px sans-serif';
       ctx.textBaseline = 'middle';
       ctx.textAlign    = 'center';
@@ -378,9 +376,9 @@ export function SegmentCanvas({
       const w = Math.abs(drag.currentX - drag.startX);
       const h = Math.abs(drag.currentY - drag.startY);
 
-      ctx.fillStyle = 'rgba(155,127,200,0.10)';
+      ctx.fillStyle = pal.dragFill;
       ctx.fillRect(x * W, y * H, w * W, h * H);
-      ctx.strokeStyle = '#9b7fc8';
+      ctx.strokeStyle = pal.dragStroke;
       ctx.lineWidth   = 1.5;
       ctx.setLineDash([6, 4]);
       ctx.strokeRect(x * W, y * H, w * W, h * H);
@@ -389,9 +387,9 @@ export function SegmentCanvas({
       if (w > 0.05 && h > 0.03) {
         const label = `${(w * 100).toFixed(0)}% × ${(h * 100).toFixed(0)}%`;
         const lx = x * W + 4, ly = (y + h) * H - 18;
-        ctx.fillStyle = 'rgba(13,17,23,0.6)';
+        ctx.fillStyle = pal.badgeBg;
         ctx.fillRect(lx - 2, ly - 2, label.length * 6.2 + 6, 15);
-        ctx.fillStyle = '#9b7fc8';
+        ctx.fillStyle = pal.dragStroke;
         ctx.font = '9px ui-monospace, monospace';
         ctx.textBaseline = 'top';
         ctx.textAlign    = 'left';
@@ -412,6 +410,11 @@ export function SegmentCanvas({
     draw();
     return () => ro.disconnect();
   }, [applySize, draw]);
+
+  useEffect(() => {
+    paletteRef.current = buildPalette();
+    draw();
+  }, [theme, draw]);
 
   useEffect(() => {
     draw();

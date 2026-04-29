@@ -656,7 +656,7 @@ export function ScoreViewer({ phase }) {
                       /* 구간이 선택된 상태 → "구간 추가" 버튼 */
                       <button
                         onClick={() => segmentActs.startAddToSegment(selectedSegmentId)}
-                        className="pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold border backdrop-blur-sm transition-all bg-[rgba(212,168,67,0.12)] border-[rgba(212,168,67,0.5)] text-[#d4a843] hover:bg-[rgba(212,168,67,0.22)] hover:border-[rgba(212,168,67,0.75)] shadow-lg"
+                        className="pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold border backdrop-blur-sm transition-all bg-[var(--ivps-gold-bg)] border-[var(--ivps-gold-border)] text-[var(--ivps-gold)] hover:bg-[var(--ivps-active)] hover:border-[var(--ivps-gold)] shadow-lg"
                       >
                         <span className="text-[14px] leading-none">＋</span>
                         구간 추가
@@ -665,7 +665,7 @@ export function ScoreViewer({ phase }) {
                       /* 구간 미선택 상태 → 기본 "구간 설정" 버튼 */
                       <button
                         onClick={segmentActs.toggleSegmentMode}
-                        className="pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold border backdrop-blur-sm transition-all bg-[rgba(13,17,23,0.72)] border-[rgba(155,127,200,0.35)] text-[#9b7fc8] hover:bg-[rgba(155,127,200,0.15)] hover:border-[rgba(155,127,200,0.6)] shadow-lg"
+                        className="pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold border backdrop-blur-sm transition-all bg-[var(--ivps-surface)] border-[var(--ivps-plum-border)] text-[var(--ivps-plum)] hover:bg-[var(--ivps-plum-bg)] hover:border-[var(--ivps-plum)] shadow-lg"
                       >
                         <span className="text-[14px] leading-none">＋</span>
                         구간 설정
@@ -679,9 +679,9 @@ export function ScoreViewer({ phase }) {
                           'pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold border backdrop-blur-sm transition-all shadow-lg',
                           tempSegments.length > 0
                             ? addingToSegmentId
-                              ? 'bg-[rgba(212,168,67,0.22)] border-[rgba(212,168,67,0.7)] text-[#d4a843] hover:bg-[rgba(212,168,67,0.32)]'
-                              : 'bg-[rgba(155,127,200,0.25)] border-[rgba(155,127,200,0.7)] text-[#c4a8ff] hover:bg-[rgba(155,127,200,0.35)]'
-                            : 'bg-[rgba(13,17,23,0.72)] border-[rgba(155,127,200,0.35)] text-[#9b7fc8] hover:bg-[rgba(155,127,200,0.12)]',
+                              ? 'bg-[var(--ivps-gold-bg)] border-[var(--ivps-gold-border)] text-[var(--ivps-gold)] hover:bg-[var(--ivps-active)]'
+                              : 'bg-[var(--ivps-plum-bg)] border-[var(--ivps-plum-border)] text-[var(--ivps-plum)] hover:bg-[var(--ivps-plum-bg)]'
+                            : 'bg-[var(--ivps-surface)] border-[var(--ivps-plum-border)] text-[var(--ivps-plum)] hover:bg-[var(--ivps-plum-bg)]',
                         ].join(' ')}
                       >
                         <span className="text-[13px] leading-none">✓</span>
@@ -693,8 +693,8 @@ export function ScoreViewer({ phase }) {
                             ? '추가 종료'
                             : '구간 설정 종료'}
                       </button>
-                      <div className="pointer-events-none px-2 py-1 rounded text-[10px] bg-[rgba(13,17,23,0.65)] backdrop-blur-sm"
-                        style={{ color: addingToSegmentId ? 'rgba(212,168,67,0.85)' : 'rgba(155,127,200,0.85)' }}
+                      <div className="pointer-events-none px-2 py-1 rounded text-[10px] bg-[var(--ivps-badge-bg)] backdrop-blur-sm"
+                        style={{ color: addingToSegmentId ? 'var(--ivps-gold)' : 'var(--ivps-plum)' }}
                       >
                         {tempSegments.length === 0
                           ? addingToSegmentId
@@ -804,7 +804,7 @@ export function ScoreViewer({ phase }) {
               </div>
               <button
                 onClick={() => leaveDuring('after')}
-                className="px-3 py-1.5 bg-gradient-to-r from-[#d4a843] to-[#b8891f] rounded-md text-[#0d1117] text-[11.5px] font-semibold"
+                className="px-3 py-1.5 bg-gradient-to-r from-[var(--ivps-gold)] to-[var(--ivps-gold-dim)] rounded-md text-[var(--ivps-text-inv)] text-[11.5px] font-semibold"
               >
                 완료 → After
               </button>
@@ -832,7 +832,7 @@ export function ScoreViewer({ phase }) {
               {segments.length > 0 && (
                 <span className={[
                   'inline-block w-1.5 h-1.5 rounded-full flex-shrink-0',
-                  isSelectingSegment ? 'bg-[#9b7fc8] animate-pulse' : 'bg-[#7ea890]',
+                  isSelectingSegment ? 'bg-[var(--ivps-plum)] animate-pulse' : 'bg-[var(--ivps-moss)]',
                 ].join(' ')} />
               )}
               <div className="text-[11px] text-[var(--ivps-text4)]">

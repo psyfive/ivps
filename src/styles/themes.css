@@ -62,6 +62,7 @@
   --ivps-rust-border:  rgba(200, 88, 64, 0.25);
 
   --ivps-plum:         #8060B0;  /* During HUD — 집중 */
+  --ivps-plum-dim:     #6040A0;  /* plum hover/pressed */
   --ivps-plum-bg:      rgba(128, 96, 176, 0.10);
   --ivps-plum-border:  rgba(128, 96, 176, 0.28);
 
@@ -77,6 +78,31 @@
   /* 전환 */
   --ivps-transition: background-color 220ms ease, color 220ms ease,
                      border-color 220ms ease, box-shadow 220ms ease;
+
+  /* 구간(Segment) 캔버스 토큰 */
+  --ivps-seg-unmapped:        #8060B0;
+  --ivps-seg-unmapped-fill:   rgba(128, 96, 176, 0.13);
+  --ivps-seg-unmapped-faint:  rgba(128, 96, 176, 0.06);
+  --ivps-seg-mapped:          #5A9070;
+  --ivps-seg-mapped-fill:     rgba(90, 144, 112, 0.18);
+  --ivps-seg-selected:        #B8920A;
+  --ivps-seg-selected-fill:   rgba(184, 146, 10, 0.15);
+  --ivps-seg-hard:            #C85840;
+  --ivps-seg-hard-fill:       rgba(200, 88, 64, 0.12);
+  --ivps-seg-hard-stroke:     rgba(200, 88, 64, 0.70);
+  --ivps-seg-practice:        #8060B0;
+  --ivps-seg-practice-fill:   rgba(128, 96, 176, 0.17);
+  --ivps-seg-faint:           rgba(128, 96, 176, 0.07);
+  --ivps-seg-faint-stroke:    rgba(128, 96, 176, 0.28);
+  --ivps-seg-faint-text:      rgba(128, 96, 176, 0.50);
+  --ivps-seg-bracket:         rgba(128, 96, 176, 0.55);
+  --ivps-badge-bg:            rgba(44, 26, 8, 0.78);
+  --ivps-badge-bg-soft:       rgba(44, 26, 8, 0.55);
+  --ivps-handle-fill:         #FFF8F0;
+  --ivps-seg-del:             rgba(200, 88, 64, 0.75);
+  --ivps-seg-del-temp:        rgba(128, 96, 176, 0.55);
+  --ivps-segdrag-fill:        rgba(128, 96, 176, 0.10);
+  --ivps-segdrag-stroke:      #8060B0;
 }
 
 
@@ -129,6 +155,7 @@
   --ivps-rust-border:  rgba(224, 112, 96, 0.28);
 
   --ivps-plum:         #9B7FC8;
+  --ivps-plum-dim:     #7B5FA8;  /* plum hover/pressed */
   --ivps-plum-bg:      rgba(155, 127, 200, 0.12);
   --ivps-plum-border:  rgba(155, 127, 200, 0.28);
 
@@ -139,6 +166,31 @@
 
   /* 스크롤바 */
   --ivps-scrollbar-thumb: rgba(212, 175, 55, 0.18);
+
+  /* 구간(Segment) 캔버스 토큰 — 다크 */
+  --ivps-seg-unmapped:        #9B7FC8;
+  --ivps-seg-unmapped-fill:   rgba(155, 127, 200, 0.15);
+  --ivps-seg-unmapped-faint:  rgba(155, 127, 200, 0.07);
+  --ivps-seg-mapped:          #6AB880;
+  --ivps-seg-mapped-fill:     rgba(106, 184, 128, 0.20);
+  --ivps-seg-selected:        #E0BC48;
+  --ivps-seg-selected-fill:   rgba(224, 188, 72, 0.18);
+  --ivps-seg-hard:            #E07060;
+  --ivps-seg-hard-fill:       rgba(224, 112, 96, 0.12);
+  --ivps-seg-hard-stroke:     rgba(224, 112, 96, 0.75);
+  --ivps-seg-practice:        #9B7FC8;
+  --ivps-seg-practice-fill:   rgba(155, 127, 200, 0.17);
+  --ivps-seg-faint:           rgba(155, 127, 200, 0.07);
+  --ivps-seg-faint-stroke:    rgba(155, 127, 200, 0.28);
+  --ivps-seg-faint-text:      rgba(155, 127, 200, 0.50);
+  --ivps-seg-bracket:         rgba(155, 127, 200, 0.55);
+  --ivps-badge-bg:            rgba(0, 0, 0, 0.66);
+  --ivps-badge-bg-soft:       rgba(0, 0, 0, 0.48);
+  --ivps-handle-fill:         #F0E8D8;
+  --ivps-seg-del:             rgba(224, 112, 96, 0.75);
+  --ivps-seg-del-temp:        rgba(155, 127, 200, 0.55);
+  --ivps-segdrag-fill:        rgba(155, 127, 200, 0.12);
+  --ivps-segdrag-stroke:      #9B7FC8;
 }
 
 
