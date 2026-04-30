@@ -258,12 +258,17 @@ Taxonomy는 더 이상 `src/data/taxonomyData.js` 단일 파일이 아닙니다.
 - `getSkillById(id)`
 - `getSkillsByCategory(categoryCode)`
 - `getSkillsByGroup(groupId)`
+- `getCategoryCode(skillId)`
 - `getCategoryMeta(skillId)`
+- `ALL_CATEGORIES`
 - `getPrerequisites(skillId)`
 - `getSynergies(skillId)`
-- `getXpPercent(skill)`
 
-스킬 필드는 `id`, `groupId`, `name`, `level`, `xp`, `maxXp`, `corePrinciple`, `before`, `during`, `after`를 기본으로 보며, 최근 커밋에서 멀티미디어 활용 가능성을 고려한 taxonomy 확장이 들어왔습니다.
+스킬 필드는 `id`, `groupId`, `name`, `corePrinciple`, `before`, `during`, `after`, `resources`를 기본으로 봅니다. `level`, `xp`, `maxXp`와 `getXpPercent`는 현재 라이브러리 카드 UI에서 사용하지 않습니다.
+
+`corePrinciple`은 필드명은 유지하지만 “핵심 원리”가 아니라 해당 스킬의 개념, 적용 상황, 연습자가 이 항목을 선택해야 하는 이유를 1~2문장으로 설명하는 “스킬 정의” 역할입니다. `LibraryView`의 스킬 카드는 ID/이름/그룹/스킬 정의만 표시하며, Lv/XP 진행 바를 다시 추가하지 않습니다.
+
+`SkillDetailModal`은 `resources`를 받아 YouTube/외부 링크 섹션을 렌더링할 수 있습니다. 현재 taxonomy 데이터에는 `resources: []`가 많으므로 비어 있지 않다고 가정하지 않습니다. 일부 데이터의 `beforeHtml`은 현재 UI 소비 경로가 아니며, HTML 렌더링을 도입할 때는 소비 컴포넌트를 먼저 추가/검증합니다.
 
 ## UI/스타일 규칙
 
