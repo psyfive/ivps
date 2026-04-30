@@ -1,7 +1,7 @@
 # CLAUDE.md - Opus 프로젝트 지침
 
 > Claude Code가 이 저장소에서 코딩 작업을 할 때 참고하는 프로젝트별 규칙입니다.
-> 마지막 점검: 2026-04-24, `ivps-branch2` 기준.
+> 마지막 점검: 2026-04-30, `ivps-branch2` 기준.
 
 ## 프로젝트 개요
 
@@ -20,6 +20,7 @@
 | Build | Vite 5.4 |
 | Styling | Tailwind CSS 3.4 + CSS variables |
 | State | `useReducer` + React Context |
+| Auth | Supabase OAuth optional integration |
 | Test | Vitest 4 + v8 coverage |
 | Browser APIs | Web Audio API, `getUserMedia`, Canvas, FileReader |
 | External loader | PDF.js CDN 동적 로드 |
@@ -34,7 +35,9 @@ npm run test
 npm run test:coverage
 ```
 
-`vite.config.js`의 테스트 환경은 `node`입니다. 현재 단위 테스트는 `src/test/reducer.test.js`에서 reducer 중심으로 작성되어 있습니다.
+Windows PowerShell에서는 실행 정책 때문에 `npm`이 `npm.ps1`로 잡혀 실패할 수 있습니다. 이 환경에서는 `npm.cmd run build`, `npm.cmd run dev`, `npx.cmd vitest --run src/test`처럼 `.cmd`를 우선 사용합니다.
+
+`vite.config.js`의 테스트 환경은 `node`입니다. 현재 앱 단위 테스트는 `src/test/`에 있으며, 전체 `npx vitest --run`은 `everything-claude-code/` 하위 테스트까지 수집할 수 있으므로 앱 검증은 `npx.cmd vitest --run src/test`로 범위를 좁힙니다.
 
 ## 현재 디렉토리 구조
 
@@ -100,16 +103,18 @@ src/
 
 ```text
 main.jsx
-  -> App.jsx
-    -> PracticeProvider
-      -> AppShell
-        -> LeftNav
-        -> main screen: DashboardView | LibraryView | CockpitView
-        -> RightUtilPanel (cockpit에서만, fullscreen/last-after 제외)
-        -> SkillDetailModal
+  -> ThemeProvider
+    -> App.jsx
+      -> AuthProvider
+        -> PracticeProvider
+          -> AppShell
+            -> LeftNav
+            -> main screen: DashboardView | LibraryView | CockpitView
+            -> RightUtilPanel (cockpit에서만, fullscreen/last-after 제외)
+            -> SkillDetailModal
 ```
 
-`PracticeContext.jsx`는 `usePracticeSession()` 값을 그대로 Context로 노출하는 얇은 브릿지입니다. 실제 상태, reducer, 액션 wrapper는 모두 `src/hooks/usePracticeSession.js`에 있습니다.
+`PracticeContext.jsx`는 `usePracticeSession()` 값을 그대로 Context로 노출하는 얇은 브릿지입니다. 실제 상태, reducer, 액션 wrapper는 모두 `src/hooks/usePracticeSession.js`에 있습니다. `AuthProvider`는 `src/context/AuthContext.jsx`와 `src/lib/supabaseClient.js`를 통해 선택적 Supabase OAuth를 연결하며, `.env.local`의 `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`가 없으면 비활성 상태로 동작합니다.
 
 ## 화면/Phase 흐름
 
@@ -122,9 +127,9 @@ main.jsx
 `phase` 값:
 
 - `before`: 악보 구간 설정, 스킬 매핑, CognitiveBriefing
-- `during`: 구간 선택, 필기/보잉/텍스트 도구, PracticeHUD, 미니 컨트롤, After bottom sheet
+- `during`: 구간 선택, 필기/보잉/텍스트 도구, PracticeHUD, 미니 컨트롤, focus reroll/streak, After bottom sheet
 - `after`: 구간별 진단/난이도 기록, SegmentHeatmap, DiagnosticInterface
-- `last-after`: 연습 종합 리뷰 화면. `CockpitView`가 `LastAfterPhase`로 조기 반환한다.
+- `last-after`: 연습 종합 리뷰 화면. `CockpitView`가 `LastAfterPhase`로 조기 반환하며, 리뷰 중 `During`으로 돌아갈 수 있다.
 
 `practiceFullscreen`이 true이면 LeftNav/RightUtilPanel/PhasePanel 일부가 숨겨지고 악보 중심 During UI가 된다.
 
@@ -149,6 +154,7 @@ state = {
   practiceFullscreen,
   reviewSegmentIndex,
   practiceSessions, duringStartTime,
+  practiceFlowMode, interleaveHistory, reviewReminders,
   isPatron,
   activeInstrument,
   symptomFilter,
@@ -165,6 +171,8 @@ state = {
 | `session` | 구형 rect 세션 생성/선택/스킬 할당 |
 | `cart` | Before phase 스킬 cart |
 | `segment` | 현재 주력 구간 모델 생성/편집/스킬 매핑/난이도/목표 BPM |
+| `practiceFlow` | ordered/interleaved 연습 흐름과 다음 구간 선택 |
+| `review` | spaced review reminder 완료 처리 |
 | `drawing` | 필기 stroke 추가/삭제/undo/도구 설정 |
 | `metro` | BPM, 박자, subdivision, ghost train 설정 |
 | `tuner` | 튜너 활성화와 감지 음 |
@@ -274,9 +282,11 @@ Taxonomy는 더 이상 `src/data/taxonomyData.js` 단일 파일이 아닙니다.
 - `39cbd8c agents 수정`: `AGENTS.md` 추가
 - `941f1c6 pencil ver.5`: DrawingCanvas 텍스트 입력/재편집 개선
 - `096b0e2 taxonomy ver.1`: taxonomy 모듈 데이터 확장
+- `08e87bf`, `fd7406c`, `947b79d`: whole-score grape 입력, radial practice controls, segment add flow 개선
+- `077e274`: review reminder와 rule-of-three 연습 흐름 추가
 - `3bc83de`, `0d767a2`: 오늘의 증상 진입, 대시보드/라이브러리 레이아웃 조정
 
-현재 로컬 브랜치 `ivps-branch2`는 `origin/ivps-branch2`보다 3개 커밋 앞서 있습니다. 작업 중 `everything-claude-code`는 별도 변경 상태로 보이므로, 사용자가 요청하지 않으면 건드리지 않습니다.
+작업 중 `everything-claude-code`는 별도 변경 상태로 보일 수 있으므로, 사용자가 요청하지 않으면 건드리지 않습니다.
 
 ## 작업 규칙
 
@@ -289,4 +299,4 @@ Taxonomy는 더 이상 `src/data/taxonomyData.js` 단일 파일이 아닙니다.
 7. 메트로놈/튜너의 브라우저 권한과 Web Audio 생명주기를 깨지 않도록 훅 책임을 유지한다.
 8. UI를 바꿀 때 fullscreen/last-after에서 LeftNav/RightUtilPanel 숨김 조건을 함께 확인한다.
 9. 문서/코드에 오래된 `taxonomyData.js`, `immersionMode`, 중복 `fileToPageData` 설명을 다시 추가하지 않는다.
-10. 큰 변경 후에는 최소 `npm run build`와 관련 `npm run test`를 실행한다.
+10. 큰 변경 후에는 최소 `npm.cmd run build`와 `npx.cmd vitest --run src/test`를 실행한다. 전체 Vitest 실행은 `everything-claude-code/`까지 수집할 수 있으므로 의도한 경우에만 사용한다.
