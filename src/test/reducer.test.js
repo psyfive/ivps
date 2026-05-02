@@ -504,3 +504,63 @@ describe('Practice fullscreen phase behavior', () => {
     expect(before.practiceFullscreen).toBe(false);
   });
 });
+
+describe('During checklist bubble settings', () => {
+  it('defaults to bubble mode', () => {
+    expect(INITIAL_STATE.duringChecklistMode).toBe('bubble');
+    expect(INITIAL_STATE.duringChecklistBubblePositions).toEqual({});
+  });
+
+  it('SET_DURING_CHECKLIST_MODE: switches between bubble and top modes', () => {
+    const top = reducer(INITIAL_STATE, {
+      type: ACTIONS.SET_DURING_CHECKLIST_MODE,
+      mode: 'top',
+    });
+    expect(top.duringChecklistMode).toBe('top');
+
+    const bubble = reducer(top, {
+      type: ACTIONS.SET_DURING_CHECKLIST_MODE,
+      mode: 'bubble',
+    });
+    expect(bubble.duringChecklistMode).toBe('bubble');
+  });
+
+  it('SET_DURING_CHECKLIST_BUBBLE_POSITION: stores positions by segment and page', () => {
+    const next = reducer(INITIAL_STATE, {
+      type: ACTIONS.SET_DURING_CHECKLIST_BUBBLE_POSITION,
+      segmentId: 'seg-1',
+      pageIndex: 2,
+      position: { x: 0.4, y: 0.2 },
+    });
+
+    expect(next.duringChecklistBubblePositions).toEqual({
+      'seg-1': {
+        2: { x: 0.4, y: 0.2 },
+      },
+    });
+  });
+
+  it('RESET_DURING_CHECKLIST_BUBBLE_POSITION: clears only the requested page', () => {
+    const state = {
+      ...INITIAL_STATE,
+      duringChecklistBubblePositions: {
+        'seg-1': {
+          0: { x: 0.2, y: 0.2 },
+          1: { x: 0.6, y: 0.3 },
+        },
+      },
+    };
+
+    const next = reducer(state, {
+      type: ACTIONS.RESET_DURING_CHECKLIST_BUBBLE_POSITION,
+      segmentId: 'seg-1',
+      pageIndex: 0,
+    });
+
+    expect(next.duringChecklistBubblePositions).toEqual({
+      'seg-1': {
+        1: { x: 0.6, y: 0.3 },
+      },
+    });
+  });
+});

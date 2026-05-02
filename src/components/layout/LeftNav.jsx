@@ -228,7 +228,14 @@ function InstrumentPicker({ onClose, activeInstrument, onSelect }) {
 
 // ── 설정 패널 ──────────────────────────────────────────────────────────────
 function SettingsPanel({ onClose }) {
-  const { grapeBpmIncrement, settings } = usePractice();
+  const {
+    activeScore,
+    grapeBpmIncrement,
+    duringChecklistMode,
+    selectedSegmentId,
+    settings,
+  } = usePractice();
+  const currentPageIndex = activeScore?.currentPageIndex ?? 0;
 
   return (
     <div className="mx-2.5 mb-1 rounded-xl border border-[var(--ivps-border2)] bg-[var(--ivps-surface)] overflow-hidden">
@@ -279,6 +286,42 @@ function SettingsPanel({ onClose }) {
           <div className="mt-1.5 text-[9px] text-[var(--ivps-text4)] italic">
             0으로 설정하면 BPM이 변경되지 않습니다.
           </div>
+        )}
+      </div>
+
+      <div className="px-3.5 py-3 border-t border-[var(--ivps-border)]">
+        <div className="text-[10px] text-[var(--ivps-text3)] mb-2 leading-tight">
+          During 체크리스트
+        </div>
+        <div className="grid grid-cols-2 gap-1 p-1 rounded-lg bg-[var(--ivps-bg)] border border-[var(--ivps-border)]">
+          {[
+            { id: 'bubble', label: '말풍선' },
+            { id: 'top', label: '상단 고정' },
+          ].map(option => (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => settings.setDuringChecklistMode(option.id)}
+              className={[
+                'h-7 rounded-md text-[10.5px] font-semibold transition-colors',
+                duringChecklistMode === option.id
+                  ? 'bg-[var(--ivps-surface)] text-[var(--ivps-gold)] shadow-[0_1px_3px_rgba(0,0,0,.22)]'
+                  : 'text-[var(--ivps-text4)] hover:text-[var(--ivps-text2)]',
+              ].join(' ')}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        {duringChecklistMode === 'bubble' && (
+          <button
+            type="button"
+            onClick={() => settings.resetDuringChecklistBubblePosition(selectedSegmentId, currentPageIndex)}
+            disabled={!selectedSegmentId}
+            className="mt-2 w-full h-7 rounded-md border border-[var(--ivps-border2)] bg-[var(--ivps-surface2)] text-[10.5px] font-semibold text-[var(--ivps-text3)] hover:bg-[var(--ivps-surface)] disabled:opacity-35 disabled:cursor-not-allowed transition-colors"
+          >
+            현재 페이지 말풍선 위치 초기화
+          </button>
         )}
       </div>
 

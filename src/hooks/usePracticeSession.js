@@ -58,6 +58,8 @@ export const INITIAL_STATE = {
 
   // ─ UI ─
   practiceFullscreen: false, // During 진입 시 양 사이드 패널 접기
+  duringChecklistMode: 'bubble', // 'bubble' | 'top'
+  duringChecklistBubblePositions: {}, // { [segmentId]: { [pageIndex]: { x, y } } }
 
   // ─ 연습 종합 리뷰 (Last After Phase) ─
   reviewSegmentIndex: 0,   // LastAfterPhase 구간 내비게이터 인덱스
@@ -181,6 +183,9 @@ export const ACTIONS = {
 
   // UI
   SET_PRACTICE_FULLSCREEN:'SET_PRACTICE_FULLSCREEN',
+  SET_DURING_CHECKLIST_MODE: 'SET_DURING_CHECKLIST_MODE',
+  SET_DURING_CHECKLIST_BUBBLE_POSITION: 'SET_DURING_CHECKLIST_BUBBLE_POSITION',
+  RESET_DURING_CHECKLIST_BUBBLE_POSITION: 'RESET_DURING_CHECKLIST_BUBBLE_POSITION',
 
   // 연습 세션 기록
   RECORD_PRACTICE_SESSION: 'RECORD_PRACTICE_SESSION',
@@ -928,6 +933,52 @@ export function reducer(state, action) {
     case ACTIONS.SET_PRACTICE_FULLSCREEN:
       return { ...state, practiceFullscreen: action.value };
 
+    case ACTIONS.SET_DURING_CHECKLIST_MODE:
+      return {
+        ...state,
+        duringChecklistMode: action.mode === 'top' ? 'top' : 'bubble',
+      };
+
+    case ACTIONS.SET_DURING_CHECKLIST_BUBBLE_POSITION: {
+      if (!action.segmentId || action.pageIndex == null || !action.position) return state;
+      const pageKey = String(action.pageIndex);
+      return {
+        ...state,
+        duringChecklistBubblePositions: {
+          ...state.duringChecklistBubblePositions,
+          [action.segmentId]: {
+            ...(state.duringChecklistBubblePositions[action.segmentId] ?? {}),
+            [pageKey]: action.position,
+          },
+        },
+      };
+    }
+
+    case ACTIONS.RESET_DURING_CHECKLIST_BUBBLE_POSITION: {
+      if (!action.segmentId) return state;
+      const current = state.duringChecklistBubblePositions[action.segmentId];
+      if (!current) return state;
+
+      if (action.pageIndex == null) {
+        const { [action.segmentId]: _removed, ...rest } = state.duringChecklistBubblePositions;
+        return { ...state, duringChecklistBubblePositions: rest };
+      }
+
+      const pageKey = String(action.pageIndex);
+      const { [pageKey]: _removedPage, ...remainingPages } = current;
+      if (Object.keys(remainingPages).length === 0) {
+        const { [action.segmentId]: _removedSegment, ...rest } = state.duringChecklistBubblePositions;
+        return { ...state, duringChecklistBubblePositions: rest };
+      }
+      return {
+        ...state,
+        duringChecklistBubblePositions: {
+          ...state.duringChecklistBubblePositions,
+          [action.segmentId]: remainingPages,
+        },
+      };
+    }
+
     // ── 연습 종합 리뷰 ────────────────────────────────────────────────
     case ACTIONS.ENTER_LAST_AFTER: {
       const score = getActiveScore(state);
@@ -1245,6 +1296,24 @@ export function usePracticeSession() {
   const setPracticeFullscreen = useCallback((value) =>
     dispatch({ type: ACTIONS.SET_PRACTICE_FULLSCREEN, value }), []);
 
+  const setDuringChecklistMode = useCallback((mode) =>
+    dispatch({ type: ACTIONS.SET_DURING_CHECKLIST_MODE, mode }), []);
+
+  const setDuringChecklistBubblePosition = useCallback((segmentId, pageIndex, position) =>
+    dispatch({
+      type: ACTIONS.SET_DURING_CHECKLIST_BUBBLE_POSITION,
+      segmentId,
+      pageIndex,
+      position,
+    }), []);
+
+  const resetDuringChecklistBubblePosition = useCallback((segmentId, pageIndex = null) =>
+    dispatch({
+      type: ACTIONS.RESET_DURING_CHECKLIST_BUBBLE_POSITION,
+      segmentId,
+      pageIndex,
+    }), []);
+
   // ── Last After Phase 액션 ─────────────────────────────────────────
   const enterLastAfter = useCallback(() =>
     dispatch({ type: ACTIONS.ENTER_LAST_AFTER }), []);
@@ -1277,7 +1346,13 @@ export function usePracticeSession() {
     metro: { setBpm, setBeatsPerBar, setMetroPlaying, setCurrentBeat, setSubdivision, setGhostTrainBars, setGhostTrainReadyBars },
     tuner: { setTunerActive, setTunerNote },
     grape: { toggleGrape, resetGrapes, adjustGrapeTotal },
-    settings: { setGrapeBpmIncrement, setInstrument },
+    settings: {
+      setGrapeBpmIncrement,
+      setInstrument,
+      setDuringChecklistMode,
+      setDuringChecklistBubblePosition,
+      resetDuringChecklistBubblePosition,
+    },
     xp: { logXp },
     ui: { setPracticeFullscreen },
   };

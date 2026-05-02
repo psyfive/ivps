@@ -32,6 +32,7 @@ export function TopHUD() {
     activeScore,
     selectedSegmentId,
     selectedSegment,
+    duringChecklistMode,
   } = usePractice();
 
   const [skillIdx, setSkillIdx] = useState(0);
@@ -97,7 +98,7 @@ export function TopHUD() {
     }));
   }, [focusKey, items.length]);
 
-  if (phase !== 'during') return null;
+  if (phase !== 'during' || duringChecklistMode !== 'top') return null;
 
   if (!selectedSegmentId || !selectedSegment) {
     return (

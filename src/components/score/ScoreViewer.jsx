@@ -17,6 +17,7 @@ import { fitContainedSize } from '../../utils/scorePageFit';
 import { SegmentCanvas } from './SegmentCanvas';
 import { SegmentHeatmap } from './SegmentHeatmap';
 import { DrawingCanvas } from './DrawingCanvas';
+import { DuringChecklistBubble } from './DuringChecklistBubble';
 
 const FULLSCREEN_STAGE_PAD_X = 16;
 const FULLSCREEN_STAGE_PAD_Y = 66;
@@ -736,6 +737,7 @@ export function ScoreViewer({ phase }) {
                 )}
                 {/* 필기 캔버스 — 항상 표시 (drawingMode=false 일 때 pointer-events:none) */}
                 <DrawingCanvas currentPageIndex={activeScore?.currentPageIndex ?? 0} />
+                <DuringChecklistBubble pageIndex={activeScore?.currentPageIndex ?? 0} />
               </>
             )}
 
