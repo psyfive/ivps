@@ -135,8 +135,9 @@ export const ACTIONS = {
   LOG_XP:            'LOG_XP',
 
   // Skill Cart
-  ADD_TO_CART:       'ADD_TO_CART',
-  REMOVE_FROM_CART:  'REMOVE_FROM_CART',
+  ADD_TO_CART:             'ADD_TO_CART',
+  REMOVE_FROM_CART:        'REMOVE_FROM_CART',
+  TOGGLE_QUICK_TRAY_SKILL: 'TOGGLE_QUICK_TRAY_SKILL',
 
   // 시각적 구간 (Before Phase 드래그 매핑)
   TOGGLE_SEGMENT_CHECK:    'TOGGLE_SEGMENT_CHECK',
@@ -288,6 +289,7 @@ export function reducer(state, action) {
         drawings: [],
         pageData: normalizedPageData,
         currentPageIndex: 0,
+        quickTraySkills: [],
       };
       return {
         ...state,
@@ -862,6 +864,21 @@ export function reducer(state, action) {
     case ACTIONS.REMOVE_FROM_CART:
       return { ...state, skillCart: state.skillCart.filter(id => id !== action.skillId) };
 
+    case ACTIONS.TOGGLE_QUICK_TRAY_SKILL: {
+      if (!state.activeScoreId) return state;
+      return {
+        ...state,
+        scores: updateActiveScore(state.scores, state.activeScoreId, s => {
+          const list = s.quickTraySkills ?? [];
+          return {
+            quickTraySkills: list.includes(action.skillId)
+              ? list.filter(id => id !== action.skillId)
+              : [...list, action.skillId],
+          };
+        }),
+      };
+    }
+
     case ACTIONS.ADD_STROKE:
       return {
         ...state,
@@ -1264,6 +1281,9 @@ export function usePracticeSession() {
   const removeFromCart = useCallback((skillId) =>
     dispatch({ type: ACTIONS.REMOVE_FROM_CART, skillId }), []);
 
+  const toggleQuickTraySkill = useCallback((skillId) =>
+    dispatch({ type: ACTIONS.TOGGLE_QUICK_TRAY_SKILL, skillId }), []);
+
   // ── 필기 액션 ────────────────────────────────────────────────────
   const addStroke = useCallback((stroke) =>
     dispatch({ type: ACTIONS.ADD_STROKE, stroke }), []);
@@ -1338,7 +1358,7 @@ export function usePracticeSession() {
     skill: { openSkillModal, closeSkillModal, setSymptomFilter },
     score: { addScore, setActiveScore, deleteScore, renameScore, changePage, setPage },
     session: { addSession, deleteSession, selectSession, assignSkill, removeSkill, toggleCheck, openPicker, closePicker },
-    cart: { addToCart, removeFromCart },
+    cart: { addToCart, removeFromCart, toggleQuickTraySkill },
     segment: { toggleSegmentCheck, toggleSegmentMode, startAddToSegment, selectSegment, deleteSegment, deleteSegmentCoord, setSegmentMeta, updateSegmentCoord, mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment, commitTempSegments, setSegmentDifficulty, recordAttempt, resetPracticeStats },
     practiceFlow: { setMode: setPracticeFlowMode, pickNextSegment },
     review: { markReminderDone },

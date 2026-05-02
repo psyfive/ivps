@@ -31,7 +31,7 @@ import { requestNativeFullscreen } from '../../utils/nativeFullscreen';
 // ════════════════════════════════════════════════════════════════════════════
 const CAT_FILTERS = ['전체', 'A', 'B', 'C', 'D'];
 
-function CartPicker({ cartIds, onAdd, onClose }) {
+function CartPicker({ cartIds, onAdd }) {
   const [query, setQuery] = useState('');
   const [catFilter, setCatFilter] = useState('전체');
 
@@ -48,13 +48,11 @@ function CartPicker({ cartIds, onAdd, onClose }) {
     <div className="rounded-xl border border-[var(--ivps-border2)] bg-[var(--ivps-surface)] overflow-hidden mb-3">
       <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--ivps-border)]">
         <input
-          autoFocus
           value={query}
           onChange={e => setQuery(e.target.value)}
           placeholder="스킬 검색..."
           className="flex-1 bg-transparent text-[12.5px] text-[var(--ivps-text1)] placeholder-[var(--ivps-text4)] outline-none"
         />
-        <button onClick={onClose} className="text-[var(--ivps-text4)] hover:text-[var(--ivps-text2)] text-[12px] transition-colors">✕</button>
       </div>
       <div className="flex gap-1 px-3 py-1.5 border-b border-[var(--ivps-border)]">
         {CAT_FILTERS.map(c => (
@@ -83,9 +81,9 @@ function CartPicker({ cartIds, onAdd, onClose }) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// 2. Draggable Skill Pill (dnd-kit)
+// 2. Tappable Skill Pill — 클릭 매핑 (primary) + DnD (secondary)
 // ════════════════════════════════════════════════════════════════════════════
-function DraggableSkillPill({ skill, onRemove }) {
+function TappableSkillPill({ skill, onRemove, onToggleStar, isStarred, isDisabled, onTap }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: skill.id,
     data: { type: 'skill', skillId: skill.id },
@@ -97,23 +95,80 @@ function DraggableSkillPill({ skill, onRemove }) {
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      className="flex items-center gap-1 pl-2 pr-1 py-1 rounded-full border select-none touch-none"
+      className={`flex items-center gap-1 pl-2 pr-1 py-1 rounded-full border select-none touch-none transition-opacity ${isDisabled && !isDragging ? 'opacity-40' : ''}`}
       style={{
         transform: CSS.Translate.toString(transform),
-        opacity: isDragging ? 0.45 : 1,
-        cursor: isDragging ? 'grabbing' : 'grab',
+        opacity: isDragging ? 0.45 : undefined,
+        cursor: isDragging ? 'grabbing' : isDisabled ? 'not-allowed' : 'grab',
         background: `${meta.color}10`,
         borderColor: `${meta.color}30`,
         color: meta.color,
       }}
+      title={isDisabled ? '먼저 구간을 선택하세요' : `${skill.name} 매핑`}
+      onClick={e => { e.stopPropagation(); if (!isDisabled) onTap(skill.id); }}
     >
       <span className="font-mono text-[10px]">{skill.id}</span>
       <span className="text-[11px] text-[var(--ivps-text2)] max-w-[68px] truncate">{skill.name}</span>
       <button
         onPointerDown={e => e.stopPropagation()}
+        onClick={e => { e.stopPropagation(); onToggleStar(skill.id); }}
+        className="ml-0.5 w-4 h-4 flex items-center justify-center opacity-50 hover:opacity-100 transition-opacity text-[10px]"
+        title={isStarred ? '즐겨찾기 해제' : '이 악보 즐겨찾기에 고정'}
+      >{isStarred ? '★' : '☆'}</button>
+      <button
+        onPointerDown={e => e.stopPropagation()}
         onClick={e => { e.stopPropagation(); onRemove(skill.id); }}
         className="ml-0.5 w-4 h-4 flex items-center justify-center opacity-50 hover:opacity-100 transition-opacity text-[10px]"
       >✕</button>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// 2b. Score Quick Tray — 악보별 즐겨찾기 (카트 하단)
+// ════════════════════════════════════════════════════════════════════════════
+function ScoreQuickTray({ quickTraySkillIds, selectedSegmentId, onTapMap, onUnstar, cartIds, onAddToCart }) {
+  const skills = (quickTraySkillIds ?? []).map(id => getSkillById(id)).filter(Boolean);
+  if (skills.length === 0) return null;
+
+  return (
+    <div className="mt-2 pt-2 border-t border-[var(--ivps-border)]">
+      <div className="text-[9.5px] uppercase tracking-[.07em] text-[var(--ivps-gold)] mb-1.5 flex items-center gap-1">
+        <span>★</span> 이 악보 즐겨찾기
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {skills.map(s => {
+          const meta = getCategoryMeta(s.id);
+          const isDisabled = !selectedSegmentId;
+          const inCart = cartIds.includes(s.id);
+          return (
+            <div
+              key={s.id}
+              className={`flex items-center gap-1 pl-2 pr-1 py-1 rounded-full border text-[10px] transition-opacity select-none ${isDisabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:opacity-90'}`}
+              style={{ background: `${meta.color}10`, borderColor: `${meta.color}30`, color: meta.color }}
+              title={isDisabled ? '먼저 구간을 선택하세요' : `${s.name} 매핑`}
+              onClick={() => { if (!isDisabled) onTapMap(s.id); }}
+            >
+              <span className="font-mono">{s.id}</span>
+              <span className="text-[11px] text-[var(--ivps-text2)] max-w-[68px] truncate">{s.name}</span>
+              {!inCart && (
+                <button
+                  onPointerDown={e => e.stopPropagation()}
+                  onClick={e => { e.stopPropagation(); onAddToCart(s.id); }}
+                  className="ml-0.5 w-4 h-4 flex items-center justify-center opacity-50 hover:opacity-100 transition-opacity text-[10px]"
+                  title="카트에 추가"
+                >+</button>
+              )}
+              <button
+                onPointerDown={e => e.stopPropagation()}
+                onClick={e => { e.stopPropagation(); onUnstar(s.id); }}
+                className="ml-0.5 w-4 h-4 flex items-center justify-center opacity-50 hover:opacity-100 transition-opacity text-[10px]"
+                title="즐겨찾기 해제"
+              >☆</button>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -179,7 +234,7 @@ function DroppableSegmentRow({ segment, index, onDelete, onUnmap, isSelected, on
             ? 'border-[var(--ivps-moss-border)] text-[var(--ivps-moss)]'
             : 'border-[var(--ivps-border2)] text-[var(--ivps-text4)]',
         ].join(' ')}>
-          스킬을 드래그해 놓으세요
+          {isOver ? '드랍하세요' : '스킬 탭 또는 드래그로 매핑'}
         </div>
       ) : (
         <div className="flex flex-wrap gap-1">
@@ -571,7 +626,6 @@ export function CognitiveBriefing() {
   } = usePractice();
 
   const [tab, setTab] = useState('setup');
-  const [cartPickerOpen, setCartPickerOpen] = useState(false);
   const [activeDragId, setActiveDragId] = useState(null); // dnd-kit overlay 용
 
   const segments   = activeScore?.segments ?? [];
@@ -643,46 +697,47 @@ export function CognitiveBriefing() {
           <div className="flex-1 overflow-y-auto px-5 pt-4 pb-3">
 
             {/* ── SKILL CART ── */}
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-[10px] text-[var(--ivps-text3)] uppercase tracking-[.07em] font-semibold flex items-center gap-1.5">
-                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#d4a843]" />
-                  Skill Cart
-                </div>
-                <button onClick={() => setCartPickerOpen(v => !v)}
-                  className="text-[10.5px] text-[var(--ivps-gold)] border border-[rgba(212,168,67,.3)] px-2 py-0.5 rounded hover:bg-[rgba(212,168,67,.08)] transition-colors font-mono">
-                  + 추가
-                </button>
+            <div className="mb-4" onClick={e => e.stopPropagation()}>
+              <div className="text-[10px] text-[var(--ivps-text3)] uppercase tracking-[.07em] font-semibold flex items-center gap-1.5 mb-2">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#d4a843]" />
+                Skill Cart
+                {selectedSegmentId && (
+                  <span className="text-[var(--ivps-gold)] normal-case tracking-normal font-mono text-[9.5px] ml-1">
+                    → {segments.findIndex(s => s.id === selectedSegmentId) + 1}구간 매핑
+                  </span>
+                )}
               </div>
 
-              {cartPickerOpen && (
-                <>
-                  {/* 바깥 클릭 시 닫힘 */}
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setCartPickerOpen(false)}
-                  />
-                  <div className="relative z-20">
-                    <CartPicker
-                      cartIds={skillCart}
-                      onAdd={cart.addToCart}
-                      onClose={() => setCartPickerOpen(false)}
-                    />
-                  </div>
-                </>
-              )}
+              <CartPicker cartIds={skillCart} onAdd={cart.addToCart} />
 
               {cartSkills.length === 0 ? (
-                <div className="text-[11.5px] text-[var(--ivps-text4)] text-center py-4 rounded-lg border border-dashed border-[var(--ivps-border2)]">
-                  + 추가로 오늘 연습할 스킬을 등록하세요
+                <div className="text-[11.5px] text-[var(--ivps-text4)] text-center py-3 rounded-lg border border-dashed border-[var(--ivps-border2)]">
+                  위 검색창에서 스킬을 추가하세요
                 </div>
               ) : (
                 <div className="flex flex-wrap gap-1.5">
                   {cartSkills.map(s => (
-                    <DraggableSkillPill key={s.id} skill={s} onRemove={cart.removeFromCart} />
+                    <TappableSkillPill
+                      key={s.id}
+                      skill={s}
+                      isDisabled={!selectedSegmentId}
+                      isStarred={(activeScore?.quickTraySkills ?? []).includes(s.id)}
+                      onTap={(skillId) => segmentActs.mapSkillToSegment(selectedSegmentId, skillId)}
+                      onToggleStar={cart.toggleQuickTraySkill}
+                      onRemove={cart.removeFromCart}
+                    />
                   ))}
                 </div>
               )}
+
+              <ScoreQuickTray
+                quickTraySkillIds={activeScore?.quickTraySkills ?? []}
+                selectedSegmentId={selectedSegmentId}
+                onTapMap={(skillId) => segmentActs.mapSkillToSegment(selectedSegmentId, skillId)}
+                onUnstar={cart.toggleQuickTraySkill}
+                cartIds={skillCart}
+                onAddToCart={cart.addToCart}
+              />
             </div>
 
             {/* ── SEGMENT LIST ── */}
@@ -773,10 +828,11 @@ export function CognitiveBriefing() {
                 ))
               )}
 
-              {/* 안내: 스킬 드래그 힌트 */}
               {segments.length > 0 && cartSkills.length > 0 && (
                 <div className="text-[10.5px] text-[var(--ivps-text4)] text-center mt-2">
-                  위 스킬을 구간으로 드래그하여 매핑하세요
+                  {selectedSegmentId
+                    ? '카트의 스킬을 탭하면 이 구간에 매핑됩니다'
+                    : '구간을 선택한 후 카트의 스킬을 탭하세요'}
                 </div>
               )}
             </div>
@@ -821,7 +877,7 @@ export function CognitiveBriefing() {
                 <div className="flex flex-col items-center justify-center flex-1 gap-4 px-8 text-center">
                   <div className="text-[38px] opacity-20">+</div>
                   <div className="text-[13px] text-[var(--ivps-text3)] leading-relaxed">
-                    선택한 구간에 매핑된 스킬이 없습니다.<br />준비 탭에서 스킬을 이 구간으로 드래그하세요.
+                    선택한 구간에 매핑된 스킬이 없습니다.<br />준비 탭에서 스킬을 탭하여 매핑하세요.
                   </div>
                 </div>
               )
