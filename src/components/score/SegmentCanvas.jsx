@@ -13,6 +13,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { useRef, useEffect, useCallback } from 'react';
 import { useTheme } from '../../hooks/useTheme.js';
+import { getSkillDragData, hasSkillDragData } from '../../utils/skillDrag';
 
 function buildPalette() {
   const g = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
@@ -186,6 +187,7 @@ export function SegmentCanvas({
   onTempDelete,      // (id) => void — 미확정 rect 개별 삭제
   onSegmentUpdate,       // (segmentId, coordIndex, {x,y,width,height}) => void — 구간 이동/크기조정
   onSegmentCoordDelete,  // (segmentId, coordIndex) => void — 특정 좌표만 삭제
+  onSkillDropToSegment,  // (segmentId, skillId) => void — 스킬 pill DnD 매핑
   readOnly,              // bool — 삭제/편집 UI 숨김, 선택만 허용
   hideDelete = false,    // bool — × 버튼만 숨김 (readOnly=false여도 삭제 차단)
   phase = 'before',      // 'before' | 'during' | 'after' — 색상 팔레트 선택
@@ -209,6 +211,7 @@ export function SegmentCanvas({
   const onCoordDeleteRef = useRef(onSegmentCoordDelete);
   const onTempDelRef     = useRef(onTempDelete);
   const onUpdateRef      = useRef(onSegmentUpdate);
+  const onSkillDropRef   = useRef(onSkillDropToSegment);
 
   useEffect(() => { segmentsRef.current     = segments; },        [segments]);
   useEffect(() => { tempSegmentsRef.current = tempSegments; },    [tempSegments]);
@@ -223,6 +226,7 @@ export function SegmentCanvas({
   useEffect(() => { onCoordDeleteRef.current = onSegmentCoordDelete; }, [onSegmentCoordDelete]);
   useEffect(() => { onTempDelRef.current     = onTempDelete; },          [onTempDelete]);
   useEffect(() => { onUpdateRef.current      = onSegmentUpdate; },       [onSegmentUpdate]);
+  useEffect(() => { onSkillDropRef.current   = onSkillDropToSegment; },  [onSkillDropToSegment]);
 
   const phaseRef = useRef(phase);
   useEffect(() => { phaseRef.current = phase; }, [phase]);
@@ -635,6 +639,35 @@ export function SegmentCanvas({
     canvas.style.cursor = isSelectingMode ? 'crosshair' : 'default';
   }, [isSelectingMode]);
 
+  const handleDragOver = useCallback((e) => {
+    if (!hasSkillDragData(e) || !onSkillDropRef.current || isSelectingRef.current) return;
+    const { rx, ry } = toRel(e.clientX, e.clientY);
+    if (!hitSegment(rx, ry)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'copy';
+    if (canvasRef.current) canvasRef.current.style.cursor = 'copy';
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleDragLeave = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    canvas.style.cursor = isSelectingRef.current ? 'crosshair' : 'default';
+  }, []);
+
+  const handleDrop = useCallback((e) => {
+    const skillId = getSkillDragData(e);
+    if (!skillId || !onSkillDropRef.current || isSelectingRef.current) return;
+    const { rx, ry } = toRel(e.clientX, e.clientY);
+    const target = hitSegment(rx, ry);
+    if (!target) return;
+    e.preventDefault();
+    e.stopPropagation();
+    onSkillDropRef.current(target.id, skillId);
+    onSelectRef.current(target.id);
+    draw();
+  }, [draw]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div
       ref={containerRef}
@@ -653,6 +686,9 @@ export function SegmentCanvas({
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerCancel}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
       />
     </div>
   );

@@ -14,6 +14,7 @@ import { TAXONOMY } from '../../data/taxonomy';
 import { fileToPageData } from '../../utils/fileToPageData';
 import { requestNativeFullscreen, exitNativeFullscreen } from '../../utils/nativeFullscreen';
 import { fitContainedSize } from '../../utils/scorePageFit';
+import { hasSkillDragData } from '../../utils/skillDrag';
 import { SegmentCanvas } from './SegmentCanvas';
 import { SegmentHeatmap } from './SegmentHeatmap';
 import { DrawingCanvas } from './DrawingCanvas';
@@ -480,9 +481,22 @@ export function ScoreViewer({ phase }) {
 
   // 전역 드래그 앤 드롭
   useEffect(() => {
-    const onDragOver = e => { e.preventDefault(); setGlobalDragOver(true); };
+    const onDragOver = e => {
+      if (hasSkillDragData(e)) {
+        e.preventDefault();
+        setGlobalDragOver(false);
+        return;
+      }
+      e.preventDefault();
+      setGlobalDragOver(true);
+    };
     const onDragLeave = e => { if (!e.relatedTarget) setGlobalDragOver(false); };
     const onDrop = e => {
+      if (hasSkillDragData(e)) {
+        e.preventDefault();
+        setGlobalDragOver(false);
+        return;
+      }
       e.preventDefault();
       setGlobalDragOver(false);
       const f = e.dataTransfer.files[0];
@@ -646,6 +660,7 @@ export function ScoreViewer({ phase }) {
                   onSegmentCoordDelete={segmentActs.deleteSegmentCoord}
                   onTempDelete={segmentActs.deleteTempSegment}
                   onSegmentUpdate={segmentActs.updateSegmentCoord}
+                  onSkillDropToSegment={segmentActs.mapSkillToSegment}
                   phase="before"
                 />
 

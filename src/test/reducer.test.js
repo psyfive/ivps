@@ -497,53 +497,47 @@ describe('Drawing strokes', () => {
 
 // ── Quick Tray ─────────────────────────────────────────────────────────────
 describe('Quick Tray', () => {
-  it('ADD_SCORE: quickTraySkills 필드가 빈 배열로 초기화된다', () => {
-    const next = reducer(INITIAL_STATE, {
+  it('ADD_QUICK_TRAY_SKILL: 전역 quick tray에 중복 없이 추가한다', () => {
+    const first = reducer(INITIAL_STATE, { type: ACTIONS.ADD_QUICK_TRAY_SKILL, skillId: 'A-1-1' });
+    const second = reducer(first, { type: ACTIONS.ADD_QUICK_TRAY_SKILL, skillId: 'A-1-1' });
+    expect(second.quickTraySkills).toEqual(['A-1-1']);
+  });
+
+  it('REMOVE_QUICK_TRAY_SKILL: 전역 quick tray에서 제거한다', () => {
+    const state = { ...INITIAL_STATE, quickTraySkills: ['A-1-1', 'B-1-1'] };
+    const next = reducer(state, { type: ACTIONS.REMOVE_QUICK_TRAY_SKILL, skillId: 'A-1-1' });
+    expect(next.quickTraySkills).toEqual(['B-1-1']);
+  });
+
+  it('TOGGLE_QUICK_TRAY_SKILL: 전역 quick tray를 대상으로 추가/제거한다', () => {
+    const added = reducer(INITIAL_STATE, { type: ACTIONS.TOGGLE_QUICK_TRAY_SKILL, skillId: 'A-1-1' });
+    expect(added.quickTraySkills).toEqual(['A-1-1']);
+
+    const removed = reducer(added, { type: ACTIONS.TOGGLE_QUICK_TRAY_SKILL, skillId: 'A-1-1' });
+    expect(removed.quickTraySkills).toEqual([]);
+  });
+
+  it('ADD_SCORE: 전역 quick tray를 유지한다', () => {
+    const state = { ...INITIAL_STATE, quickTraySkills: ['A-1-1'] };
+    const next = reducer(state, {
       type: ACTIONS.ADD_SCORE,
       name: '테스트',
       pageData: [{ dataUrl: 'data:image/png;base64,abc' }],
     });
+    expect(next.quickTraySkills).toEqual(['A-1-1']);
     expect(next.scores[0].quickTraySkills).toEqual([]);
-  });
-
-  it('TOGGLE_QUICK_TRAY_SKILL: 없는 스킬을 추가한다', () => {
-    const score = makeScore({ id: 's1', quickTraySkills: [] });
-    const state = { ...INITIAL_STATE, scores: [score], activeScoreId: 's1' };
-    const next = reducer(state, { type: ACTIONS.TOGGLE_QUICK_TRAY_SKILL, skillId: 'A-1-1' });
-    expect(next.scores[0].quickTraySkills).toEqual(['A-1-1']);
-  });
-
-  it('TOGGLE_QUICK_TRAY_SKILL: 이미 있는 스킬을 제거한다', () => {
-    const score = makeScore({ id: 's1', quickTraySkills: ['A-1-1'] });
-    const state = { ...INITIAL_STATE, scores: [score], activeScoreId: 's1' };
-    const next = reducer(state, { type: ACTIONS.TOGGLE_QUICK_TRAY_SKILL, skillId: 'A-1-1' });
-    expect(next.scores[0].quickTraySkills).toEqual([]);
-  });
-
-  it('TOGGLE_QUICK_TRAY_SKILL: activeScoreId 없으면 no-op이다', () => {
-    const state = { ...INITIAL_STATE, activeScoreId: null };
-    const next = reducer(state, { type: ACTIONS.TOGGLE_QUICK_TRAY_SKILL, skillId: 'A-1-1' });
-    expect(next).toBe(state);
-  });
-
-  it('TOGGLE_QUICK_TRAY_SKILL: 활성 악보만 변경하고 다른 악보는 건드리지 않는다', () => {
-    const score1 = makeScore({ id: 's1', quickTraySkills: [] });
-    const score2 = makeScore({ id: 's2', quickTraySkills: [] });
-    const state = { ...INITIAL_STATE, scores: [score1, score2], activeScoreId: 's2' };
-    const next = reducer(state, { type: ACTIONS.TOGGLE_QUICK_TRAY_SKILL, skillId: 'A-1-1' });
-    expect(next.scores.find(s => s.id === 's1').quickTraySkills).toEqual([]);
-    expect(next.scores.find(s => s.id === 's2').quickTraySkills).toEqual(['A-1-1']);
-  });
-
-  it('TOGGLE_QUICK_TRAY_SKILL: quickTraySkills 없는 레거시 score에서도 동작한다', () => {
-    const legacyScore = makeScore({ id: 's1' }); // quickTraySkills 필드 없음
-    const state = { ...INITIAL_STATE, scores: [legacyScore], activeScoreId: 's1' };
-    const next = reducer(state, { type: ACTIONS.TOGGLE_QUICK_TRAY_SKILL, skillId: 'A-1-1' });
-    expect(next.scores[0].quickTraySkills).toEqual(['A-1-1']);
   });
 
   it('MAP_SKILL_TO_SEGMENT: 기존 동작 regression — 구간에 스킬이 매핑된다', () => {
     const segment = makeSegment({ id: 'seg-1', mappedSkills: [] });
+    const score = makeScore({ id: 's1', segments: [segment] });
+    const state = { ...INITIAL_STATE, scores: [score], activeScoreId: 's1' };
+    const next = reducer(state, { type: ACTIONS.MAP_SKILL_TO_SEGMENT, segmentId: 'seg-1', skillId: 'B-1-1' });
+    expect(next.scores[0].segments[0].mappedSkills).toEqual(['B-1-1']);
+  });
+
+  it('MAP_SKILL_TO_SEGMENT: 이미 매핑된 스킬은 중복 추가하지 않는다', () => {
+    const segment = makeSegment({ id: 'seg-1', mappedSkills: ['B-1-1'] });
     const score = makeScore({ id: 's1', segments: [segment] });
     const state = { ...INITIAL_STATE, scores: [score], activeScoreId: 's1' };
     const next = reducer(state, { type: ACTIONS.MAP_SKILL_TO_SEGMENT, segmentId: 'seg-1', skillId: 'B-1-1' });

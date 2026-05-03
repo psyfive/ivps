@@ -1,5 +1,5 @@
 // src/hooks/usePracticeSession.js
-import { useReducer, useCallback } from 'react';
+import { useReducer, useCallback, useEffect } from 'react';
 import { getSkillById } from '../data/taxonomy';
 
 // ── 초기 상태 ──────────────────────────────────────────────────────────────
@@ -43,6 +43,7 @@ export const INITIAL_STATE = {
 
   // ─ Skill Cart (Before Phase) ─
   skillCart: [],              // string[] — 오늘 연습에 사용할 스킬 ID 목록
+  quickTraySkills: [],        // string[] — 악보를 넘어 유지되는 빠른 매핑 스킬 ID 목록
 
   // ─ 시각적 구간 선택 모드 ─
   isSelectingSegment: false,  // 캔버스 드래그 구간 생성 모드
@@ -137,6 +138,8 @@ export const ACTIONS = {
   // Skill Cart
   ADD_TO_CART:             'ADD_TO_CART',
   REMOVE_FROM_CART:        'REMOVE_FROM_CART',
+  ADD_QUICK_TRAY_SKILL:    'ADD_QUICK_TRAY_SKILL',
+  REMOVE_QUICK_TRAY_SKILL: 'REMOVE_QUICK_TRAY_SKILL',
   TOGGLE_QUICK_TRAY_SKILL: 'TOGGLE_QUICK_TRAY_SKILL',
 
   // 시각적 구간 (Before Phase 드래그 매핑)
@@ -209,6 +212,37 @@ export const ACTIONS = {
 const uid = () => Math.random().toString(36).slice(2, 9);
 const REVIEW_INTERVAL_DAYS = [1, 3, 7];
 const DAY_MS = 24 * 60 * 60 * 1000;
+const QUICK_TRAY_STORAGE_KEY = 'ivps-quick-tray-skills';
+
+function normalizeSkillIds(value) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter(id => typeof id === 'string' && id.length > 0))];
+}
+
+function loadPersistedQuickTraySkills() {
+  if (typeof window === 'undefined') return [];
+  try {
+    return normalizeSkillIds(JSON.parse(window.localStorage.getItem(QUICK_TRAY_STORAGE_KEY) ?? '[]'));
+  } catch {
+    return [];
+  }
+}
+
+function savePersistedQuickTraySkills(skillIds) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(QUICK_TRAY_STORAGE_KEY, JSON.stringify(normalizeSkillIds(skillIds)));
+  } catch {
+    // Storage can be unavailable in private or restricted browser contexts.
+  }
+}
+
+function initState(initialState) {
+  return {
+    ...initialState,
+    quickTraySkills: loadPersistedQuickTraySkills(),
+  };
+}
 
 function emptyPracticeStats() {
   return {
@@ -864,18 +898,23 @@ export function reducer(state, action) {
     case ACTIONS.REMOVE_FROM_CART:
       return { ...state, skillCart: state.skillCart.filter(id => id !== action.skillId) };
 
-    case ACTIONS.TOGGLE_QUICK_TRAY_SKILL: {
-      if (!state.activeScoreId) return state;
+    case ACTIONS.ADD_QUICK_TRAY_SKILL:
+      if (!action.skillId || state.quickTraySkills.includes(action.skillId)) return state;
+      return { ...state, quickTraySkills: [...state.quickTraySkills, action.skillId] };
+
+    case ACTIONS.REMOVE_QUICK_TRAY_SKILL:
       return {
         ...state,
-        scores: updateActiveScore(state.scores, state.activeScoreId, s => {
-          const list = s.quickTraySkills ?? [];
-          return {
-            quickTraySkills: list.includes(action.skillId)
-              ? list.filter(id => id !== action.skillId)
-              : [...list, action.skillId],
-          };
-        }),
+        quickTraySkills: state.quickTraySkills.filter(id => id !== action.skillId),
+      };
+
+    case ACTIONS.TOGGLE_QUICK_TRAY_SKILL: {
+      if (!action.skillId) return state;
+      return {
+        ...state,
+        quickTraySkills: state.quickTraySkills.includes(action.skillId)
+          ? state.quickTraySkills.filter(id => id !== action.skillId)
+          : [...state.quickTraySkills, action.skillId],
       };
     }
 
@@ -1097,7 +1136,11 @@ export function reducer(state, action) {
 
 // ── 메인 훅 ───────────────────────────────────────────────────────────────
 export function usePracticeSession() {
-  const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
+  const [state, dispatch] = useReducer(reducer, INITIAL_STATE, initState);
+
+  useEffect(() => {
+    savePersistedQuickTraySkills(state.quickTraySkills);
+  }, [state.quickTraySkills]);
 
   // 편의 셀렉터
   const activeScore = state.scores.find(s => s.id === state.activeScoreId) ?? null;
@@ -1281,6 +1324,12 @@ export function usePracticeSession() {
   const removeFromCart = useCallback((skillId) =>
     dispatch({ type: ACTIONS.REMOVE_FROM_CART, skillId }), []);
 
+  const addQuickTraySkill = useCallback((skillId) =>
+    dispatch({ type: ACTIONS.ADD_QUICK_TRAY_SKILL, skillId }), []);
+
+  const removeQuickTraySkill = useCallback((skillId) =>
+    dispatch({ type: ACTIONS.REMOVE_QUICK_TRAY_SKILL, skillId }), []);
+
   const toggleQuickTraySkill = useCallback((skillId) =>
     dispatch({ type: ACTIONS.TOGGLE_QUICK_TRAY_SKILL, skillId }), []);
 
@@ -1358,7 +1407,7 @@ export function usePracticeSession() {
     skill: { openSkillModal, closeSkillModal, setSymptomFilter },
     score: { addScore, setActiveScore, deleteScore, renameScore, changePage, setPage },
     session: { addSession, deleteSession, selectSession, assignSkill, removeSkill, toggleCheck, openPicker, closePicker },
-    cart: { addToCart, removeFromCart, toggleQuickTraySkill },
+    cart: { addToCart, removeFromCart, addQuickTraySkill, removeQuickTraySkill, toggleQuickTraySkill },
     segment: { toggleSegmentCheck, toggleSegmentMode, startAddToSegment, selectSegment, deleteSegment, deleteSegmentCoord, setSegmentMeta, updateSegmentCoord, mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment, commitTempSegments, setSegmentDifficulty, recordAttempt, resetPracticeStats },
     practiceFlow: { setMode: setPracticeFlowMode, pickNextSegment },
     review: { markReminderDone },
