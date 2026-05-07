@@ -13,13 +13,13 @@ function Btn({ onClick, children, active, title, disabled }) {
       title={title}
       disabled={disabled}
       className={[
-        'flex items-center justify-center rounded-md border text-[11px] font-semibold transition-all select-none flex-shrink-0',
+        'flex min-h-7 items-center justify-center rounded-md border px-2 text-[11px] font-semibold transition-all select-none flex-shrink-0',
         active
-          ? 'bg-[rgba(155,127,200,.2)] border-[rgba(155,127,200,.45)] text-[#9b7fc8]'
-          : 'bg-[rgba(255,255,255,.05)] border-[rgba(255,255,255,.1)] text-[rgba(255,255,255,.55)] hover:bg-[rgba(255,255,255,.1)] hover:text-white',
+          ? 'ivps-hud-btn ivps-hud-btn-accent'
+          : 'ivps-hud-btn',
         disabled ? 'opacity-30 cursor-not-allowed' : '',
       ].join(' ')}
-      style={{ height: 26, minWidth: 26, paddingLeft: 8, paddingRight: 8 }}
+      style={{ minWidth: 28 }}
     >
       {children}
     </button>
@@ -103,12 +103,12 @@ export function TopHUD() {
   if (!selectedSegmentId || !selectedSegment) {
     return (
       <div
-        className="flex-shrink-0 flex items-center justify-center px-4"
+        className="ivps-hud-bar flex-shrink-0 flex items-center justify-center px-4"
         style={{
-          height: 48,
-          background: 'rgba(13,17,23,0.88)',
-          borderBottom: '1px solid rgba(255,255,255,.06)',
-          backdropFilter: 'blur(8px)',
+          minHeight: 48,
+          borderLeft: 0,
+          borderRight: 0,
+          borderTop: 0,
         }}
       >
         <span className="font-mono text-[11px] text-[rgba(255,255,255,.25)]">
@@ -121,12 +121,12 @@ export function TopHUD() {
   if (skills.length === 0) {
     return (
       <div
-        className="flex-shrink-0 flex items-center gap-3 px-4"
+        className="ivps-hud-bar flex-shrink-0 flex flex-wrap items-center gap-3 px-4 py-2"
         style={{
-          height: 48,
-          background: 'rgba(13,17,23,0.88)',
-          borderBottom: '1px solid rgba(255,255,255,.06)',
-          backdropFilter: 'blur(8px)',
+          minHeight: 48,
+          borderLeft: 0,
+          borderRight: 0,
+          borderTop: 0,
         }}
       >
         <span
@@ -144,12 +144,12 @@ export function TopHUD() {
 
   return (
     <div
-      className="flex-shrink-0 flex items-stretch gap-0 px-0"
+      className="ivps-hud-bar flex-shrink-0 flex flex-wrap items-stretch gap-0 px-0"
       style={{
         minHeight: 76,
-        background: 'linear-gradient(180deg, rgba(10,14,20,0.97) 0%, rgba(13,17,23,0.88) 100%)',
-        borderBottom: '1px solid rgba(255,255,255,.07)',
-        backdropFilter: 'blur(10px)',
+        borderLeft: 0,
+        borderRight: 0,
+        borderTop: 0,
       }}
     >
       <div
@@ -157,7 +157,7 @@ export function TopHUD() {
         style={{
           minWidth: 100,
           maxWidth: 120,
-          borderRight: '1px solid rgba(255,255,255,.07)',
+          borderRight: '1px solid var(--ivps-hud-border)',
         }}
       >
         <span
@@ -176,14 +176,14 @@ export function TopHUD() {
           </span>
           <span
             className="text-[11.5px] font-semibold leading-tight"
-            style={{ color: 'rgba(255,255,255,.88)', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+            style={{ color: 'var(--ivps-hud-text)', maxWidth: 112, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
           >
             {skill.name}
           </span>
         </div>
       </div>
 
-      <div className="flex flex-col justify-center gap-[6px] px-4 py-2 flex-1 min-w-0">
+      <div className="flex min-w-[260px] flex-1 flex-col justify-center gap-[6px] px-4 py-2">
         {focusItems.map(({ index, text }, i) => (
           <div key={index} className="flex items-center gap-2 text-left w-full">
             <span
@@ -198,7 +198,7 @@ export function TopHUD() {
             </span>
             <span
               className={[
-                'text-[11.5px] leading-snug',
+                'min-w-0 whitespace-normal break-words text-[12px] leading-snug',
                 i === 0 ? 'font-semibold text-[rgba(255,255,255,.9)]' : 'text-[rgba(255,255,255,.68)]',
               ].join(' ')}
             >
@@ -211,7 +211,7 @@ export function TopHUD() {
       {(multiSkill || canReroll) && (
         <div
           className="flex flex-col justify-center items-center gap-2 px-4 py-2 flex-shrink-0"
-          style={{ borderLeft: '1px solid rgba(255,255,255,.07)', minWidth: 80 }}
+          style={{ borderLeft: '1px solid var(--ivps-hud-border)', minWidth: 80 }}
         >
           {multiSkill && (
             <div className="flex items-center gap-1">

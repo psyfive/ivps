@@ -455,6 +455,29 @@ describe('불변성 보장', () => {
 });
 
 describe('Drawing strokes', () => {
+  it('SET_DRAWING_BOWING_SIZE: updates the default size for new bowing symbols', () => {
+    const next = reducer(INITIAL_STATE, {
+      type: ACTIONS.SET_DRAWING_BOWING_SIZE,
+      size: 140,
+    });
+
+    expect(next.drawingBowingSize).toBe(140);
+  });
+
+  it('SET_DRAWING_BOWING_SIZE: clamps the size range', () => {
+    const tooSmall = reducer(INITIAL_STATE, {
+      type: ACTIONS.SET_DRAWING_BOWING_SIZE,
+      size: 40,
+    });
+    const tooLarge = reducer(INITIAL_STATE, {
+      type: ACTIONS.SET_DRAWING_BOWING_SIZE,
+      size: 220,
+    });
+
+    expect(tooSmall.drawingBowingSize).toBe(60);
+    expect(tooLarge.drawingBowingSize).toBe(180);
+  });
+
   it('UPDATE_STROKE: updates an existing text stroke without changing other drawings', () => {
     const textStroke = {
       id: 'text-1',

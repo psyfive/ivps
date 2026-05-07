@@ -4,13 +4,19 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import { usePractice } from '../../context/PracticeContext';
 
-const BOWING_SIZE = 0.0024;
+const BOWING_SIZE = 0.003;
 const FONT_SIZE_MAP = { 1: 14, 2: 22, 3: 32 };
 const ERASER_THRESHOLD_PX = 28;
 const TEXT_HIT_PAD_PX = 10;
 
 function clamp01(value) {
   return Math.max(0, Math.min(1, value));
+}
+
+function getBowingScale(strokeWidth) {
+  const numeric = Number(strokeWidth);
+  if (!Number.isFinite(numeric) || numeric < 60 || numeric > 180) return 1;
+  return numeric / 100;
 }
 
 function drawStroke(ctx, stroke, w, h) {
@@ -36,8 +42,9 @@ function drawStroke(ctx, stroke, w, h) {
   if (tool === 'downBow' || tool === 'upBow') {
     const cx = points[0].x * w;
     const cy = points[0].y * h;
-    const sz = BOWING_SIZE * w;
-    ctx.lineWidth = Math.max(1.5, 2.2 * w / 900);
+    const bowingScale = getBowingScale(strokeWidth);
+    const sz = BOWING_SIZE * bowingScale * w;
+    ctx.lineWidth = Math.max(1.5, 2.2 * bowingScale * w / 900);
     ctx.beginPath();
     if (tool === 'downBow') {
       ctx.moveTo(cx - sz, cy);
@@ -74,6 +81,7 @@ export function DrawingCanvas({ currentPageIndex }) {
     drawingTool,
     drawingColor,
     drawingFontSize,
+    drawingBowingSize,
     drawing,
   } = usePractice();
 
@@ -105,6 +113,7 @@ export function DrawingCanvas({ currentPageIndex }) {
   const drawingToolRef = useRef(drawingTool);
   const drawingColorRef = useRef(drawingColor);
   const drawingFontSizeRef = useRef(drawingFontSize);
+  const drawingBowingSizeRef = useRef(drawingBowingSize);
   const pageIdxRef = useRef(currentPageIndex);
   const drawingActsRef = useRef(drawing);
   const activeScoreRef = useRef(activeScore);
@@ -113,6 +122,7 @@ export function DrawingCanvas({ currentPageIndex }) {
   useEffect(() => { drawingToolRef.current = drawingTool; }, [drawingTool]);
   useEffect(() => { drawingColorRef.current = drawingColor; }, [drawingColor]);
   useEffect(() => { drawingFontSizeRef.current = drawingFontSize; }, [drawingFontSize]);
+  useEffect(() => { drawingBowingSizeRef.current = drawingBowingSize; }, [drawingBowingSize]);
   useEffect(() => { pageIdxRef.current = currentPageIndex; }, [currentPageIndex]);
   useEffect(() => { drawingActsRef.current = drawing; }, [drawing]);
   useEffect(() => { activeScoreRef.current = activeScore; }, [activeScore]);
@@ -339,7 +349,14 @@ export function DrawingCanvas({ currentPageIndex }) {
     }
 
     if (tool === 'downBow' || tool === 'upBow') {
-      acts.addStroke({ id: uid(), tool, color, strokeWidth: 2.5, points: [pt], pageIndex: pageIdx });
+      acts.addStroke({
+        id: uid(),
+        tool,
+        color,
+        strokeWidth: drawingBowingSizeRef.current,
+        points: [pt],
+        pageIndex: pageIdx,
+      });
       return;
     }
 

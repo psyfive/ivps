@@ -18,12 +18,12 @@ function fmtElapsed(sec) {
 
 // ── 미니 버튼 공통 스타일 ──────────────────────────────────────────────────
 function MiniBtn({ onClick, children, title, accent, dim, danger, disabled }) {
-  const base = 'flex items-center justify-center rounded-lg border text-[11.5px] font-semibold transition-all select-none';
+  const base = 'flex min-h-10 items-center justify-center whitespace-nowrap rounded-lg border px-3 text-[11.5px] font-semibold transition-all select-none';
   let colors;
-  if (accent)       colors = 'bg-[var(--ivps-gold-bg)] border-[var(--ivps-gold-border)] text-[var(--ivps-gold)] hover:bg-[rgba(212,168,67,.2)]';
-  else if (danger)  colors = 'bg-[var(--ivps-rust-bg)] border-[var(--ivps-rust-border)] text-[var(--ivps-rust)] hover:bg-[rgba(224,112,112,.18)]';
-  else if (dim)     colors = 'bg-transparent border-transparent text-[rgba(255,255,255,.25)] cursor-default';
-  else              colors = 'bg-[rgba(255,255,255,.05)] border-[rgba(255,255,255,.1)] text-[rgba(255,255,255,.6)] hover:bg-[rgba(255,255,255,.1)] hover:text-white';
+  if (accent)       colors = 'ivps-hud-btn ivps-hud-btn-gold';
+  else if (danger)  colors = 'ivps-hud-btn ivps-hud-btn-danger';
+  else if (dim)     colors = 'ivps-hud-btn-dim';
+  else              colors = 'ivps-hud-btn';
 
   return (
     <button
@@ -31,7 +31,6 @@ function MiniBtn({ onClick, children, title, accent, dim, danger, disabled }) {
       title={title}
       disabled={disabled}
       className={`${base} ${colors} ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
-      style={{ height: 34, paddingLeft: 10, paddingRight: 10 }}
     >
       {children}
     </button>
@@ -40,7 +39,64 @@ function MiniBtn({ onClick, children, title, accent, dim, danger, disabled }) {
 
 // ── 구분선 ────────────────────────────────────────────────────────────────
 function Sep() {
-  return <div className="w-px h-4 bg-[rgba(255,255,255,.08)] flex-shrink-0" />;
+  return <div className="ivps-hud-divider h-5 w-px flex-shrink-0" />;
+}
+
+function BowingSymbolPreview({ tool, size = 100, muted = false }) {
+  const scale = Math.max(0.6, Math.min(1.8, Number(size) / 100 || 1));
+  const width = 18 * scale;
+  const height = 18 * scale;
+  const color = muted ? 'rgba(255,255,255,.38)' : '#d4a843';
+
+  if (tool === 'upBow') {
+    return (
+      <span
+        aria-hidden="true"
+        className="relative inline-block flex-shrink-0"
+        style={{ width, height }}
+      >
+        <span
+          className="absolute block rounded-full"
+          style={{
+            left: width * 0.16,
+            top: height * 0.18,
+            width: 2,
+            height: height * 0.78,
+            background: color,
+            transform: 'rotate(-34deg)',
+            transformOrigin: 'bottom center',
+          }}
+        />
+        <span
+          className="absolute block rounded-full"
+          style={{
+            right: width * 0.16,
+            top: height * 0.18,
+            width: 2,
+            height: height * 0.78,
+            background: color,
+            transform: 'rotate(34deg)',
+            transformOrigin: 'bottom center',
+          }}
+        />
+      </span>
+    );
+  }
+
+  return (
+    <span
+      aria-hidden="true"
+      className="inline-block flex-shrink-0"
+      style={{
+        width,
+        height: height * 0.82,
+        borderTop: `2px solid ${color}`,
+        borderLeft: `2px solid ${color}`,
+        borderRight: `2px solid ${color}`,
+        borderRadius: 2,
+      }}
+    />
+  );
 }
 
 // ── 구간의 가장 빠른 페이지 인덱스 ────────────────────────────────────────
@@ -243,7 +299,7 @@ function GrapeAttemptRadial({ disabled, streak, completedAt, bpmIncrement, onSuc
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         title="포도송이를 길게 누른 뒤 성공 또는 흔들림으로 드래그"
-        className="flex h-[34px] min-w-[48px] items-center justify-center rounded-[11px] border px-3 text-[12px] font-bold transition-all select-none"
+        className="flex min-h-10 min-w-[52px] items-center justify-center rounded-[11px] border px-3 text-[12px] font-bold transition-all select-none"
         style={{
           ...levelStyle,
           cursor: disabled ? 'not-allowed' : 'pointer',
@@ -290,6 +346,7 @@ export function DuringMiniControls() {
     drawingTool,
     drawingColor,
     drawingFontSize,
+    drawingBowingSize,
     metro,
     grape,
     nav,
@@ -496,7 +553,7 @@ export function DuringMiniControls() {
       {ghostActive && hudContent && (
         <div
           className="absolute left-0 right-0 z-30 flex items-center justify-center pointer-events-none"
-          style={{ bottom: 52, height: 32 }}
+          style={{ bottom: 72, height: 32 }}
         >
           <div
             className="flex items-center gap-2.5 px-4 py-1.5 rounded-full"
@@ -550,11 +607,10 @@ export function DuringMiniControls() {
 
       {/* ── 미니바 ── */}
       <div
-        className="absolute bottom-0 left-0 right-0 z-30 flex items-center gap-2 px-4"
+        className="ivps-hud-bar absolute bottom-3 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-xl px-3 py-2"
         style={{
-          height: 52,
-          background: 'linear-gradient(180deg, rgba(13,17,23,0) 0%, rgba(13,17,23,0.92) 40%)',
-          backdropFilter: 'blur(8px)',
+          minHeight: 56,
+          width: 'min(calc(100% - 24px), 980px)',
         }}
       >
         {/* ── 좌: Before로 돌아가기 ── */}
@@ -580,11 +636,11 @@ export function DuringMiniControls() {
               ref={metroBtnRef}
               onClick={() => setMetroOpen(o => !o)}
               title="메트로놈 설정"
-              className="flex items-center gap-1.5 px-3 h-[34px] rounded-lg border font-mono text-[12px] font-bold transition-all"
+              className="flex min-h-10 items-center gap-1.5 rounded-lg border px-3 font-mono text-[12px] font-bold transition-all"
               style={{
-                background: metroOpen ? 'rgba(212,168,67,.18)' : 'rgba(212,168,67,.08)',
-                borderColor: metroOpen ? 'rgba(212,168,67,.55)' : 'rgba(212,168,67,.25)',
-                color: '#d4a843',
+                background: metroOpen ? 'var(--ivps-gold-bg)' : 'var(--ivps-hud-control)',
+                borderColor: metroOpen ? 'var(--ivps-gold-border)' : 'var(--ivps-hud-border)',
+                color: 'var(--ivps-gold)',
               }}
             >
               <span style={{ fontSize: 10, opacity: 0.7 }}>♩</span>
@@ -598,15 +654,11 @@ export function DuringMiniControls() {
             {metroOpen && (
               <div
                 ref={metroPanelRef}
-                className="absolute bottom-[calc(100%+8px)] left-1/2 -translate-x-1/2 z-50"
+                className="ivps-hud-popover absolute bottom-[calc(100%+10px)] left-1/2 z-50 -translate-x-1/2 rounded-xl"
                 style={{
-                  background: 'rgba(18,22,30,0.97)',
-                  border: '1px solid rgba(212,168,67,.3)',
-                  borderRadius: 12,
-                  boxShadow: '0 -4px 24px rgba(0,0,0,0.35)',
                   width: 260,
                   padding: '14px 16px',
-                  maxHeight: '70vh',
+                  maxHeight: 'min(70vh, 560px)',
                   overflowY: 'auto',
                 }}
               >
@@ -908,11 +960,11 @@ export function DuringMiniControls() {
                 title="필기 모드"
                 className="flex items-center justify-center rounded-lg border text-[13px] transition-all select-none"
                 style={{
-                  height: 34,
-                  width: 34,
-                  background: drawingMode ? 'rgba(212,168,67,.2)' : 'rgba(255,255,255,.05)',
-                  borderColor: drawingMode ? 'rgba(212,168,67,.55)' : 'rgba(255,255,255,.1)',
-                  color: drawingMode ? '#d4a843' : 'rgba(255,255,255,.55)',
+                  height: 40,
+                  width: 40,
+                  background: drawingMode ? 'var(--ivps-gold-bg)' : 'var(--ivps-hud-control)',
+                  borderColor: drawingMode ? 'var(--ivps-gold-border)' : 'var(--ivps-hud-border)',
+                  color: drawingMode ? 'var(--ivps-gold)' : 'var(--ivps-hud-muted)',
                 }}
               >
                 ✏️
@@ -921,14 +973,12 @@ export function DuringMiniControls() {
               {/* 필기 툴바 */}
               {drawingMode && (
                 <div
-                  className="absolute bottom-[calc(100%+8px)] left-1/2 -translate-x-1/2 z-50"
+                  className="ivps-hud-popover absolute bottom-[calc(100%+10px)] left-1/2 z-50 -translate-x-1/2 rounded-xl"
                   style={{
-                    background: 'rgba(18,22,30,0.97)',
-                    border: '1px solid rgba(212,168,67,.28)',
-                    borderRadius: 12,
-                    boxShadow: '0 -4px 24px rgba(0,0,0,0.4)',
                     width: 248,
                     padding: '12px 14px',
+                    maxHeight: 'min(70vh, 520px)',
+                    overflowY: 'auto',
                   }}
                 >
                   {/* 도구 */}
@@ -990,6 +1040,47 @@ export function DuringMiniControls() {
                     </>
                   )}
 
+                  {/* Bowing symbol size */}
+                  {(drawingTool === 'downBow' || drawingTool === 'upBow') && (
+                    <>
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <span className="text-[9px] text-[rgba(255,255,255,.3)] uppercase tracking-wider">SYMBOL SIZE</span>
+                        <span className="text-[10px] font-semibold" style={{ color: '#d4a843' }}>
+                          {drawingBowingSize}%
+                        </span>
+                      </div>
+                      <div
+                        className="mb-3 rounded-lg border px-2.5 py-2"
+                        style={{
+                          background: 'rgba(255,255,255,.035)',
+                          borderColor: 'rgba(255,255,255,.08)',
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <BowingSymbolPreview tool={drawingTool} size={70} muted />
+                          <input
+                            type="range"
+                            min="60"
+                            max="180"
+                            step="10"
+                            value={drawingBowingSize}
+                            aria-label="Bowing symbol size"
+                            title="Bowing symbol size"
+                            className="h-2 flex-1 accent-[#d4a843]"
+                            onChange={(event) => drawingActs.setDrawingBowingSize(Number(event.target.value))}
+                          />
+                          <BowingSymbolPreview tool={drawingTool} size={130} muted />
+                          <div
+                            className="ml-1 flex h-8 w-10 items-center justify-center rounded-md"
+                            style={{ background: 'rgba(212,168,67,.1)' }}
+                          >
+                            <BowingSymbolPreview tool={drawingTool} size={drawingBowingSize} />
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
                   {/* 글자 크기 — text 도구 전용 */}
                   {drawingTool === 'text' && (
                     <>
@@ -1046,11 +1137,11 @@ export function DuringMiniControls() {
 
           {/* 경과 시간 */}
           <div
-            className="font-mono text-[11.5px] px-2.5 h-[34px] flex items-center rounded-lg border"
+            className="flex min-h-10 items-center rounded-lg border px-3 font-mono text-[11.5px]"
             style={{
-              background: 'rgba(255,255,255,.03)',
-              borderColor: 'rgba(255,255,255,.07)',
-              color: 'rgba(255,255,255,.45)',
+              background: 'var(--ivps-hud-control)',
+              borderColor: 'var(--ivps-hud-border)',
+              color: 'var(--ivps-hud-muted)',
               minWidth: 56,
               justifyContent: 'center',
             }}

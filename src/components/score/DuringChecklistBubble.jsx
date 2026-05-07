@@ -53,7 +53,7 @@ function BubbleButton({ children, onClick, disabled, title }) {
       onPointerDown={event => event.stopPropagation()}
       disabled={disabled}
       title={title}
-      className="h-6 min-w-6 px-2 rounded-full border border-[rgba(255,255,255,.14)] bg-[rgba(255,255,255,.07)] text-[10px] font-semibold text-[rgba(255,255,255,.7)] hover:bg-[rgba(255,255,255,.12)] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+      className="ivps-hud-btn min-h-7 min-w-7 rounded-md px-2 text-[10px] font-semibold disabled:cursor-not-allowed disabled:opacity-30 transition-colors"
     >
       {children}
     </button>
@@ -195,22 +195,22 @@ export function DuringChecklistBubble({ pageIndex }) {
       onPointerMove={onPointerMove}
       onPointerUp={finishDrag}
       onPointerCancel={finishDrag}
-      className="absolute z-30 w-[min(300px,72%)] rounded-[999px] border border-[rgba(255,255,255,.16)] bg-[rgba(10,14,20,.91)] px-5 py-3 text-white shadow-[0_14px_34px_rgba(0,0,0,.35)] backdrop-blur-md cursor-grab active:cursor-grabbing select-none touch-none"
+      className="ivps-hud-popover absolute z-30 w-[min(360px,88%)] max-h-[min(52vh,420px)] cursor-grab select-none overflow-y-auto rounded-xl px-4 py-3 active:cursor-grabbing touch-none"
       style={{
         left: `${displayedPosition.x * 100}%`,
         top: `${displayedPosition.y * 100}%`,
         transform: 'translate(-50%, -50%)',
-        boxShadow: `0 14px 34px rgba(0,0,0,.35), 0 0 0 1px ${color}22`,
+        boxShadow: `var(--ivps-hud-shadow), 0 0 0 1px ${color}24`,
       }}
     >
-      <div className="flex items-center gap-2 mb-2">
+      <div className="mb-2.5 flex items-center gap-2">
         <span
-          className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+          className="flex-shrink-0 rounded-md px-2 py-0.5 font-mono text-[10px] font-bold"
           style={{ background: `${color}24`, color }}
         >
           {skill?.id ?? 'NO SKILL'}
         </span>
-        <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-[rgba(255,255,255,.86)]">
+        <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-[var(--ivps-hud-text)]">
           {skill?.name ?? '\uC2A4\uD0AC \uBBF8\uB9E4\uD551'}
         </span>
         {multiSkill && (
@@ -243,9 +243,9 @@ export function DuringChecklistBubble({ pageIndex }) {
       <div className="flex flex-col gap-1.5">
         {focusItems.length > 0 ? (
           focusItems.map(({ index, text }, itemIdx) => (
-            <div key={index} className="flex items-start gap-2 text-left">
+            <div key={index} className="flex items-start gap-2.5 text-left">
               <span
-                className="mt-[1px] flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-full text-[9px] font-bold"
+                className="mt-[1px] flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md text-[9px] font-bold"
                 style={{
                   background: itemIdx === 0 ? `${color}33` : 'rgba(255,255,255,.08)',
                   color: itemIdx === 0 ? color : 'rgba(255,255,255,.5)',
@@ -254,7 +254,7 @@ export function DuringChecklistBubble({ pageIndex }) {
               >
                 {itemIdx + 1}
               </span>
-              <span className="text-[11px] leading-snug text-[rgba(255,255,255,.78)]">
+              <span className="min-w-0 whitespace-normal break-words text-[12px] leading-[1.45] text-[rgba(255,255,255,.80)]">
                 {text}
               </span>
             </div>

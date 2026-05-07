@@ -56,6 +56,7 @@ export const INITIAL_STATE = {
   drawingTool: 'pen',         // 'pen' | 'downBow' | 'upBow' | 'eraser' | 'text'
   drawingColor: '#000000',
   drawingFontSize: 2,         // 1=Small(14px) / 2=Medium(22px) / 3=Large(32px)
+  drawingBowingSize: 100,      // 60~180 (%) for downBow/upBow symbols
 
   // ─ UI ─
   practiceFullscreen: false, // During 진입 시 양 사이드 패널 접기
@@ -184,6 +185,7 @@ export const ACTIONS = {
   SET_DRAWING_TOOL:  'SET_DRAWING_TOOL',
   SET_DRAWING_COLOR:     'SET_DRAWING_COLOR',
   SET_DRAWING_FONT_SIZE: 'SET_DRAWING_FONT_SIZE',
+  SET_DRAWING_BOWING_SIZE: 'SET_DRAWING_BOWING_SIZE',
 
   // UI
   SET_PRACTICE_FULLSCREEN:'SET_PRACTICE_FULLSCREEN',
@@ -213,6 +215,8 @@ const uid = () => Math.random().toString(36).slice(2, 9);
 const REVIEW_INTERVAL_DAYS = [1, 3, 7];
 const DAY_MS = 24 * 60 * 60 * 1000;
 const QUICK_TRAY_STORAGE_KEY = 'ivps-quick-tray-skills';
+const MIN_BOWING_SIZE = 60;
+const MAX_BOWING_SIZE = 180;
 
 function normalizeSkillIds(value) {
   if (!Array.isArray(value)) return [];
@@ -235,6 +239,12 @@ function savePersistedQuickTraySkills(skillIds) {
   } catch {
     // Storage can be unavailable in private or restricted browser contexts.
   }
+}
+
+function clampBowingSize(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return 100;
+  return Math.max(MIN_BOWING_SIZE, Math.min(MAX_BOWING_SIZE, numeric));
 }
 
 function initState(initialState) {
@@ -984,6 +994,9 @@ export function reducer(state, action) {
     case ACTIONS.SET_DRAWING_FONT_SIZE:
       return { ...state, drawingFontSize: action.size };
 
+    case ACTIONS.SET_DRAWING_BOWING_SIZE:
+      return { ...state, drawingBowingSize: clampBowingSize(action.size) };
+
     // ── UI ───────────────────────────────────────────────────────────
 
     case ACTIONS.SET_PRACTICE_FULLSCREEN:
@@ -1361,6 +1374,9 @@ export function usePracticeSession() {
   const setDrawingFontSize = useCallback((size) =>
     dispatch({ type: ACTIONS.SET_DRAWING_FONT_SIZE, size }), []);
 
+  const setDrawingBowingSize = useCallback((size) =>
+    dispatch({ type: ACTIONS.SET_DRAWING_BOWING_SIZE, size }), []);
+
   // ── UI 액션 ──────────────────────────────────────────────────────
   const setPracticeFullscreen = useCallback((value) =>
     dispatch({ type: ACTIONS.SET_PRACTICE_FULLSCREEN, value }), []);
@@ -1411,7 +1427,7 @@ export function usePracticeSession() {
     segment: { toggleSegmentCheck, toggleSegmentMode, startAddToSegment, selectSegment, deleteSegment, deleteSegmentCoord, setSegmentMeta, updateSegmentCoord, mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment, commitTempSegments, setSegmentDifficulty, recordAttempt, resetPracticeStats },
     practiceFlow: { setMode: setPracticeFlowMode, pickNextSegment },
     review: { markReminderDone },
-    drawing: { addStroke, updateStroke, removeStroke, undoStroke, clearDrawings, setDrawingMode, setDrawingTool, setDrawingColor, setDrawingFontSize },
+    drawing: { addStroke, updateStroke, removeStroke, undoStroke, clearDrawings, setDrawingMode, setDrawingTool, setDrawingColor, setDrawingFontSize, setDrawingBowingSize },
     metro: { setBpm, setBeatsPerBar, setMetroPlaying, setCurrentBeat, setSubdivision, setGhostTrainBars, setGhostTrainReadyBars },
     tuner: { setTunerActive, setTunerNote },
     grape: { toggleGrape, resetGrapes, adjustGrapeTotal },
