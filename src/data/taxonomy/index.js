@@ -1,57 +1,45 @@
 // src/data/taxonomy/index.js
-// 단일 진입점 — 기존 taxonomyData.js 인터페이스를 완전히 유지
 
-import { categoryA } from './categoryA';
-import { categoryB } from './categoryB';
-import { categoryC } from './categoryC';
-import { categoryD } from './categoryD';
+import { categoryA } from './categoryA.js';
+import { categoryB } from './categoryB.js';
+import { categoryC } from './categoryC.js';
+import { CATEGORY_META, SKILL_GROUPS } from './constants.js';
+import { PREREQUISITES, SYNERGIES } from './connections.js';
 
-import { CATEGORY_META, SKILL_GROUPS } from './constants';
 export { CATEGORY_META, SKILL_GROUPS };
-
-import { PREREQUISITES, SYNERGIES } from './connections';
 
 export const TAXONOMY = [
   ...categoryA,
   ...categoryB,
   ...categoryC,
-  ...categoryD,
 ];
 
-/** 카테고리 코드로 스킬 필터 */
 export function getSkillsByCategory(categoryCode) {
-  return TAXONOMY.filter(s => s.id.startsWith(categoryCode));
+  return TAXONOMY.filter(skill => skill.id.startsWith(categoryCode));
 }
 
-/** 그룹 ID로 스킬 필터 */
 export function getSkillsByGroup(groupId) {
-  return TAXONOMY.filter(s => s.groupId === groupId);
+  return TAXONOMY.filter(skill => skill.groupId === groupId);
 }
 
-/** ID로 단일 스킬 조회 */
 export function getSkillById(id) {
-  return TAXONOMY.find(s => s.id === id) ?? null;
+  return TAXONOMY.find(skill => skill.id === id) ?? null;
 }
 
-/** 카테고리 코드 추출 (e.g. "A-1-2" → "A") */
 export function getCategoryCode(skillId) {
-  return skillId.charAt(0);
+  return typeof skillId === 'string' && skillId.length > 0 ? skillId.charAt(0) : 'A';
 }
 
-/** 카테고리 메타 조회 */
 export function getCategoryMeta(skillId) {
-  return CATEGORY_META[getCategoryCode(skillId)] ?? CATEGORY_META['A'];
+  return CATEGORY_META[getCategoryCode(skillId)] ?? CATEGORY_META.A;
 }
 
-/** 모든 카테고리 목록 (필터용) */
 export const ALL_CATEGORIES = ['전체', ...Object.keys(CATEGORY_META)];
 
-/** 선행 스킬 ID 목록 반환 */
 export function getPrerequisites(skillId) {
   return (PREREQUISITES[skillId] ?? []).map(id => getSkillById(id)).filter(Boolean);
 }
 
-/** 시너지 스킬 ID 목록 반환 */
 export function getSynergies(skillId) {
   return (SYNERGIES[skillId] ?? []).map(id => getSkillById(id)).filter(Boolean);
 }

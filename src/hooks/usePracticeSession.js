@@ -220,7 +220,7 @@ const MAX_BOWING_SIZE = 180;
 
 function normalizeSkillIds(value) {
   if (!Array.isArray(value)) return [];
-  return [...new Set(value.filter(id => typeof id === 'string' && id.length > 0))];
+  return [...new Set(value.filter(id => typeof id === 'string' && getSkillById(id)))];
 }
 
 function loadPersistedQuickTraySkills() {
@@ -909,7 +909,7 @@ export function reducer(state, action) {
       return { ...state, skillCart: state.skillCart.filter(id => id !== action.skillId) };
 
     case ACTIONS.ADD_QUICK_TRAY_SKILL:
-      if (!action.skillId || state.quickTraySkills.includes(action.skillId)) return state;
+      if (!getSkillById(action.skillId) || state.quickTraySkills.includes(action.skillId)) return state;
       return { ...state, quickTraySkills: [...state.quickTraySkills, action.skillId] };
 
     case ACTIONS.REMOVE_QUICK_TRAY_SKILL:
@@ -919,7 +919,7 @@ export function reducer(state, action) {
       };
 
     case ACTIONS.TOGGLE_QUICK_TRAY_SKILL: {
-      if (!action.skillId) return state;
+      if (!getSkillById(action.skillId)) return state;
       return {
         ...state,
         quickTraySkills: state.quickTraySkills.includes(action.skillId)
