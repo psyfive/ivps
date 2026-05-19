@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { usePractice } from '../../context/PracticeContext';
 import { getSkillById, getCategoryMeta } from '../../data/taxonomy';
-import { getFocusIndexes, pickRandomFocusIndexes } from '../../utils/duringFocusItems';
+import { FOCUS_CATEGORY_META, getFocusItems, pickRandomFocusIndexes } from '../../utils/duringFocusItems';
 
 const AUTO_INTERVAL_MS = 22_000;
 
@@ -83,8 +83,7 @@ export function TopHUD() {
   const color = catMeta?.color ?? '#9b7fc8';
   const items = skill?.during ?? [];
   const focusKey = selectedSegmentId && skill ? `${selectedSegmentId}:${skill.id}` : null;
-  const focusIndexes = getFocusIndexes(items.length, focusKey ? focusByKey[focusKey] : null);
-  const focusItems = focusIndexes.map(index => ({ index, text: items[index] })).filter(item => item.text);
+  const focusItems = getFocusItems(items, focusKey ? focusByKey[focusKey] : null);
   const canReroll = items.length > 3;
 
   const segments = activeScore?.segments ?? [];
@@ -94,9 +93,9 @@ export function TopHUD() {
     if (!focusKey || items.length <= 3) return;
     setFocusByKey(prev => ({
       ...prev,
-      [focusKey]: pickRandomFocusIndexes(items.length, prev[focusKey]),
+      [focusKey]: pickRandomFocusIndexes(items, prev[focusKey]),
     }));
-  }, [focusKey, items.length]);
+  }, [focusKey, items]);
 
   if (phase !== 'during' || duringChecklistMode !== 'top') return null;
 
@@ -184,28 +183,31 @@ export function TopHUD() {
       </div>
 
       <div className="flex min-w-[260px] flex-1 flex-col justify-center gap-[6px] px-4 py-2">
-        {focusItems.map(({ index, text }, i) => (
-          <div key={index} className="flex items-center gap-2 text-left w-full">
-            <span
-              className="flex-shrink-0 w-[18px] h-[18px] rounded-full flex items-center justify-center text-[9px] font-bold"
-              style={{
-                background: i === 0 ? `${color}33` : 'rgba(255,255,255,.07)',
-                color: i === 0 ? color : 'rgba(255,255,255,.42)',
-                border: `1px solid ${i === 0 ? `${color}55` : 'rgba(255,255,255,.12)'}`,
-              }}
-            >
-              {i + 1}
-            </span>
-            <span
-              className={[
-                'min-w-0 whitespace-normal break-words text-[12px] leading-snug',
-                i === 0 ? 'font-semibold text-[rgba(255,255,255,.9)]' : 'text-[rgba(255,255,255,.68)]',
-              ].join(' ')}
-            >
-              {text}
-            </span>
-          </div>
-        ))}
+        {focusItems.map(({ index, text, category, label }, i) => {
+          const focusMeta = FOCUS_CATEGORY_META[category] ?? FOCUS_CATEGORY_META.general;
+          return (
+            <div key={index} className="flex items-center gap-2 text-left w-full">
+              <span
+                className="flex-shrink-0 rounded-md px-2 py-0.5 text-[10px] font-semibold"
+                style={{
+                  background: focusMeta.bg,
+                  color: focusMeta.color,
+                  border: `1px solid ${focusMeta.border}`,
+                }}
+              >
+                {label || 'Focus'}
+              </span>
+              <span
+                className={[
+                  'min-w-0 whitespace-normal break-words text-[12px] leading-snug',
+                  i === 0 ? 'font-semibold text-[rgba(255,255,255,.9)]' : 'text-[rgba(255,255,255,.68)]',
+                ].join(' ')}
+              >
+                {text}
+              </span>
+            </div>
+          );
+        })}
       </div>
 
       {(multiSkill || canReroll) && (

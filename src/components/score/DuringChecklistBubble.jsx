@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { usePractice } from '../../context/PracticeContext';
 import { getSkillById, getCategoryMeta } from '../../data/taxonomy';
-import { getFocusIndexes, pickRandomFocusIndexes } from '../../utils/duringFocusItems';
+import { FOCUS_CATEGORY_META, getFocusItems, pickRandomFocusIndexes } from '../../utils/duringFocusItems';
 
 const EDGE_GAP = 10;
 
@@ -115,8 +115,7 @@ export function DuringChecklistBubble({ pageIndex }) {
   const color = catMeta?.color ?? '#9b7fc8';
   const items = skill?.during ?? [];
   const focusKey = selectedSegmentId && skill ? `${selectedSegmentId}:${skill.id}` : null;
-  const focusIndexes = getFocusIndexes(items.length, focusKey ? focusByKey[focusKey] : null);
-  const focusItems = focusIndexes.map(index => ({ index, text: items[index] })).filter(item => item.text);
+  const focusItems = getFocusItems(items, focusKey ? focusByKey[focusKey] : null);
   const canReroll = items.length > 3;
   const multiSkill = skills.length > 1;
 
@@ -130,9 +129,9 @@ export function DuringChecklistBubble({ pageIndex }) {
     if (!focusKey || items.length <= 3) return;
     setFocusByKey(prev => ({
       ...prev,
-      [focusKey]: pickRandomFocusIndexes(items.length, prev[focusKey]),
+      [focusKey]: pickRandomFocusIndexes(items, prev[focusKey]),
     }));
-  }, [focusKey, items.length]);
+  }, [focusKey, items]);
 
   const getPointerPosition = useCallback((event) => {
     const frame = bubbleRef.current?.parentElement;
@@ -242,23 +241,26 @@ export function DuringChecklistBubble({ pageIndex }) {
 
       <div className="flex flex-col gap-1.5">
         {focusItems.length > 0 ? (
-          focusItems.map(({ index, text }, itemIdx) => (
-            <div key={index} className="flex items-start gap-2.5 text-left">
-              <span
-                className="mt-[1px] flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md text-[9px] font-bold"
-                style={{
-                  background: itemIdx === 0 ? `${color}33` : 'rgba(255,255,255,.08)',
-                  color: itemIdx === 0 ? color : 'rgba(255,255,255,.5)',
-                  border: `1px solid ${itemIdx === 0 ? `${color}55` : 'rgba(255,255,255,.12)'}`,
-                }}
-              >
-                {itemIdx + 1}
-              </span>
-              <span className="min-w-0 whitespace-normal break-words text-[12px] leading-[1.45] text-[rgba(255,255,255,.80)]">
-                {text}
-              </span>
-            </div>
-          ))
+          focusItems.map(({ index, text, category, label }) => {
+            const focusMeta = FOCUS_CATEGORY_META[category] ?? FOCUS_CATEGORY_META.general;
+            return (
+              <div key={index} className="flex items-start gap-2.5 text-left">
+                <span
+                  className="mt-[1px] flex-shrink-0 rounded-md px-2 py-1 text-[10px] font-semibold"
+                  style={{
+                    background: focusMeta.bg,
+                    color: focusMeta.color,
+                    border: `1px solid ${focusMeta.border}`,
+                  }}
+                >
+                  {label || 'Focus'}
+                </span>
+                <span className="min-w-0 whitespace-normal break-words text-[12px] leading-[1.45] text-[rgba(255,255,255,.80)]">
+                  {text}
+                </span>
+              </div>
+            );
+          })
         ) : (
           <div className="px-2 pb-1 text-center text-[11px] text-[rgba(255,255,255,.55)]">
             Before에서 이 구간에 스킬을 추가하세요.

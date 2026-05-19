@@ -3,9 +3,10 @@ import { useState, useCallback, useEffect } from 'react';
 import { usePractice } from '../../context/PracticeContext';
 import { getSkillById, getCategoryMeta } from '../../data/taxonomy';
 import { requestNativeFullscreen } from '../../utils/nativeFullscreen';
-import { getFocusIndexes, pickRandomFocusIndexes } from '../../utils/duringFocusItems';
+import { FOCUS_CATEGORY_META, getFocusItems, pickRandomFocusIndexes } from '../../utils/duringFocusItems';
 
-function FocusItem({ index, text, isFirst, color }) {
+function FocusItem({ text, isFirst, category, label }) {
+  const focusMeta = FOCUS_CATEGORY_META[category] ?? FOCUS_CATEGORY_META.general;
   return (
     <div
       className={[
@@ -16,14 +17,14 @@ function FocusItem({ index, text, isFirst, color }) {
       ].join(' ')}
     >
       <span
-        className="w-6 h-6 rounded-full flex items-center justify-center font-mono text-[11px] font-medium flex-shrink-0"
+        className="rounded-md px-2 py-1 text-[10.5px] font-semibold flex-shrink-0"
         style={{
-          background: isFirst ? `${color}2b` : 'var(--ivps-surface2)',
-          color: isFirst ? color : 'var(--ivps-text3)',
-          border: `1px solid ${isFirst ? `${color}55` : 'var(--ivps-border2)'}`,
+          background: focusMeta.bg,
+          color: focusMeta.color,
+          border: `1px solid ${focusMeta.border}`,
         }}
       >
-        {index + 1}
+        {label || 'Focus'}
       </span>
       <span
         className={[
@@ -157,8 +158,7 @@ export function PracticeHUD({ onOpenAfterSheet }) {
   const color = catMeta?.color ?? '#9b7fc8';
   const duringItems = skill?.during ?? [];
   const focusKey = selectedSegmentId && skill ? `${selectedSegmentId}:${skill.id}` : (skill ? `active:${skill.id}` : null);
-  const focusIndexes = getFocusIndexes(duringItems.length, focusKey ? focusByKey[focusKey] : null);
-  const focusItems = focusIndexes.map(index => ({ index, text: duringItems[index] })).filter(item => item.text);
+  const focusItems = getFocusItems(duringItems, focusKey ? focusByKey[focusKey] : null);
   const canReroll = duringItems.length > 3;
 
   const selectSegment = useCallback((id) => {
@@ -173,9 +173,9 @@ export function PracticeHUD({ onOpenAfterSheet }) {
     if (!focusKey || duringItems.length <= 3) return;
     setFocusByKey(prev => ({
       ...prev,
-      [focusKey]: pickRandomFocusIndexes(duringItems.length, prev[focusKey]),
+      [focusKey]: pickRandomFocusIndexes(duringItems, prev[focusKey]),
     }));
-  }, [focusKey, duringItems.length]);
+  }, [focusKey, duringItems]);
 
   const FullscreenBtn = () => (
     <button
@@ -310,13 +310,13 @@ export function PracticeHUD({ onOpenAfterSheet }) {
         )}
 
         <div className="flex flex-col gap-2 mb-4">
-          {focusItems.map(({ index, text }, i) => (
+          {focusItems.map(({ index, text, category, label }, i) => (
             <FocusItem
               key={index}
-              index={i}
               text={text}
               isFirst={i === 0}
-              color={color}
+              category={category}
+              label={label}
             />
           ))}
           {duringItems.length === 0 && segmentSkills.length > 0 && (

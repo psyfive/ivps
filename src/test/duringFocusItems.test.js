@@ -1,5 +1,19 @@
 import { describe, expect, it, vi } from 'vitest';
-import { getFocusIndexes, pickRandomFocusIndexes } from '../utils/duringFocusItems';
+import {
+  getFocusIndexes,
+  getFocusItems,
+  parseDuringFocusItem,
+  pickRandomFocusIndexes,
+} from '../utils/duringFocusItems';
+
+const taggedItems = [
+  '[모양 확인] 손목이 둥근가?',
+  '[모양 확인] 손가락이 준비되어 있는가?',
+  '[느낌 확인] 힘이 빠져 있는가?',
+  '[느낌 확인] 접촉감이 가벼운가?',
+  '[소리 확인] 공명이 열려 있는가?',
+  '[소리 확인] 잡음이 없는가?',
+];
 
 describe('during focus item selection', () => {
   it('returns every index when there are three or fewer items', () => {
@@ -29,6 +43,42 @@ describe('during focus item selection', () => {
     expect(indexes).toHaveLength(3);
     expect(indexes).toEqual([...indexes].sort((a, b) => a - b));
     expect(indexes.every(index => index >= 0 && index < 5)).toBe(true);
+
+    randomSpy.mockRestore();
+  });
+
+  it('parses category labels without keeping them in the item text', () => {
+    expect(parseDuringFocusItem('[모양 확인] 손목이 둥근가?')).toEqual({
+      category: 'shape',
+      label: '모양 확인',
+      text: '손목이 둥근가?',
+    });
+  });
+
+  it('returns one item for shape, feel, and sound by default', () => {
+    const focusItems = getFocusItems(taggedItems);
+
+    expect(focusItems.map(item => item.category)).toEqual(['shape', 'feel', 'sound']);
+    expect(focusItems.map(item => item.text)).toEqual([
+      '손목이 둥근가?',
+      '힘이 빠져 있는가?',
+      '공명이 열려 있는가?',
+    ]);
+  });
+
+  it('keeps stored indexes only when all three categories are represented', () => {
+    expect(getFocusIndexes(taggedItems, [1, 3, 5])).toEqual([1, 3, 5]);
+    expect(getFocusIndexes(taggedItems, [0, 1, 2])).toEqual([0, 2, 4]);
+  });
+
+  it('picks one random index from each category', () => {
+    const randomSpy = vi
+      .spyOn(Math, 'random')
+      .mockReturnValueOnce(0.9)
+      .mockReturnValueOnce(0.9)
+      .mockReturnValueOnce(0.9);
+
+    expect(pickRandomFocusIndexes(taggedItems)).toEqual([1, 3, 5]);
 
     randomSpy.mockRestore();
   });
