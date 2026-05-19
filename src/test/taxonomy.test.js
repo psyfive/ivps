@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   CATEGORY_META,
+  SKILL_CART_CATEGORY_ORDER,
   SKILL_GROUPS,
   TAXONOMY,
+  buildSkillCartHierarchy,
   getPrerequisites,
   getSkillById,
   getSkillsByCategory,
@@ -42,5 +44,42 @@ describe('taxonomy library', () => {
   it('keeps relationship lookups empty until new relations are authored', () => {
     expect(getPrerequisites('A-1-001')).toEqual([]);
     expect(getSynergies('A-1-001')).toEqual([]);
+  });
+
+  it('builds the A/B/C skill cart hierarchy from taxonomy metadata', () => {
+    const hierarchy = buildSkillCartHierarchy();
+    const flattenedIds = hierarchy.flatMap(category =>
+      category.groups.flatMap(group =>
+        group.subgroups.flatMap(subgroup => subgroup.skills.map(skill => skill.id))
+      )
+    );
+
+    expect(hierarchy.map(category => category.code)).toEqual(SKILL_CART_CATEGORY_ORDER);
+    expect(hierarchy.map(category => category.skills.length)).toEqual([50, 30, 20]);
+    expect(new Set(flattenedIds).size).toBe(TAXONOMY.length);
+    expect(flattenedIds).toHaveLength(TAXONOMY.length);
+    expect(hierarchy.flatMap(category => category.groups.map(group => group.id))).toEqual(
+      SKILL_GROUPS.map(group => group.id)
+    );
+    expect(
+      hierarchy.every(category =>
+        category.groups.every(group =>
+          group.subgroups.every(subgroup =>
+            subgroup.skills.every(skill => skill.sourceGroupId === subgroup.id)
+          )
+        )
+      )
+    ).toBe(true);
+  });
+
+  it('filters empty skill cart hierarchy branches by query', () => {
+    const hierarchy = buildSkillCartHierarchy({ query: 'A-1-001' });
+
+    expect(hierarchy).toHaveLength(1);
+    expect(hierarchy[0].code).toBe('A');
+    expect(hierarchy[0].groups).toHaveLength(1);
+    expect(hierarchy[0].groups[0].id).toBe('A-1');
+    expect(hierarchy[0].groups[0].subgroups).toHaveLength(1);
+    expect(hierarchy[0].groups[0].subgroups[0].skills.map(skill => skill.id)).toEqual(['A-1-001']);
   });
 });

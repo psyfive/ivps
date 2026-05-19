@@ -11,32 +11,157 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { usePractice } from '../../context/PracticeContext';
-import { getCategoryMeta, TAXONOMY, getSkillById } from '../../data/taxonomy';
+import { buildSkillCartHierarchy, getCategoryMeta, getSkillById } from '../../data/taxonomy';
 import { requestNativeFullscreen } from '../../utils/nativeFullscreen';
 import { getSkillDragData, hasSkillDragData, setSkillDragData } from '../../utils/skillDrag';
 
 // ════════════════════════════════════════════════════════════════════════════
-// 1. Skill Cart Picker — 인라인 검색창
+// 1. Skill Cart — A/B/C 계층형 매핑 보드
 // ════════════════════════════════════════════════════════════════════════════
-const CAT_FILTERS = ['전체', 'A', 'B', 'C', 'D'];
+function CartSkillRow({ skill, quickTrayIds, selectedSegmentId, onMapSkill, onToggleQuickTray }) {
+  const meta = getCategoryMeta(skill.id);
+  const isStarred = quickTrayIds.includes(skill.id);
+  const handleMap = () => {
+    if (!selectedSegmentId) return;
+    onMapSkill(skill.id);
+  };
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      draggable
+      onDragStart={event => setSkillDragData(event, skill.id)}
+      onClick={handleMap}
+      onKeyDown={(event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        handleMap();
+      }}
+      className={[
+        'group flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left transition-colors select-none',
+        'hover:bg-[var(--ivps-surface2)]',
+        selectedSegmentId ? 'cursor-pointer' : 'cursor-grab',
+      ].join(' ')}
+      title={selectedSegmentId ? `${skill.name} 매핑` : `${skill.name} - 구간으로 드래그하거나 먼저 구간을 선택하세요`}
+    >
+      <span
+        className="font-mono text-[8.5px] px-1.5 py-0.5 rounded flex-shrink-0"
+        style={{ background: `${meta.color}18`, color: meta.color }}
+      >
+        {skill.id}
+      </span>
+      <span className="text-[11.5px] text-[var(--ivps-text2)] leading-snug flex-1 min-w-0 truncate">
+        {skill.name}
+      </span>
+      <button
+        type="button"
+        onPointerDown={event => event.stopPropagation()}
+        onClick={(event) => {
+          event.stopPropagation();
+          onToggleQuickTray(skill.id);
+        }}
+        className="w-5 h-5 flex items-center justify-center rounded text-[12px] text-[var(--ivps-gold)] opacity-65 hover:opacity-100 hover:bg-[var(--ivps-active)] transition-all flex-shrink-0"
+        title={isStarred ? 'Quick Tray에서 제거' : 'Quick Tray에 저장'}
+        aria-label={isStarred ? `${skill.name} Quick Tray에서 제거` : `${skill.name} Quick Tray에 저장`}
+      >
+        {isStarred ? '★' : '☆'}
+      </button>
+    </div>
+  );
+}
+
+function CartCategoryPanel({ category, quickTrayIds, selectedSegmentId, onMapSkill, onToggleQuickTray }) {
+  const meta = category.meta;
+  const categoryName = meta.label.replace(/^[A-C]\.\s*/, '');
+  const isCategoryC = category.code === 'C';
+
+  return (
+    <section
+      className={[
+        'rounded-lg border overflow-hidden bg-[var(--ivps-surface)]',
+        isCategoryC ? 'min-[420px]:col-span-2' : '',
+      ].join(' ')}
+      style={{ borderColor: `${meta.color}32` }}
+    >
+      <div
+        className="px-2.5 py-2 border-b"
+        style={{ background: meta.bg, borderColor: `${meta.color}24` }}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="font-mono text-[10px] font-semibold" style={{ color: meta.color }}>
+              {category.code}
+            </span>
+            <span className="text-[11.5px] font-semibold text-[var(--ivps-text1)] truncate">
+              {categoryName}
+            </span>
+          </div>
+          <span className="font-mono text-[9px] text-[var(--ivps-text4)] flex-shrink-0">
+            {category.skills.length}
+          </span>
+        </div>
+      </div>
+
+      <div className="p-2 space-y-2">
+        {category.groups.map(group => (
+          <div key={group.id} className="rounded-md border border-[var(--ivps-border)] bg-[var(--ivps-surface2)] overflow-hidden">
+            <div className="flex items-start justify-between gap-2 px-2 py-1.5 border-b border-[var(--ivps-border)]">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span
+                  className="font-mono text-[8.5px] px-1 py-0.5 rounded"
+                  style={{ background: `${meta.color}16`, color: meta.color }}
+                >
+                  {group.id}
+                </span>
+                <span className="text-[10.5px] font-semibold text-[var(--ivps-text2)] leading-tight truncate">
+                  {group.name}
+                </span>
+              </div>
+              <span className="font-mono text-[8.5px] text-[var(--ivps-text4)] flex-shrink-0">
+                {group.skills.length}
+              </span>
+            </div>
+
+            <div className="py-1">
+              {group.subgroups.map(subgroup => (
+                <div key={subgroup.id} className="px-1.5 py-1">
+                  <div className="flex items-center gap-1.5 px-1 pb-1">
+                    <span className="h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ background: meta.color }} />
+                    <span className="text-[9px] uppercase tracking-[.06em] text-[var(--ivps-text3)] truncate">
+                      {subgroup.label}
+                    </span>
+                    <span className="font-mono text-[8px] text-[var(--ivps-text4)] flex-shrink-0">
+                      {subgroup.skills.length}
+                    </span>
+                  </div>
+                  <div className="space-y-0.5">
+                    {subgroup.skills.map(skill => (
+                      <CartSkillRow
+                        key={skill.id}
+                        skill={skill}
+                        quickTrayIds={quickTrayIds}
+                        selectedSegmentId={selectedSegmentId}
+                        onMapSkill={onMapSkill}
+                        onToggleQuickTray={onToggleQuickTray}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 function CartPicker({ selectedSegmentId, quickTraySkillIds, onMapSkill, onToggleQuickTray }) {
   const [query, setQuery] = useState('');
-  const [catFilter, setCatFilter] = useState('전체');
-
-  const results = useMemo(() => {
-    const q = query.toLowerCase();
-    return TAXONOMY.filter(s => {
-      if (catFilter !== '전체' && !s.id.startsWith(catFilter)) return false;
-      return !q || s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q);
-    }).slice(0, 20);
-  }, [query, catFilter]);
-
+  const hierarchy = useMemo(() => buildSkillCartHierarchy({ query }), [query]);
+  const visibleCount = hierarchy.reduce((sum, category) => sum + category.skills.length, 0);
   const quickTrayIds = quickTraySkillIds ?? [];
-  const handleMap = (skillId) => {
-    if (!selectedSegmentId) return;
-    onMapSkill(skillId);
-  };
 
   return (
     <div className="rounded-xl border border-[var(--ivps-border2)] bg-[var(--ivps-surface)] overflow-hidden mb-3">
@@ -47,55 +172,29 @@ function CartPicker({ selectedSegmentId, quickTraySkillIds, onMapSkill, onToggle
           placeholder="스킬 검색..."
           className="flex-1 bg-transparent text-[12.5px] text-[var(--ivps-text1)] placeholder-[var(--ivps-text4)] outline-none"
         />
+        <span className="font-mono text-[9.5px] text-[var(--ivps-text4)]">
+          {visibleCount}/100
+        </span>
       </div>
-      <div className="flex gap-1 px-3 py-1.5 border-b border-[var(--ivps-border)]">
-        {CAT_FILTERS.map(c => (
-          <button key={c} onClick={() => setCatFilter(c)}
-            className={`px-2 py-0.5 rounded text-[10px] font-mono transition-colors ${catFilter === c ? 'bg-[rgba(212,168,67,.2)] text-[var(--ivps-gold)]' : 'text-[var(--ivps-text3)] hover:text-[var(--ivps-text2)]'}`}
-          >{c}</button>
-        ))}
-      </div>
-      <div className="max-h-[160px] overflow-y-auto">
-        {results.length === 0 ? (
-          <div className="px-3 py-4 text-[11.5px] text-[var(--ivps-text4)] text-center">검색 결과 없음</div>
-        ) : results.map(s => {
-          const meta = getCategoryMeta(s.id);
-          const isStarred = quickTrayIds.includes(s.id);
-          return (
-            <div
-              key={s.id}
-              role="button"
-              tabIndex={0}
-              draggable
-              onDragStart={event => setSkillDragData(event, s.id)}
-              onClick={() => handleMap(s.id)}
-              onKeyDown={(event) => {
-                if (event.key !== 'Enter' && event.key !== ' ') return;
-                event.preventDefault();
-                handleMap(s.id);
-              }}
-              className={`w-full flex items-center gap-2 px-3 py-2 hover:bg-[var(--ivps-surface2)] transition-colors text-left select-none ${selectedSegmentId ? 'cursor-pointer' : 'cursor-grab'}`}
-              title={selectedSegmentId ? `${s.name} 매핑` : `${s.name} - 구간으로 드래그하거나 먼저 구간을 선택하세요`}
-            >
-              <span className="font-mono text-[9.5px] px-1.5 py-0.5 rounded flex-shrink-0"
-                style={{ background: `${meta.color}18`, color: meta.color }}>{s.id}</span>
-              <span className="text-[12px] text-[var(--ivps-text2)] truncate flex-1 min-w-0">{s.name}</span>
-              <button
-                type="button"
-                onPointerDown={event => event.stopPropagation()}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onToggleQuickTray(s.id);
-                }}
-                className="w-5 h-5 flex items-center justify-center rounded text-[12px] text-[var(--ivps-gold)] opacity-70 hover:opacity-100 hover:bg-[var(--ivps-active)] transition-all flex-shrink-0"
-                title={isStarred ? 'Quick Tray에서 제거' : 'Quick Tray에 저장'}
-                aria-label={isStarred ? `${s.name} Quick Tray에서 제거` : `${s.name} Quick Tray에 저장`}
-              >
-                {isStarred ? '★' : '☆'}
-              </button>
-            </div>
-          );
-        })}
+      <div className="max-h-[420px] overflow-y-auto p-2">
+        {visibleCount === 0 ? (
+          <div className="px-3 py-5 text-[11.5px] text-[var(--ivps-text4)] text-center">
+            검색 결과 없음
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-2">
+            {hierarchy.map(category => (
+              <CartCategoryPanel
+                key={category.code}
+                category={category}
+                quickTrayIds={quickTrayIds}
+                selectedSegmentId={selectedSegmentId}
+                onMapSkill={onMapSkill}
+                onToggleQuickTray={onToggleQuickTray}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

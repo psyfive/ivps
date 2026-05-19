@@ -14,6 +14,81 @@ export const TAXONOMY = [
   ...categoryC,
 ];
 
+export const SKILL_CART_CATEGORY_ORDER = ['A', 'B', 'C'];
+
+function normalizeSkillCartQuery(query) {
+  return String(query ?? '').trim().toLowerCase();
+}
+
+function matchesSkillCartQuery(skill, query) {
+  if (!query) return true;
+
+  return [
+    skill.id,
+    skill.name,
+    skill.corePrinciple,
+    skill.groupId,
+    skill.sourceGroupId,
+    skill.sourceHeading,
+  ].some(value => String(value ?? '').toLowerCase().includes(query));
+}
+
+export function getSkillCartSubgroupLabel(sourceGroupId) {
+  const raw = String(sourceGroupId ?? '').trim();
+  if (!raw) return 'Unsorted';
+  if (/^[A-C]-\d+$/.test(raw)) return raw;
+
+  return raw
+    .replace(/^TECH_/, '')
+    .replace(/^BOW_/, '')
+    .replace(/[_-]+/g, ' ')
+    .toLowerCase()
+    .replace(/\b[a-z]/g, char => char.toUpperCase());
+}
+
+export function buildSkillCartHierarchy({ query = '', skills = TAXONOMY } = {}) {
+  const normalizedQuery = normalizeSkillCartQuery(query);
+  const visibleSkills = skills.filter(skill =>
+    SKILL_CART_CATEGORY_ORDER.includes(getCategoryCode(skill.id)) &&
+    matchesSkillCartQuery(skill, normalizedQuery)
+  );
+
+  return SKILL_CART_CATEGORY_ORDER.map(categoryCode => {
+    const groups = SKILL_GROUPS
+      .filter(group => group.category === categoryCode)
+      .map(group => {
+        const groupSkills = visibleSkills.filter(skill => skill.groupId === group.id);
+        const subgroupMap = new Map();
+
+        groupSkills.forEach(skill => {
+          const subgroupId = skill.sourceGroupId || 'UNSORTED';
+          if (!subgroupMap.has(subgroupId)) {
+            subgroupMap.set(subgroupId, {
+              id: subgroupId,
+              label: getSkillCartSubgroupLabel(subgroupId),
+              skills: [],
+            });
+          }
+          subgroupMap.get(subgroupId).skills.push(skill);
+        });
+
+        return {
+          ...group,
+          skills: groupSkills,
+          subgroups: [...subgroupMap.values()].filter(subgroup => subgroup.skills.length > 0),
+        };
+      })
+      .filter(group => group.skills.length > 0);
+
+    return {
+      code: categoryCode,
+      meta: CATEGORY_META[categoryCode],
+      groups,
+      skills: groups.flatMap(group => group.skills),
+    };
+  }).filter(category => category.skills.length > 0 || !normalizedQuery);
+}
+
 export function getSkillsByCategory(categoryCode) {
   return TAXONOMY.filter(skill => skill.id.startsWith(categoryCode));
 }
