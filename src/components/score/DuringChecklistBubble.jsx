@@ -199,7 +199,10 @@ export function DuringChecklistBubble({ pageIndex }) {
         left: `${displayedPosition.x * 100}%`,
         top: `${displayedPosition.y * 100}%`,
         transform: 'translate(-50%, -50%)',
-        boxShadow: `var(--ivps-hud-shadow), 0 0 0 1px ${color}24`,
+        background: 'rgba(12, 14, 18, 0.58)',
+        borderColor: 'rgba(255,255,255,.12)',
+        backdropFilter: 'blur(6px)',
+        boxShadow: `0 12px 28px rgba(0,0,0,.22), 0 0 0 1px ${color}20`,
       }}
     >
       <div className="mb-2.5 flex items-center gap-2">
@@ -241,20 +244,17 @@ export function DuringChecklistBubble({ pageIndex }) {
 
       <div className="flex flex-col gap-1.5">
         {focusItems.length > 0 ? (
-          focusItems.map(({ index, text, category, label }) => {
+          focusItems.map(({ index, text, category }) => {
             const focusMeta = FOCUS_CATEGORY_META[category] ?? FOCUS_CATEGORY_META.general;
             return (
-              <div key={index} className="flex items-start gap-2.5 text-left">
-                <span
-                  className="mt-[1px] flex-shrink-0 rounded-md px-2 py-1 text-[10px] font-semibold"
-                  style={{
-                    background: focusMeta.bg,
-                    color: focusMeta.color,
-                    border: `1px solid ${focusMeta.border}`,
-                  }}
-                >
-                  {label || 'Focus'}
-                </span>
+              <div
+                key={index}
+                className="flex items-start gap-2.5 rounded-md px-2 py-1.5 text-left"
+                style={{
+                  background: focusMeta.bg,
+                  borderLeft: `3px solid ${focusMeta.color}`,
+                }}
+              >
                 <span className="min-w-0 whitespace-normal break-words text-[12px] leading-[1.45] text-[rgba(255,255,255,.80)]">
                   {text}
                 </span>

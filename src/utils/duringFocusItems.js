@@ -149,11 +149,14 @@ function pickBalancedRandomFocusIndexes(items, previousIndexes = null) {
     return getBalancedFocusIndexes(items, previousIndexes);
   }
 
-  const previousKey = hasOnePerRequiredCategory(items, previousIndexes)
-    ? FOCUS_CATEGORY_ORDER
-        .map(category => previousIndexes.find(index => getCategoryForIndex(items, index) === category))
-        .join(',')
-    : null;
+  const previousByCategory = hasOnePerRequiredCategory(items, previousIndexes)
+    ? Object.fromEntries(
+        FOCUS_CATEGORY_ORDER.map(category => [
+          category,
+          previousIndexes.find(index => getCategoryForIndex(items, index) === category),
+        ]),
+      )
+    : {};
 
   const indexesByCategory = Object.fromEntries(
     FOCUS_CATEGORY_ORDER.map(category => [
@@ -169,17 +172,21 @@ function pickBalancedRandomFocusIndexes(items, previousIndexes = null) {
     return pickLegacyRandomFocusIndexes(items.length, previousIndexes);
   }
 
-  const pickOnce = () => FOCUS_CATEGORY_ORDER.map(category => {
-    const indexes = indexesByCategory[category];
-    return indexes[Math.floor(Math.random() * indexes.length)];
-  });
+  const candidatesByCategory = Object.fromEntries(
+    FOCUS_CATEGORY_ORDER.map(category => {
+      const indexes = indexesByCategory[category];
+      const previousIndex = previousByCategory[category];
+      const candidates = indexes.length > 1 && previousIndex != null
+        ? indexes.filter(index => index !== previousIndex)
+        : indexes;
+      return [category, candidates];
+    }),
+  );
 
-  let next = pickOnce();
-  if (previousKey && FOCUS_CATEGORY_ORDER.some(category => indexesByCategory[category].length > 1)) {
-    const nextKey = next.join(',');
-    if (nextKey === previousKey) next = pickOnce();
-  }
-  return next;
+  return FOCUS_CATEGORY_ORDER.map(category => {
+    const candidates = candidatesByCategory[category];
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  });
 }
 
 export function pickRandomFocusIndexes(itemCountOrItems, previousIndexes = null) {

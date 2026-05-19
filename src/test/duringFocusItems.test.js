@@ -82,4 +82,38 @@ describe('during focus item selection', () => {
 
     randomSpy.mockRestore();
   });
+
+  it('does not repeat the previous item in each category when alternatives exist', () => {
+    const randomSpy = vi
+      .spyOn(Math, 'random')
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(0);
+
+    const previous = [0, 2, 4];
+    const next = pickRandomFocusIndexes(taggedItems, previous);
+
+    expect(next).toEqual([1, 3, 5]);
+
+    randomSpy.mockRestore();
+  });
+
+  it('keeps a category only when that category has no alternative', () => {
+    const oneShape = [taggedItems[0], taggedItems[2], taggedItems[3], taggedItems[4], taggedItems[5]];
+    const randomSpy = vi
+      .spyOn(Math, 'random')
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(0)
+      .mockReturnValueOnce(0);
+
+    expect(pickRandomFocusIndexes(oneShape, [0, 1, 3])).toEqual([0, 2, 4]);
+
+    randomSpy.mockRestore();
+  });
+
+  it('keeps the only available checklist when every category has no alternative', () => {
+    const oneCombination = [taggedItems[0], taggedItems[2], taggedItems[4]];
+
+    expect(pickRandomFocusIndexes(oneCombination, [0, 1, 2])).toEqual([0, 1, 2]);
+  });
 });

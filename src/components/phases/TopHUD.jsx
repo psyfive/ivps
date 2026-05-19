@@ -183,20 +183,17 @@ export function TopHUD() {
       </div>
 
       <div className="flex min-w-[260px] flex-1 flex-col justify-center gap-[6px] px-4 py-2">
-        {focusItems.map(({ index, text, category, label }, i) => {
+        {focusItems.map(({ index, text, category }, i) => {
           const focusMeta = FOCUS_CATEGORY_META[category] ?? FOCUS_CATEGORY_META.general;
           return (
-            <div key={index} className="flex items-center gap-2 text-left w-full">
-              <span
-                className="flex-shrink-0 rounded-md px-2 py-0.5 text-[10px] font-semibold"
-                style={{
-                  background: focusMeta.bg,
-                  color: focusMeta.color,
-                  border: `1px solid ${focusMeta.border}`,
-                }}
-              >
-                {label || 'Focus'}
-              </span>
+            <div
+              key={index}
+              className="flex items-center gap-2 text-left w-full rounded-md px-2 py-1"
+              style={{
+                background: focusMeta.bg,
+                borderLeft: `3px solid ${focusMeta.color}`,
+              }}
+            >
               <span
                 className={[
                   'min-w-0 whitespace-normal break-words text-[12px] leading-snug',

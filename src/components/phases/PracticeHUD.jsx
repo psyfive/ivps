@@ -5,7 +5,7 @@ import { getSkillById, getCategoryMeta } from '../../data/taxonomy';
 import { requestNativeFullscreen } from '../../utils/nativeFullscreen';
 import { FOCUS_CATEGORY_META, getFocusItems, pickRandomFocusIndexes } from '../../utils/duringFocusItems';
 
-function FocusItem({ text, isFirst, category, label }) {
+function FocusItem({ text, isFirst, category }) {
   const focusMeta = FOCUS_CATEGORY_META[category] ?? FOCUS_CATEGORY_META.general;
   return (
     <div
@@ -15,17 +15,11 @@ function FocusItem({ text, isFirst, category, label }) {
           ? 'border-[var(--ivps-plum-border)] bg-[var(--ivps-plum-bg)]'
           : 'border-[var(--ivps-border)] bg-[var(--ivps-surface)]',
       ].join(' ')}
+      style={{
+        background: focusMeta.bg,
+        borderLeft: `3px solid ${focusMeta.color}`,
+      }}
     >
-      <span
-        className="rounded-md px-2 py-1 text-[10.5px] font-semibold flex-shrink-0"
-        style={{
-          background: focusMeta.bg,
-          color: focusMeta.color,
-          border: `1px solid ${focusMeta.border}`,
-        }}
-      >
-        {label || 'Focus'}
-      </span>
       <span
         className={[
           'text-[13.5px] leading-snug flex-1',
@@ -310,13 +304,12 @@ export function PracticeHUD({ onOpenAfterSheet }) {
         )}
 
         <div className="flex flex-col gap-2 mb-4">
-          {focusItems.map(({ index, text, category, label }, i) => (
+          {focusItems.map(({ index, text, category }, i) => (
             <FocusItem
               key={index}
               text={text}
               isFirst={i === 0}
               category={category}
-              label={label}
             />
           ))}
           {duringItems.length === 0 && segmentSkills.length > 0 && (
