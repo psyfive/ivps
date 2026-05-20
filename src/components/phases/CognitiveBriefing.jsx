@@ -17,6 +17,7 @@ import {
   getSkillById,
   getSkillDisplayName,
 } from '../../data/taxonomy';
+import { BeforeGuideList } from '../common/BeforeGuideList';
 import { requestNativeFullscreen } from '../../utils/nativeFullscreen';
 import { getSkillDragData, hasSkillDragData, setSkillDragData } from '../../utils/skillDrag';
 
@@ -624,7 +625,7 @@ function SkillDetail({ skill }) {
 
       {skill.before && (
         <BriefingCard label="연습 전 — 감각 가이드" dotColor="#7ea890">
-          <p className="text-[13px] text-[#8a96a8] leading-[1.8]">{skill.before}</p>
+          <BeforeGuideList text={skill.before} className="text-[13px] text-[#8a96a8]" />
         </BriefingCard>
       )}
 
@@ -709,7 +710,7 @@ function BeforeSkillDetail({ skill }) {
 
       {skill.before && (
         <BriefingCard label="Before 연습 가이드" dotColor="#7ea890">
-          <p className="text-[13px] text-[#8a96a8] leading-[1.8]">{skill.before}</p>
+          <BeforeGuideList text={skill.before} className="text-[13px] text-[#8a96a8]" />
         </BriefingCard>
       )}
 

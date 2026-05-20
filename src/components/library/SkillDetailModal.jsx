@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useCallback } from 'react';
 import { getCategoryMeta, getSkillDisplayName, SKILL_GROUPS } from '../../data/taxonomy';
+import { BeforeGuideList } from '../common/BeforeGuideList';
 
 // ── ResourcesSection ───────────────────────────────────────────────────────
 function extractYouTubeId(url) {
@@ -233,9 +234,7 @@ export function SkillDetailModal({ skill, onClose, onStartPractice }) {
           {/* Before */}
           {skill.before && (
             <PhaseBlock label="Before — 이론 & 감각 가이드" dotColor="#7ea890">
-              <p className="text-[12.5px] text-[#8a96a8] leading-[1.8]">
-                {skill.before}
-              </p>
+              <BeforeGuideList text={skill.before} className="text-[12.5px] text-[#8a96a8]" />
             </PhaseBlock>
           )}
 
