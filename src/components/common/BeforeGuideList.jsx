@@ -11,7 +11,7 @@ export function BeforeGuideList({ text, className = '' }) {
       {items.map((item, index) => (
         <li key={`${index}-${item}`} className="flex items-start gap-2.5">
           <span
-            className="mt-[0.55em] h-1.5 w-1.5 rounded-full bg-[var(--ivps-moss)] flex-shrink-0"
+            className="mt-[0.68em] h-[3px] w-[3px] rounded-full bg-[var(--ivps-moss)] flex-shrink-0"
             aria-hidden="true"
           />
           <span className="min-w-0 flex-1 leading-[1.65]">{item}</span>

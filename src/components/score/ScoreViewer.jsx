@@ -462,7 +462,19 @@ export function ScoreViewer({ phase }) {
   const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
   const [pageNaturalSize, setPageNaturalSize] = useState({ width: 0, height: 0 });
   const viewportRef = useRef(null);
+  const imageRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  const measureLoadedPage = useCallback(() => {
+    const image = imageRef.current;
+    if (!image?.complete || image.naturalWidth <= 0 || image.naturalHeight <= 0) return;
+
+    setPageNaturalSize(prev => (
+      prev.width === image.naturalWidth && prev.height === image.naturalHeight
+        ? prev
+        : { width: image.naturalWidth, height: image.naturalHeight }
+    ));
+  }, []);
 
   // ── 파일 처리 ───────────────────────────────────────────────────────────
   const handleFile = useCallback(async (file) => {
@@ -531,6 +543,10 @@ export function ScoreViewer({ phase }) {
     setPageNaturalSize({ width: 0, height: 0 });
   }, [activeScore?.dataUrl]);
 
+  useEffect(() => {
+    measureLoadedPage();
+  }, [activeScore?.dataUrl, phase, practiceFullscreen, viewportSize.width, viewportSize.height, measureLoadedPage]);
+
   const hasScore   = !!activeScore?.dataUrl;
   const sessions   = activeScore?.sessions ?? [];
   const segments   = activeScore?.segments ?? [];
@@ -554,7 +570,8 @@ export function ScoreViewer({ phase }) {
   const hasMeasuredPage = fullscreenFit.width > 0;
   const fullscreenFrameStyle = hasMeasuredPage
     ? { width: `${fullscreenFit.width}px`, height: `${fullscreenFit.height}px` }
-    : { width: 'fit-content', maxWidth: '100%' };
+    : { width: `${fitBox.width}px`, height: `${fitBox.height}px`, maxWidth: '100%', maxHeight: '100%' };
+  const renderScoreOverlays = !isFullscreenDuring || hasMeasuredPage;
 
   const enterDuringFullscreen = useCallback(() => {
     ui.setPracticeFullscreen(true);
@@ -622,20 +639,16 @@ export function ScoreViewer({ phase }) {
             >
             {/* 악보 이미지 */}
             <img
+              ref={imageRef}
               src={activeScore.dataUrl}
               alt={activeScore.name}
                 className={[
                   'select-none block',
-                  isFullscreenDuring && hasMeasuredPage ? 'w-full h-full object-contain' : 'max-w-full h-auto',
+                  isFullscreenDuring ? 'w-full h-full object-contain' : 'max-w-full h-auto',
                 ].join(' ')}
               draggable={false}
               style={{ userSelect: 'none', WebkitUserDrag: 'none' }}
-              onLoad={(e) => {
-                setPageNaturalSize({
-                  width: e.currentTarget.naturalWidth,
-                  height: e.currentTarget.naturalHeight,
-                });
-              }}
+              onLoad={measureLoadedPage}
             />
 
             {/* Before 단계: 시각적 구간 캔버스 오버레이 */}
@@ -731,7 +744,7 @@ export function ScoreViewer({ phase }) {
             )}
 
             {/* During 단계: 구간 선택 캔버스 + 필기 캔버스 */}
-            {isDuring && (
+            {isDuring && renderScoreOverlays && (
               <>
                 {segments.length > 0 && (
                   <SegmentCanvas
@@ -757,7 +770,7 @@ export function ScoreViewer({ phase }) {
             )}
 
             {/* After 단계: 구간 히트맵 + 세션 표시 */}
-            {isAfter && segments.length > 0 && (
+            {isAfter && renderScoreOverlays && segments.length > 0 && (
               <SegmentHeatmap
                 segments={segments}
                 xpLog={xpLog}
@@ -767,7 +780,7 @@ export function ScoreViewer({ phase }) {
             )}
 
             {/* After 단계: 구간 외곽선 + 클릭 선택 (읽기 전용, segments 기준) */}
-            {isAfter && segments.length > 0 && (
+            {isAfter && renderScoreOverlays && segments.length > 0 && (
               <SegmentCanvas
                 segments={segments}
                 tempSegments={[]}
