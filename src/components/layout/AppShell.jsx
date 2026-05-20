@@ -26,7 +26,7 @@ export function AppShell() {
       {screen === 'cockpit' && !practiceFullscreen && !isLastAfter && <RightUtilPanel />}
 
       {/* 스킬 상세 모달 (라이브러리에서 카드 클릭 시) */}
-      {selectedSkill && (
+      {selectedSkill && screen !== 'library' && (
         <SkillDetailModal
           skill={selectedSkill}
           onClose={skill.closeSkillModal}

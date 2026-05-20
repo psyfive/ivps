@@ -10,11 +10,12 @@
 
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { usePractice } from '../../context/PracticeContext';
-import { TAXONOMY } from '../../data/taxonomy';
+import { getAllSkills, getSkillById } from '../../data/taxonomy';
 import { fileToPageData } from '../../utils/fileToPageData';
 import { requestNativeFullscreen, exitNativeFullscreen } from '../../utils/nativeFullscreen';
 import { fitContainedSize } from '../../utils/scorePageFit';
 import { hasSkillDragData } from '../../utils/skillDrag';
+import { detectMeasureCountFromImageElement } from '../../utils/measureDetection';
 import { SegmentCanvas } from './SegmentCanvas';
 import { SegmentHeatmap } from './SegmentHeatmap';
 import { DrawingCanvas } from './DrawingCanvas';
@@ -218,7 +219,7 @@ function SessionLayer({ sessions, activeSessionId, onAdd, onSelect, onOpenPicker
               >
                 {sess.skills
                   .slice(0, 2)
-                  .map(id => TAXONOMY.find(t => t.id === id)?.id ?? id)
+                  .map(id => getSkillById(id)?.id ?? id)
                   .join(' · ')}
                 {sess.skills.length > 2 && ` +${sess.skills.length - 2}`}
               </div>
@@ -307,6 +308,7 @@ function LoadingOverlay({ current, total }) {
 function SkillPickerModal({ sessionId, session, onClose }) {
   const { session: sessionActs } = usePractice();
   const assigned = session?.skills ?? [];
+  const skills = getAllSkills();
 
   const toggleSkill = useCallback((skillId) => {
     if (assigned.includes(skillId)) {
@@ -317,12 +319,12 @@ function SkillPickerModal({ sessionId, session, onClose }) {
   }, [sessionId, assigned, sessionActs]);
 
   // 카테고리 그룹
-  const cats = [...new Set(TAXONOMY.map(t => t.id.charAt(0)))];
+  const cats = [...new Set(skills.map(t => t.id.charAt(0)))];
   const [activeCat, setActiveCat] = useState('전체');
 
   const filtered = activeCat === '전체'
-    ? TAXONOMY
-    : TAXONOMY.filter(t => t.id.startsWith(activeCat));
+    ? skills
+    : skills.filter(t => t.id.startsWith(activeCat));
 
   const CAT_LABEL = { A: '왼손', B: '오른손', C: '음악성', D: '장비' };
 
@@ -584,6 +586,32 @@ export function ScoreViewer({ phase }) {
     nav.setPhase(nextPhase);
   }, [nav]);
 
+  const detectMeasureCount = useCallback((coordinate) => (
+    detectMeasureCountFromImageElement(imageRef.current, coordinate)
+  ), []);
+
+  const handleSegmentCreate = useCallback((coordinate) => {
+    const measureCount = detectMeasureCount(coordinate);
+    segmentActs.addTempSegment(coordinate, {
+      measureCount,
+      measureCountSource: measureCount ? 'auto' : null,
+    });
+  }, [detectMeasureCount, segmentActs]);
+
+  const handleSegmentUpdate = useCallback((segmentId, coordIndex, coord) => {
+    const segment = segments.find(seg => seg.id === segmentId);
+    if (segment?.measureCountSource === 'manual') {
+      segmentActs.updateSegmentCoord(segmentId, coordIndex, coord);
+      return;
+    }
+
+    const measureCount = detectMeasureCount(coord);
+    segmentActs.updateSegmentCoord(segmentId, coordIndex, coord, {
+      measureCount,
+      measureCountSource: measureCount ? 'auto' : null,
+    });
+  }, [detectMeasureCount, segmentActs, segments]);
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
 
@@ -667,12 +695,12 @@ export function ScoreViewer({ phase }) {
                   isSelectingMode={isSelectingSegment}
                   selectedSegmentId={selectedSegmentId}
                   currentPageIndex={activeScore?.currentPageIndex ?? 0}
-                  onSegmentCreate={segmentActs.addTempSegment}
+                  onSegmentCreate={handleSegmentCreate}
                   onSegmentSelect={segmentActs.selectSegment}
                   onSegmentDelete={segmentActs.deleteSegment}
                   onSegmentCoordDelete={segmentActs.deleteSegmentCoord}
                   onTempDelete={segmentActs.deleteTempSegment}
-                  onSegmentUpdate={segmentActs.updateSegmentCoord}
+                  onSegmentUpdate={handleSegmentUpdate}
                   onSkillDropToSegment={segmentActs.mapSkillToSegment}
                   phase="before"
                 />
@@ -758,7 +786,7 @@ export function ScoreViewer({ phase }) {
                     onSegmentDelete={() => {}}
                     onSegmentCoordDelete={() => {}}
                     onTempDelete={() => {}}
-                    onSegmentUpdate={segmentActs.updateSegmentCoord}
+                    onSegmentUpdate={handleSegmentUpdate}
                     hideDelete
                     phase="during"
                   />
@@ -896,7 +924,7 @@ export function ScoreViewer({ phase }) {
               <span className="text-[11px] text-[var(--ivps-text4)]">스킬 없음 — 말풍선(+)으로 추가</span>
             ) : (
               activeSession.skills.map(id => {
-                const sk = TAXONOMY.find(t => t.id === id);
+                const sk = getSkillById(id);
                 return sk ? (
                   <span
                     key={id}

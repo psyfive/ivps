@@ -1,17 +1,25 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import {
   CATEGORY_META,
   SKILL_CART_CATEGORY_ORDER,
   SKILL_GROUPS,
   TAXONOMY,
   buildSkillCartHierarchy,
+  createCustomSkillId,
+  customSkillRowToSkill,
+  getAllSkills,
   getSkillDisplayName,
   getPrerequisites,
   getSkillById,
   getSkillsByCategory,
   getSkillsByGroup,
   getSynergies,
+  setRuntimeCustomSkills,
 } from '../data/taxonomy';
+
+afterEach(() => {
+  setRuntimeCustomSkills([]);
+});
 
 describe('taxonomy library', () => {
   it('loads the rebuilt A/B/C skill set', () => {
@@ -97,5 +105,69 @@ describe('taxonomy library', () => {
     );
 
     expect(resultIds).toContain('B-7-001');
+  });
+
+  it('maps Supabase custom skill rows into the app skill shape', () => {
+    const row = {
+      id: 'A-U-test-skill',
+      user_id: 'user-1',
+      category: 'A',
+      group_id: 'A-1',
+      name: 'My custom skill',
+      core_principle: 'A personal practice idea.',
+      before_text: 'Prepare\nNotice',
+      during_items: ['[모양 확인] wrist', '[느낌 확인] release'],
+      after_items: [{ symptom: 'tight', cause: 'overhold', prescription: 'reset' }],
+      resources: [],
+      created_at: '2026-05-20T00:00:00.000Z',
+      updated_at: '2026-05-20T00:00:00.000Z',
+    };
+
+    expect(customSkillRowToSkill(row)).toMatchObject({
+      id: 'A-U-test-skill',
+      groupId: 'A-1',
+      sourceGroupId: 'A-1',
+      name: 'My custom skill',
+      corePrinciple: 'A personal practice idea.',
+      before: 'Prepare\nNotice',
+      during: ['[모양 확인] wrist', '[느낌 확인] release'],
+      after: [{ symptom: 'tight', cause: 'overhold', prescription: 'reset' }],
+      isCustom: true,
+      userId: 'user-1',
+    });
+  });
+
+  it('creates custom skill ids outside the canonical taxonomy id format', () => {
+    expect(createCustomSkillId('B', () => 'uuid-1')).toBe('B-U-uuid-1');
+    expect(createCustomSkillId('D', () => 'uuid-2')).toBe('A-U-uuid-2');
+  });
+
+  it('resolves canonical and runtime custom skills from the merged library', () => {
+    const custom = customSkillRowToSkill({
+      id: 'C-U-runtime-test',
+      user_id: 'user-1',
+      category: 'C',
+      group_id: 'C-1',
+      name: 'Runtime custom skill',
+      core_principle: 'Runtime definition',
+      before_text: 'Think first',
+      during_items: ['Listen'],
+      after_items: [{ symptom: 'miss', cause: 'late', prescription: 'slow' }],
+      resources: [],
+    });
+
+    setRuntimeCustomSkills([custom]);
+
+    expect(getSkillById('A-1-001')?.id).toBe('A-1-001');
+    expect(getSkillById('C-U-runtime-test')).toBe(custom);
+    expect(getAllSkills()).toHaveLength(TAXONOMY.length + 1);
+
+    const hierarchy = buildSkillCartHierarchy({ query: 'Runtime custom skill' });
+    const resultIds = hierarchy.flatMap(category =>
+      category.groups.flatMap(group =>
+        group.subgroups.flatMap(subgroup => subgroup.skills.map(skill => skill.id))
+      )
+    );
+    expect(resultIds).toEqual(['C-U-runtime-test']);
   });
 });

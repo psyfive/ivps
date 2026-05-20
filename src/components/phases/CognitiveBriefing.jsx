@@ -301,6 +301,8 @@ function ScoreQuickTray({ quickTraySkillIds, selectedSegmentId, onTapMap, onRemo
 function SegmentRow({ segment, index, onDelete, onUnmap, isSelected, onSelect, onSetMeta, onSkillDrop }) {
   const mappedSkills = segment.mappedSkills.map(id => getSkillById(id)).filter(Boolean);
   const [dropActive, setDropActive] = useState(false);
+  const measureCount = segment.measureCount ?? null;
+  const measureSourceLabel = segment.measureCountSource === 'manual' ? '수동' : '자동';
 
   const handleDragOver = useCallback((event) => {
     if (!hasSkillDragData(event)) return;
@@ -340,9 +342,14 @@ function SegmentRow({ segment, index, onDelete, onUnmap, isSelected, onSelect, o
     >
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-1.5">
-        <span className="font-mono text-[10px] text-[var(--ivps-text3)]">
-          {index + 1}구간
-        </span>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="font-mono text-[10px] text-[var(--ivps-text3)]">
+            {index + 1}구간
+          </span>
+          <span className="px-1.5 py-0.5 rounded border border-[var(--ivps-border)] text-[9.5px] text-[var(--ivps-text3)] bg-[var(--ivps-bg)]">
+            {measureCount ? `${measureSourceLabel} ${measureCount}마디` : '마디 ?'}
+          </span>
+        </div>
         <button
           onClick={e => { e.stopPropagation(); onDelete(segment.id); }}
           className="text-[10px] text-[var(--ivps-text4)] hover:text-[var(--ivps-rust)] transition-colors"
@@ -408,6 +415,20 @@ function SegmentRow({ segment, index, onDelete, onUnmap, isSelected, onSelect, o
               onChange={e => {
                 const v = e.target.value === '' ? null : Number(e.target.value);
                 onSetMeta(segment.id, { targetReps: v });
+              }}
+            />
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-[9.5px] text-[var(--ivps-text3)]">마디</span>
+            <input
+              type="number"
+              min="1" max="999"
+              value={segment.measureCount ?? ''}
+              placeholder="?"
+              className="w-12 px-1.5 py-0.5 rounded text-[10.5px] font-mono bg-[var(--ivps-surface2)] border border-[var(--ivps-border2)] text-[var(--ivps-text2)] placeholder-[var(--ivps-text4)] outline-none focus:border-[var(--ivps-gold)] text-center"
+              onChange={e => {
+                const v = e.target.value === '' ? null : Number(e.target.value);
+                onSetMeta(segment.id, { measureCount: v, measureCountSource: 'manual' });
               }}
             />
           </div>

@@ -1,6 +1,15 @@
 // src/hooks/usePracticeSession.js
-import { useReducer, useCallback, useEffect } from 'react';
-import { getSkillById } from '../data/taxonomy';
+import { useReducer, useCallback, useEffect, useMemo } from 'react';
+import {
+  createCustomSkillId,
+  customSkillRowToSkill,
+  customSkillToRow,
+  getAllSkills,
+  getSkillById,
+  setRuntimeCustomSkills,
+} from '../data/taxonomy';
+import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabaseClient';
 
 // ── 초기 상태 ──────────────────────────────────────────────────────────────
 export const INITIAL_STATE = {
@@ -11,6 +20,9 @@ export const INITIAL_STATE = {
   // ─ 스킬 ─
   activeSkillId: null,        // 현재 연습 중인 스킬 ID
   selectedSkillId: null,      // 모달 등에서 선택된 스킬 ID (미리보기)
+  customSkills: [],
+  customSkillStatus: 'idle',
+  customSkillError: null,
 
   // ─ 악보 (Score) ─
   scores: [],                 // [{ id, name, dataUrl, uploadedAt, sessions, pageData, currentPageIndex }]
@@ -96,6 +108,10 @@ export const ACTIONS = {
   // 스킬
   SET_ACTIVE_SKILL:  'SET_ACTIVE_SKILL',
   SET_SELECTED_SKILL:'SET_SELECTED_SKILL',
+  SET_CUSTOM_SKILLS: 'SET_CUSTOM_SKILLS',
+  SET_CUSTOM_SKILL_STATUS: 'SET_CUSTOM_SKILL_STATUS',
+  UPSERT_CUSTOM_SKILL: 'UPSERT_CUSTOM_SKILL',
+  DELETE_CUSTOM_SKILL: 'DELETE_CUSTOM_SKILL',
 
   // 악보
   ADD_SCORE:         'ADD_SCORE',
@@ -267,6 +283,13 @@ function normalizePracticeStats(stats) {
   return { ...emptyPracticeStats(), ...(stats ?? {}) };
 }
 
+function normalizeMeasureCount(value) {
+  if (value === null || value === '') return null;
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return null;
+  return Math.max(1, Math.min(999, Math.round(numeric)));
+}
+
 function getActiveScore(state) {
   return state.scores.find(s => s.id === state.activeScoreId) ?? null;
 }
@@ -317,6 +340,57 @@ export function reducer(state, action) {
 
     case ACTIONS.SET_SELECTED_SKILL:
       return { ...state, selectedSkillId: action.skillId };
+
+    case ACTIONS.SET_CUSTOM_SKILL_STATUS:
+      return {
+        ...state,
+        customSkillStatus: action.status,
+        customSkillError: action.error ?? null,
+      };
+
+    case ACTIONS.SET_CUSTOM_SKILLS:
+      return {
+        ...state,
+        customSkills: action.skills ?? [],
+        customSkillStatus: action.status ?? 'ready',
+        customSkillError: action.error ?? null,
+      };
+
+    case ACTIONS.UPSERT_CUSTOM_SKILL: {
+      const exists = state.customSkills.some(skill => skill.id === action.skill.id);
+      return {
+        ...state,
+        customSkills: exists
+          ? state.customSkills.map(skill => skill.id === action.skill.id ? action.skill : skill)
+          : [action.skill, ...state.customSkills],
+        customSkillStatus: 'ready',
+        customSkillError: null,
+      };
+    }
+
+    case ACTIONS.DELETE_CUSTOM_SKILL:
+      return {
+        ...state,
+        customSkills: state.customSkills.filter(skill => skill.id !== action.skillId),
+        selectedSkillId: state.selectedSkillId === action.skillId ? null : state.selectedSkillId,
+        activeSkillId: state.activeSkillId === action.skillId ? null : state.activeSkillId,
+        quickTraySkills: state.quickTraySkills.filter(id => id !== action.skillId),
+        skillCart: state.skillCart.filter(id => id !== action.skillId),
+        scores: state.scores.map(score => ({
+          ...score,
+          sessions: (score.sessions ?? []).map(session => ({
+            ...session,
+            skills: (session.skills ?? []).filter(id => id !== action.skillId),
+          })),
+          segments: (score.segments ?? []).map(segment => ({
+            ...segment,
+            mappedSkills: (segment.mappedSkills ?? []).filter(id => id !== action.skillId),
+          })),
+          quickTraySkills: (score.quickTraySkills ?? []).filter(id => id !== action.skillId),
+        })),
+        customSkillStatus: 'ready',
+        customSkillError: null,
+      };
 
     // ── 악보 ────────────────────────────────────────────────────────
     case ACTIONS.ADD_SCORE: {
@@ -639,6 +713,8 @@ export function reducer(state, action) {
         id: `tmp-${uid()}`,
         coordinates: coordWithPage,
         mappedSkills: [],
+        measureCount: normalizeMeasureCount(action.measureCount),
+        measureCountSource: action.measureCountSource ?? (action.measureCount ? 'auto' : null),
       };
       return { ...state, tempSegments: [...state.tempSegments, tmp] };
     }
@@ -660,6 +736,13 @@ export function reducer(state, action) {
       }
 
       const allCoords = state.tempSegments.map(t => t.coordinates);
+      const detectedCounts = state.tempSegments
+        .map(t => normalizeMeasureCount(t.measureCount))
+        .filter(count => count !== null);
+      const combinedMeasureCount = detectedCounts.length === state.tempSegments.length
+        ? detectedCounts.reduce((sum, count) => sum + count, 0)
+        : null;
+      const combinedMeasureSource = combinedMeasureCount ? 'auto' : null;
 
       // 기존 구간에 박스 추가 모드
       if (state.addingToSegmentId) {
@@ -671,7 +754,16 @@ export function reducer(state, action) {
           scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
             segments: (s.segments ?? []).map(seg =>
               seg.id === state.addingToSegmentId
-                ? { ...seg, coordinates: [...seg.coordinates, ...allCoords] }
+                ? {
+                    ...seg,
+                    coordinates: [...seg.coordinates, ...allCoords],
+                    ...(seg.measureCountSource === 'manual' || !combinedMeasureCount
+                      ? {}
+                      : {
+                          measureCount: normalizeMeasureCount((seg.measureCount ?? 0) + combinedMeasureCount),
+                          measureCountSource: 'auto',
+                        }),
+                  }
                 : seg
             ),
           })),
@@ -685,6 +777,8 @@ export function reducer(state, action) {
         id: uid(),
         coordinates: allCoords,
         measures: { start: null, end: null },
+        measureCount: combinedMeasureCount,
+        measureCountSource: combinedMeasureSource,
         mappedSkills: [],
         checks: [],
         targetBpm: null,
@@ -746,6 +840,7 @@ export function reducer(state, action) {
 
     case ACTIONS.UPDATE_SEGMENT_COORD: {
       const { segmentId, coordIndex, coord } = action;
+      const nextMeasureCount = normalizeMeasureCount(action.measureCount);
       return {
         ...state,
         scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
@@ -756,6 +851,12 @@ export function reducer(state, action) {
                   coordinates: seg.coordinates.map((c, i) =>
                     i === coordIndex ? { ...c, ...coord } : c
                   ),
+                  ...(seg.measureCountSource === 'manual' || action.measureCount === undefined
+                    ? {}
+                    : {
+                        measureCount: nextMeasureCount,
+                        measureCountSource: nextMeasureCount ? 'auto' : null,
+                      }),
                 }
               : seg
           ),
@@ -764,7 +865,7 @@ export function reducer(state, action) {
     }
 
     case ACTIONS.SET_SEGMENT_META: {
-      const { segmentId, targetBpm, targetReps } = action;
+      const { segmentId, targetBpm, targetReps, measureCount, measureCountSource } = action;
       return {
         ...state,
         scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
@@ -774,6 +875,8 @@ export function reducer(state, action) {
                   ...seg,
                   ...(targetBpm  !== undefined ? { targetBpm  } : {}),
                   ...(targetReps !== undefined ? { targetReps } : {}),
+                  ...(measureCount !== undefined ? { measureCount: normalizeMeasureCount(measureCount) } : {}),
+                  ...(measureCountSource !== undefined ? { measureCountSource } : {}),
                 }
               : seg
           ),
@@ -1149,16 +1252,69 @@ export function reducer(state, action) {
 
 // ── 메인 훅 ───────────────────────────────────────────────────────────────
 export function usePracticeSession() {
+  const { user } = useAuth();
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE, initState);
+  const allSkills = useMemo(() => getAllSkills(state.customSkills), [state.customSkills]);
+
+  setRuntimeCustomSkills(state.customSkills);
 
   useEffect(() => {
     savePersistedQuickTraySkills(state.quickTraySkills);
   }, [state.quickTraySkills]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCustomSkills() {
+      if (!supabase || !user?.id) {
+        dispatch({
+          type: ACTIONS.SET_CUSTOM_SKILLS,
+          skills: [],
+          status: supabase ? 'idle' : 'disabled',
+        });
+        return;
+      }
+
+      dispatch({ type: ACTIONS.SET_CUSTOM_SKILL_STATUS, status: 'loading' });
+      const { data, error } = await supabase
+        .from('custom_skills')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (cancelled) return;
+
+      if (error) {
+        dispatch({
+          type: ACTIONS.SET_CUSTOM_SKILL_STATUS,
+          status: 'error',
+          error: error.message,
+        });
+        return;
+      }
+
+      dispatch({
+        type: ACTIONS.SET_CUSTOM_SKILLS,
+        skills: (data ?? []).map(customSkillRowToSkill).filter(Boolean),
+        status: 'ready',
+      });
+    }
+
+    loadCustomSkills();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
   // 편의 셀렉터
   const activeScore = state.scores.find(s => s.id === state.activeScoreId) ?? null;
-  const activeSkill = getSkillById(state.activeSkillId);
-  const selectedSkill = getSkillById(state.selectedSkillId);
+  const resolveSkillById = useCallback(
+    skillId => allSkills.find(skill => skill.id === skillId) ?? null,
+    [allSkills],
+  );
+  const activeSkill = resolveSkillById(state.activeSkillId);
+  const selectedSkill = resolveSkillById(state.selectedSkillId);
   const activeSession = activeScore?.sessions.find(s => s.id === state.activeSessionId) ?? null;
   const selectedSegment = activeScore?.segments?.find(s => s.id === state.selectedSegmentId) ?? null;
 
@@ -1294,8 +1450,8 @@ export function usePracticeSession() {
   const startAddToSegment = useCallback((segmentId) =>
     dispatch({ type: ACTIONS.START_ADD_TO_SEGMENT, segmentId }), []);
 
-  const updateSegmentCoord = useCallback((segmentId, coordIndex, coord) =>
-    dispatch({ type: ACTIONS.UPDATE_SEGMENT_COORD, segmentId, coordIndex, coord }), []);
+  const updateSegmentCoord = useCallback((segmentId, coordIndex, coord, meta = {}) =>
+    dispatch({ type: ACTIONS.UPDATE_SEGMENT_COORD, segmentId, coordIndex, coord, ...meta }), []);
 
   const mapSkillToSegment = useCallback((segmentId, skillId) =>
     dispatch({ type: ACTIONS.MAP_SKILL_TO_SEGMENT, segmentId, skillId }), []);
@@ -1303,8 +1459,8 @@ export function usePracticeSession() {
   const unmapSkillFromSegment = useCallback((segmentId, skillId) =>
     dispatch({ type: ACTIONS.UNMAP_SKILL_FROM_SEGMENT, segmentId, skillId }), []);
 
-  const addTempSegment = useCallback((coordinates) =>
-    dispatch({ type: ACTIONS.ADD_TEMP_SEGMENT, coordinates }), []);
+  const addTempSegment = useCallback((coordinates, meta = {}) =>
+    dispatch({ type: ACTIONS.ADD_TEMP_SEGMENT, coordinates, ...meta }), []);
 
   const deleteTempSegment = useCallback((id) =>
     dispatch({ type: ACTIONS.DELETE_TEMP_SEGMENT, id }), []);
@@ -1409,6 +1565,85 @@ export function usePracticeSession() {
   const setReviewIndex = useCallback((index) =>
     dispatch({ type: ACTIONS.SET_REVIEW_SEGMENT_INDEX, index }), []);
 
+  const createCustomSkill = useCallback(async (payload) => {
+    if (!supabase || !user?.id) {
+      const error = 'Supabase login is required to save custom skills.';
+      dispatch({ type: ACTIONS.SET_CUSTOM_SKILL_STATUS, status: 'error', error });
+      return { data: null, error };
+    }
+
+    const id = createCustomSkillId(payload?.category);
+    const row = customSkillToRow({ ...payload, id }, user.id);
+    dispatch({ type: ACTIONS.SET_CUSTOM_SKILL_STATUS, status: 'saving' });
+
+    const { data, error } = await supabase
+      .from('custom_skills')
+      .insert(row)
+      .select('*')
+      .single();
+
+    if (error) {
+      dispatch({ type: ACTIONS.SET_CUSTOM_SKILL_STATUS, status: 'error', error: error.message });
+      return { data: null, error: error.message };
+    }
+
+    const skill = customSkillRowToSkill(data);
+    dispatch({ type: ACTIONS.UPSERT_CUSTOM_SKILL, skill });
+    return { data: skill, error: null };
+  }, [user?.id]);
+
+  const updateCustomSkill = useCallback(async (skillId, payload) => {
+    if (!supabase || !user?.id) {
+      const error = 'Supabase login is required to save custom skills.';
+      dispatch({ type: ACTIONS.SET_CUSTOM_SKILL_STATUS, status: 'error', error });
+      return { data: null, error };
+    }
+
+    const existing = state.customSkills.find(skill => skill.id === skillId);
+    const row = customSkillToRow({ ...existing, ...payload, id: skillId }, user.id);
+    dispatch({ type: ACTIONS.SET_CUSTOM_SKILL_STATUS, status: 'saving' });
+
+    const { data, error } = await supabase
+      .from('custom_skills')
+      .update(row)
+      .eq('id', skillId)
+      .eq('user_id', user.id)
+      .select('*')
+      .single();
+
+    if (error) {
+      dispatch({ type: ACTIONS.SET_CUSTOM_SKILL_STATUS, status: 'error', error: error.message });
+      return { data: null, error: error.message };
+    }
+
+    const skill = customSkillRowToSkill(data);
+    dispatch({ type: ACTIONS.UPSERT_CUSTOM_SKILL, skill });
+    return { data: skill, error: null };
+  }, [state.customSkills, user?.id]);
+
+  const deleteCustomSkill = useCallback(async (skillId) => {
+    if (!supabase || !user?.id) {
+      const error = 'Supabase login is required to delete custom skills.';
+      dispatch({ type: ACTIONS.SET_CUSTOM_SKILL_STATUS, status: 'error', error });
+      return { error };
+    }
+
+    dispatch({ type: ACTIONS.SET_CUSTOM_SKILL_STATUS, status: 'saving' });
+    const { error } = await supabase
+      .from('custom_skills')
+      .delete()
+      .eq('id', skillId)
+      .eq('user_id', user.id);
+
+    if (error) {
+      dispatch({ type: ACTIONS.SET_CUSTOM_SKILL_STATUS, status: 'error', error: error.message });
+      return { error: error.message };
+    }
+
+    dispatch({ type: ACTIONS.DELETE_CUSTOM_SKILL, skillId });
+    return { error: null };
+  }, [user?.id]);
+
   return {
     // 상태
     ...state,
@@ -1417,10 +1652,14 @@ export function usePracticeSession() {
     selectedSkill,
     activeSession,
     selectedSegment,
+    allSkills,
+    resolveSkillById,
 
     // 액션 (그룹화)
     nav: { navigate, setPhase, goSkillPractice, enterLastAfter, exitLastAfter, setReviewIndex },
     skill: { openSkillModal, closeSkillModal, setSymptomFilter },
+    customSkill: { create: createCustomSkill, update: updateCustomSkill, remove: deleteCustomSkill },
+    taxonomy: { allSkills, customSkills: state.customSkills, getSkillById: resolveSkillById },
     score: { addScore, setActiveScore, deleteScore, renameScore, changePage, setPage },
     session: { addSession, deleteSession, selectSession, assignSkill, removeSkill, toggleCheck, openPicker, closePicker },
     cart: { addToCart, removeFromCart, addQuickTraySkill, removeQuickTraySkill, toggleQuickTraySkill },

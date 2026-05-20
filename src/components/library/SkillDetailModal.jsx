@@ -154,7 +154,7 @@ function DiagRow({ label, color, value }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // SkillDetailModal
 // ─────────────────────────────────────────────────────────────────────────────
-export function SkillDetailModal({ skill, onClose, onStartPractice }) {
+export function SkillDetailModal({ skill, onClose, onStartPractice, onEdit, onDelete }) {
   const [activeDiagIdx, setActiveDiagIdx] = useState(0);
   const meta    = getCategoryMeta(skill.id);
   const group   = SKILL_GROUPS.find(g => g.id === skill.groupId);
@@ -212,6 +212,29 @@ export function SkillDetailModal({ skill, onClose, onStartPractice }) {
             <h2 className="font-serif text-[24px] font-bold text-[var(--ivps-text1)] leading-tight">
               {getSkillDisplayName(skill)}
             </h2>
+            {skill.isCustom && (
+              <div className="flex items-center gap-1.5 mt-3">
+                <span className="text-[10.5px] px-2 py-0.5 rounded bg-[rgba(212,168,67,.13)] text-[var(--ivps-gold)] border border-[rgba(212,168,67,.25)]">
+                  내 스킬
+                </span>
+                {onEdit && (
+                  <button
+                    onClick={() => onEdit(skill)}
+                    className="text-[10.5px] px-2 py-0.5 rounded border border-[var(--ivps-border)] text-[var(--ivps-text2)] hover:bg-[var(--ivps-surface2)] transition-colors"
+                  >
+                    편집
+                  </button>
+                )}
+                {onDelete && (
+                  <button
+                    onClick={() => onDelete(skill)}
+                    className="text-[10.5px] px-2 py-0.5 rounded border border-[rgba(224,112,112,.32)] text-[#e07070] hover:bg-[rgba(224,112,112,.08)] transition-colors"
+                  >
+                    삭제
+                  </button>
+                )}
+              </div>
+            )}
           </div>
           <button
             onClick={onClose}

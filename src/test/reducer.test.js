@@ -34,6 +34,8 @@ function makeSegment(overrides = {}) {
     id: 'seg-1',
     coordinates: [{ pageIndex: 0, x: 0.1, y: 0.1, width: 0.2, height: 0.2 }],
     measures: { start: null, end: null },
+    measureCount: null,
+    measureCountSource: null,
     mappedSkills: ['A-1-001'],
     checks: [],
     targetBpm: null,

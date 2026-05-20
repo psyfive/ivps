@@ -5,14 +5,29 @@ import { categoryB } from './categoryB.js';
 import { categoryC } from './categoryC.js';
 import { CATEGORY_META, SKILL_GROUPS } from './constants.js';
 import { PREREQUISITES, SYNERGIES } from './connections.js';
+import { customSkillRowToSkill, customSkillToRow, createCustomSkillId } from './customSkills.js';
 
-export { CATEGORY_META, SKILL_GROUPS };
+export { CATEGORY_META, SKILL_GROUPS, customSkillRowToSkill, customSkillToRow, createCustomSkillId };
 
 export const TAXONOMY = [
   ...categoryA,
   ...categoryB,
   ...categoryC,
 ];
+
+let runtimeCustomSkills = [];
+
+export function setRuntimeCustomSkills(skills) {
+  runtimeCustomSkills = Array.isArray(skills) ? skills.filter(Boolean) : [];
+}
+
+export function getRuntimeCustomSkills() {
+  return runtimeCustomSkills;
+}
+
+export function getAllSkills(extraSkills = runtimeCustomSkills) {
+  return [...TAXONOMY, ...(Array.isArray(extraSkills) ? extraSkills : [])];
+}
 
 export const SKILL_CART_CATEGORY_ORDER = ['A', 'B', 'C'];
 
@@ -57,7 +72,7 @@ export function getSkillCartSubgroupLabel(sourceGroupId) {
     .replace(/\b[a-z]/g, char => char.toUpperCase());
 }
 
-export function buildSkillCartHierarchy({ query = '', skills = TAXONOMY } = {}) {
+export function buildSkillCartHierarchy({ query = '', skills = getAllSkills() } = {}) {
   const normalizedQuery = normalizeSkillCartQuery(query);
   const visibleSkills = skills.filter(skill =>
     SKILL_CART_CATEGORY_ORDER.includes(getCategoryCode(skill.id)) &&
@@ -101,15 +116,15 @@ export function buildSkillCartHierarchy({ query = '', skills = TAXONOMY } = {}) 
 }
 
 export function getSkillsByCategory(categoryCode) {
-  return TAXONOMY.filter(skill => skill.id.startsWith(categoryCode));
+  return getAllSkills().filter(skill => skill.id.startsWith(categoryCode));
 }
 
 export function getSkillsByGroup(groupId) {
-  return TAXONOMY.filter(skill => skill.groupId === groupId);
+  return getAllSkills().filter(skill => skill.groupId === groupId);
 }
 
 export function getSkillById(id) {
-  return TAXONOMY.find(skill => skill.id === id) ?? null;
+  return getAllSkills().find(skill => skill.id === id) ?? null;
 }
 
 export function getCategoryCode(skillId) {
