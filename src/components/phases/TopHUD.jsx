@@ -1,7 +1,7 @@
 // src/components/phases/TopHUD.jsx
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { usePractice } from '../../context/PracticeContext';
-import { getSkillById, getCategoryMeta } from '../../data/taxonomy';
+import { getSkillById, getCategoryMeta, getSkillDisplayName } from '../../data/taxonomy';
 import { FOCUS_CATEGORY_META, getFocusItems, pickRandomFocusIndexes } from '../../utils/duringFocusItems';
 
 const AUTO_INTERVAL_MS = 22_000;
@@ -177,7 +177,7 @@ export function TopHUD() {
             className="text-[11.5px] font-semibold leading-tight"
             style={{ color: 'var(--ivps-hud-text)', maxWidth: 112, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
           >
-            {skill.name}
+            {getSkillDisplayName(skill)}
           </span>
         </div>
       </div>

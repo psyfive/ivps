@@ -13,6 +13,7 @@ import {
   CATEGORY_META,
   SKILL_GROUPS,
   getCategoryMeta,
+  getSkillDisplayName,
 } from '../../data/taxonomy';
 import { SkillDetailModal } from './SkillDetailModal';
 
@@ -30,6 +31,7 @@ const CAT_TABS = [
 // ─────────────────────────────────────────────────────────────────────────────
 function SkillCard({ skill, onSelect }) {
   const meta = getCategoryMeta(skill.id);
+  const displayName = getSkillDisplayName(skill);
 
   return (
     <button
@@ -51,7 +53,7 @@ function SkillCard({ skill, onSelect }) {
 
       {/* 스킬명 */}
       <div className="font-serif text-[17px] font-semibold text-[var(--ivps-text1)] mt-2 mb-1 leading-tight">
-        {skill.name}
+        {displayName}
       </div>
 
       {/* 그룹명 */}

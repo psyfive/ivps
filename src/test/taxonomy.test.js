@@ -5,6 +5,7 @@ import {
   SKILL_GROUPS,
   TAXONOMY,
   buildSkillCartHierarchy,
+  getSkillDisplayName,
   getPrerequisites,
   getSkillById,
   getSkillsByCategory,
@@ -81,5 +82,20 @@ describe('taxonomy library', () => {
     expect(hierarchy[0].groups[0].id).toBe('A-1');
     expect(hierarchy[0].groups[0].subgroups).toHaveLength(1);
     expect(hierarchy[0].groups[0].subgroups[0].skills.map(skill => skill.id)).toEqual(['A-1-001']);
+  });
+
+  it('keeps raw skill names searchable while trimming trailing Latin labels for display', () => {
+    expect(getSkillDisplayName('데타셰 (Détaché)')).toBe('데타셰');
+    expect(getSkillDisplayName('음표 그룹화 (한국어 설명)')).toBe('음표 그룹화 (한국어 설명)');
+    expect(getSkillDisplayName('1~2옥타브 스케일')).toBe('1~2옥타브 스케일');
+
+    const hierarchy = buildSkillCartHierarchy({ query: 'Détaché' });
+    const resultIds = hierarchy.flatMap(category =>
+      category.groups.flatMap(group =>
+        group.subgroups.flatMap(subgroup => subgroup.skills.map(skill => skill.id))
+      )
+    );
+
+    expect(resultIds).toContain('B-7-001');
   });
 });

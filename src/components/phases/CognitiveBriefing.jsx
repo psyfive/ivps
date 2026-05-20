@@ -11,7 +11,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { usePractice } from '../../context/PracticeContext';
-import { buildSkillCartHierarchy, getCategoryMeta, getSkillById } from '../../data/taxonomy';
+import {
+  buildSkillCartHierarchy,
+  getCategoryMeta,
+  getSkillById,
+  getSkillDisplayName,
+} from '../../data/taxonomy';
 import { requestNativeFullscreen } from '../../utils/nativeFullscreen';
 import { getSkillDragData, hasSkillDragData, setSkillDragData } from '../../utils/skillDrag';
 
@@ -20,6 +25,7 @@ import { getSkillDragData, hasSkillDragData, setSkillDragData } from '../../util
 // ════════════════════════════════════════════════════════════════════════════
 function CartSkillRow({ skill, quickTrayIds, selectedSegmentId, onMapSkill, onToggleQuickTray }) {
   const meta = getCategoryMeta(skill.id);
+  const displayName = getSkillDisplayName(skill);
   const isStarred = quickTrayIds.includes(skill.id);
   const handleMap = () => {
     if (!selectedSegmentId) return;
@@ -43,7 +49,7 @@ function CartSkillRow({ skill, quickTrayIds, selectedSegmentId, onMapSkill, onTo
         'hover:bg-[var(--ivps-surface2)]',
         selectedSegmentId ? 'cursor-pointer' : 'cursor-grab',
       ].join(' ')}
-      title={selectedSegmentId ? `${skill.name} 매핑` : `${skill.name} - 구간으로 드래그하거나 먼저 구간을 선택하세요`}
+      title={selectedSegmentId ? `${displayName} 매핑` : `${displayName} - 구간으로 드래그하거나 먼저 구간을 선택하세요`}
     >
       <span
         className="font-mono text-[8.5px] px-1.5 py-0.5 rounded flex-shrink-0"
@@ -52,7 +58,7 @@ function CartSkillRow({ skill, quickTrayIds, selectedSegmentId, onMapSkill, onTo
         {skill.id}
       </span>
       <span className="text-[11.5px] text-[var(--ivps-text2)] leading-snug flex-1 min-w-0 truncate">
-        {skill.name}
+        {displayName}
       </span>
       <button
         type="button"
@@ -63,7 +69,7 @@ function CartSkillRow({ skill, quickTrayIds, selectedSegmentId, onMapSkill, onTo
         }}
         className="w-5 h-5 flex items-center justify-center rounded text-[12px] text-[var(--ivps-gold)] opacity-65 hover:opacity-100 hover:bg-[var(--ivps-active)] transition-all flex-shrink-0"
         title={isStarred ? 'Quick Tray에서 제거' : 'Quick Tray에 저장'}
-        aria-label={isStarred ? `${skill.name} Quick Tray에서 제거` : `${skill.name} Quick Tray에 저장`}
+        aria-label={isStarred ? `${displayName} Quick Tray에서 제거` : `${displayName} Quick Tray에 저장`}
       >
         {isStarred ? '★' : '☆'}
       </button>
@@ -71,7 +77,16 @@ function CartSkillRow({ skill, quickTrayIds, selectedSegmentId, onMapSkill, onTo
   );
 }
 
-function CartCategoryPanel({ category, quickTrayIds, selectedSegmentId, onMapSkill, onToggleQuickTray }) {
+function CartCategoryPanel({
+  category,
+  quickTrayIds,
+  selectedSegmentId,
+  openGroupIds,
+  queryActive,
+  onToggleGroup,
+  onMapSkill,
+  onToggleQuickTray,
+}) {
   const meta = category.meta;
   const categoryName = meta.label.replace(/^[A-C]\.\s*/, '');
   const isCategoryC = category.code === 'C';
@@ -104,9 +119,16 @@ function CartCategoryPanel({ category, quickTrayIds, selectedSegmentId, onMapSki
       </div>
 
       <div className="p-2 space-y-2">
-        {category.groups.map(group => (
+        {category.groups.map(group => {
+          const isOpen = queryActive || openGroupIds.has(group.id);
+          return (
           <div key={group.id} className="rounded-md border border-[var(--ivps-border)] bg-[var(--ivps-surface2)] overflow-hidden">
-            <div className="flex items-start justify-between gap-2 px-2 py-1.5 border-b border-[var(--ivps-border)]">
+            <button
+              type="button"
+              onClick={() => onToggleGroup(group.id)}
+              className="w-full flex items-start justify-between gap-2 px-2 py-1.5 border-b border-[var(--ivps-border)] text-left hover:bg-[var(--ivps-hover)] transition-colors"
+              aria-expanded={isOpen}
+            >
               <div className="flex items-center gap-1.5 min-w-0">
                 <span
                   className="font-mono text-[8.5px] px-1 py-0.5 rounded"
@@ -121,8 +143,15 @@ function CartCategoryPanel({ category, quickTrayIds, selectedSegmentId, onMapSki
               <span className="font-mono text-[8.5px] text-[var(--ivps-text4)] flex-shrink-0">
                 {group.skills.length}
               </span>
-            </div>
+              <span
+                className="text-[10px] text-[var(--ivps-text4)] flex-shrink-0 transition-transform"
+                style={{ transform: isOpen ? 'rotate(180deg)' : 'none' }}
+              >
+                ▾
+              </span>
+            </button>
 
+            {isOpen && (
             <div className="py-1">
               {group.subgroups.map(subgroup => (
                 <div key={subgroup.id} className="px-1.5 py-1">
@@ -150,8 +179,10 @@ function CartCategoryPanel({ category, quickTrayIds, selectedSegmentId, onMapSki
                 </div>
               ))}
             </div>
+            )}
           </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
@@ -159,9 +190,19 @@ function CartCategoryPanel({ category, quickTrayIds, selectedSegmentId, onMapSki
 
 function CartPicker({ selectedSegmentId, quickTraySkillIds, onMapSkill, onToggleQuickTray }) {
   const [query, setQuery] = useState('');
+  const [openGroupIds, setOpenGroupIds] = useState(() => new Set());
   const hierarchy = useMemo(() => buildSkillCartHierarchy({ query }), [query]);
   const visibleCount = hierarchy.reduce((sum, category) => sum + category.skills.length, 0);
   const quickTrayIds = quickTraySkillIds ?? [];
+  const queryActive = query.trim().length > 0;
+  const toggleGroup = useCallback((groupId) => {
+    setOpenGroupIds(prev => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  }, []);
 
   return (
     <div className="rounded-xl border border-[var(--ivps-border2)] bg-[var(--ivps-surface)] overflow-hidden mb-3">
@@ -189,6 +230,9 @@ function CartPicker({ selectedSegmentId, quickTraySkillIds, onMapSkill, onToggle
                 category={category}
                 quickTrayIds={quickTrayIds}
                 selectedSegmentId={selectedSegmentId}
+                openGroupIds={openGroupIds}
+                queryActive={queryActive}
+                onToggleGroup={toggleGroup}
                 onMapSkill={onMapSkill}
                 onToggleQuickTray={onToggleQuickTray}
               />
@@ -220,6 +264,7 @@ function ScoreQuickTray({ quickTraySkillIds, selectedSegmentId, onTapMap, onRemo
           {skills.map(s => {
             const meta = getCategoryMeta(s.id);
             const isDisabled = !selectedSegmentId;
+            const displayName = getSkillDisplayName(s);
             return (
               <div
                 key={s.id}
@@ -227,11 +272,11 @@ function ScoreQuickTray({ quickTraySkillIds, selectedSegmentId, onTapMap, onRemo
                 onDragStart={event => setSkillDragData(event, s.id)}
                 className={`flex items-center gap-1 pl-2 pr-1 py-1 rounded-full border text-[10px] transition-opacity select-none ${isDisabled ? 'cursor-grab hover:opacity-90' : 'cursor-pointer hover:opacity-90'}`}
                 style={{ background: `${meta.color}10`, borderColor: `${meta.color}30`, color: meta.color }}
-                title={isDisabled ? `${s.name} - 구간으로 드래그하거나 먼저 구간을 선택하세요` : `${s.name} 매핑`}
+                title={isDisabled ? `${displayName} - 구간으로 드래그하거나 먼저 구간을 선택하세요` : `${displayName} 매핑`}
                 onClick={() => { if (!isDisabled) onTapMap(s.id); }}
               >
                 <span className="font-mono">{s.id}</span>
-                <span className="text-[11px] text-[var(--ivps-text2)] max-w-[68px] truncate">{s.name}</span>
+                <span className="text-[11px] text-[var(--ivps-text2)] max-w-[68px] truncate">{displayName}</span>
                 <button
                   type="button"
                   onPointerDown={e => e.stopPropagation()}
@@ -568,7 +613,7 @@ function SkillDetail({ skill }) {
                 style={{ background: `${meta.color}18`, color: meta.color }}>{skill.id}</span>
               <span className="text-[var(--ivps-text3)]">{skill.groupId}</span>
             </div>
-            <h2 className="font-serif text-[20px] font-bold text-[var(--ivps-text1)] leading-tight">{skill.name}</h2>
+            <h2 className="font-serif text-[20px] font-bold text-[var(--ivps-text1)] leading-tight">{getSkillDisplayName(skill)}</h2>
           </div>
         </div>
       </div>
@@ -653,7 +698,7 @@ function BeforeSkillDetail({ skill }) {
                 style={{ background: meta.color + '18', color: meta.color }}>{skill.id}</span>
               <span className="text-[var(--ivps-text3)]">{skill.groupId}</span>
             </div>
-            <h2 className="font-serif text-[20px] font-bold text-[var(--ivps-text1)] leading-tight">{skill.name}</h2>
+            <h2 className="font-serif text-[20px] font-bold text-[var(--ivps-text1)] leading-tight">{getSkillDisplayName(skill)}</h2>
           </div>
         </div>
       </div>
@@ -899,7 +944,7 @@ export function CognitiveBriefing() {
                             style={isActive ? { borderColor: meta.color + '55', color: meta.color } : {}}
                           >
                             <span className="font-mono">{skill.id}</span>
-                            <span className="max-w-[90px] truncate">{skill.name}</span>
+                            <span className="max-w-[90px] truncate">{getSkillDisplayName(skill)}</span>
                           </button>
                         );
                       })}

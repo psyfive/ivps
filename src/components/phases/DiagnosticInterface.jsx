@@ -1,7 +1,7 @@
 // src/components/phases/DiagnosticInterface.jsx
 import { useState, useCallback, useEffect } from 'react';
 import { usePractice } from '../../context/PracticeContext';
-import { getSkillById, getCategoryMeta } from '../../data/taxonomy';
+import { getSkillById, getCategoryMeta, getSkillDisplayName } from '../../data/taxonomy';
 import { requestNativeFullscreen } from '../../utils/nativeFullscreen';
 
 function DiagCell({ label, color, value }) {
@@ -27,6 +27,7 @@ function SkillDiagPanel({
 }) {
   const [activeDiagIdx, setActiveDiagIdx] = useState(0);
   const catMeta = getCategoryMeta(skill.id);
+  const displayName = getSkillDisplayName(skill);
   const showSkillSwitcher = skillCount > 1 && onPrevSkill && onNextSkill;
 
   useEffect(() => {
@@ -47,7 +48,7 @@ function SkillDiagPanel({
             {skill.id}
           </span>
           <span className="font-serif text-[14px] font-semibold text-[var(--ivps-text1)] truncate min-w-0">
-            {skill.name}
+            {displayName}
           </span>
           <div className="ml-auto flex items-center gap-2 flex-shrink-0">
             {showSkillSwitcher && (
@@ -346,6 +347,7 @@ export function DiagnosticInterface() {
   const skill = activeSkill;
   const diagArr = Array.isArray(skill.after) ? skill.after : [skill.after];
   const activeDiag = diagArr[activeSkillDiagIdx] ?? diagArr[0];
+  const displayName = getSkillDisplayName(skill);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -367,7 +369,7 @@ export function DiagnosticInterface() {
             {skill.id}
           </span>
           <span className="font-serif text-[16px] font-semibold text-[var(--ivps-text1)]">
-            {skill.name}
+            {displayName}
           </span>
         </div>
 

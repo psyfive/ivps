@@ -1,7 +1,7 @@
 // src/components/phases/PracticeHUD.jsx
 import { useState, useCallback, useEffect } from 'react';
 import { usePractice } from '../../context/PracticeContext';
-import { getSkillById, getCategoryMeta } from '../../data/taxonomy';
+import { getSkillById, getCategoryMeta, getSkillDisplayName } from '../../data/taxonomy';
 import { requestNativeFullscreen } from '../../utils/nativeFullscreen';
 import { FOCUS_CATEGORY_META, getFocusItems, pickRandomFocusIndexes } from '../../utils/duringFocusItems';
 
@@ -268,7 +268,7 @@ export function PracticeHUD({ onOpenAfterSheet }) {
               {skill.id}
             </span>
             <span className="font-serif text-[14px] font-semibold text-[var(--ivps-text1)] truncate">
-              {skill.name}
+              {getSkillDisplayName(skill)}
             </span>
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">

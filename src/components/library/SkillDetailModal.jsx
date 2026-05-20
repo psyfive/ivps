@@ -5,7 +5,7 @@
 // after 배열이 여러 개일 때 케이스 탭 전환.
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useCallback } from 'react';
-import { getCategoryMeta, SKILL_GROUPS } from '../../data/taxonomy';
+import { getCategoryMeta, getSkillDisplayName, SKILL_GROUPS } from '../../data/taxonomy';
 
 // ── ResourcesSection ───────────────────────────────────────────────────────
 function extractYouTubeId(url) {
@@ -209,7 +209,7 @@ export function SkillDetailModal({ skill, onClose, onStartPractice }) {
             </div>
             {/* 스킬명 */}
             <h2 className="font-serif text-[24px] font-bold text-[var(--ivps-text1)] leading-tight">
-              {skill.name}
+              {getSkillDisplayName(skill)}
             </h2>
           </div>
           <button

@@ -16,6 +16,17 @@ export const TAXONOMY = [
 
 export const SKILL_CART_CATEGORY_ORDER = ['A', 'B', 'C'];
 
+export function getSkillDisplayName(skillOrName) {
+  const name = typeof skillOrName === 'string'
+    ? skillOrName
+    : skillOrName?.name;
+
+  return String(name ?? '').replace(
+    /[\s\u00A0]*\((?=[^)]*\p{Script=Latin})(?![^)]*\p{Script=Hangul})[^)]*\)\s*$/u,
+    ''
+  );
+}
+
 function normalizeSkillCartQuery(query) {
   return String(query ?? '').trim().toLowerCase();
 }

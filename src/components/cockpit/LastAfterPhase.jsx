@@ -1,7 +1,7 @@
 // src/components/cockpit/LastAfterPhase.jsx
 import { useState, useEffect, useCallback } from 'react';
 import { usePractice } from '../../context/PracticeContext';
-import { getSkillById, getCategoryMeta } from '../../data/taxonomy';
+import { getSkillById, getCategoryMeta, getSkillDisplayName } from '../../data/taxonomy';
 import { DifficultyMarker } from '../phases/DiagnosticInterface';
 import { requestNativeFullscreen } from '../../utils/nativeFullscreen';
 
@@ -22,6 +22,7 @@ function DiagCell({ label, color, value }) {
 function SkillReviewPanel({ skill }) {
   const [activeDiagIdx, setActiveDiagIdx] = useState(0);
   const catMeta = getCategoryMeta(skill.id);
+  const displayName = getSkillDisplayName(skill);
   const afterArr = Array.isArray(skill.after) ? skill.after : [skill.after];
   const activeDiag = afterArr[activeDiagIdx] ?? afterArr[0];
 
@@ -39,7 +40,7 @@ function SkillReviewPanel({ skill }) {
           {skill.id}
         </span>
         <span className="font-serif text-[14px] font-semibold text-[var(--ivps-text1)]">
-          {skill.name}
+          {displayName}
         </span>
       </div>
 
