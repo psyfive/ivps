@@ -171,6 +171,7 @@ describe('taxonomy library', () => {
   it('creates custom skill ids outside the canonical taxonomy id format', () => {
     expect(createCustomSkillId('B', () => 'uuid-1')).toBe('B-U-uuid-1');
     expect(createCustomSkillId('D', () => 'uuid-2')).toBe('A-U-uuid-2');
+    expect(createCustomSkillId('C')).toMatch(/^C-U-/);
   });
 
   it('resolves canonical and runtime custom skills from the merged library', () => {

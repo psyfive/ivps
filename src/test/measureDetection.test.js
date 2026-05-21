@@ -39,6 +39,13 @@ function drawBarline({ setBlack }, x, yStart = 17, yEnd = 55) {
   }
 }
 
+function drawVerticalMark({ setBlack }, x, yStart, yEnd) {
+  for (let y = yStart; y <= yEnd; y += 1) {
+    setBlack(x, y);
+    setBlack(x + 1, y);
+  }
+}
+
 describe('measure detection', () => {
   it('counts two measures from five staff lines and three barlines', () => {
     const imageData = makeImageData(140, 80, ctx => {
@@ -53,6 +60,36 @@ describe('measure detection', () => {
     const imageData = makeImageData(160, 80, ctx => {
       drawStaff(ctx);
       [16, 80, 82, 144].forEach(x => drawBarline(ctx, x));
+    });
+
+    expect(detectMeasureCountFromImageData(imageData)).toBe(2);
+  });
+
+  it('counts six measures from seven staff-aligned barlines', () => {
+    const imageData = makeImageData(360, 80, ctx => {
+      drawStaff(ctx);
+      [12, 66, 120, 174, 228, 282, 348].forEach(x => drawBarline(ctx, x));
+    });
+
+    expect(detectMeasureCountFromImageData(imageData)).toBe(6);
+  });
+
+  it('does not count note stems that do not span the full staff', () => {
+    const imageData = makeImageData(220, 80, ctx => {
+      drawStaff(ctx);
+      [14, 110, 206].forEach(x => drawBarline(ctx, x));
+      [38, 54, 72, 132, 150, 168].forEach(x => drawVerticalMark(ctx, x, 24, 48));
+    });
+
+    expect(detectMeasureCountFromImageData(imageData)).toBe(2);
+  });
+
+  it('ignores short accidental-like vertical marks near only one staff edge', () => {
+    const imageData = makeImageData(220, 80, ctx => {
+      drawStaff(ctx);
+      [14, 110, 206].forEach(x => drawBarline(ctx, x));
+      [40, 58, 76].forEach(x => drawVerticalMark(ctx, x, 18, 39));
+      [136, 154, 172].forEach(x => drawVerticalMark(ctx, x, 34, 56));
     });
 
     expect(detectMeasureCountFromImageData(imageData)).toBe(2);

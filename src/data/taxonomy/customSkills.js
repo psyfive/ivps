@@ -25,10 +25,12 @@ function normalizeResources(value) {
   return value.filter(item => item && typeof item === 'object');
 }
 
-export function createCustomSkillId(category, randomUUID = globalThis.crypto?.randomUUID) {
+export function createCustomSkillId(category, randomUUID = null) {
   const safeCategory = ['A', 'B', 'C'].includes(category) ? category : 'A';
-  const suffix = typeof randomUUID === 'function'
+  const suffix = randomUUID
     ? randomUUID()
+    : globalThis.crypto?.randomUUID
+      ? globalThis.crypto.randomUUID()
     : Math.random().toString(36).slice(2, 12);
   return `${safeCategory}-U-${suffix}`;
 }

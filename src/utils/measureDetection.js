@@ -4,6 +4,10 @@ const DEFAULT_OPTIONS = {
   staffGapTolerance: 0.28,
   barlineHeightRatio: 0.42,
   barlineThresholdRatio: 0.55,
+  barlineCoverageRatio: 0.82,
+  barlineEndpointToleranceRatio: 0.45,
+  barlineMaxGapRatio: 0.18,
+  barlineMaxWidthRatio: 1.25,
   mergeDistanceRatio: 0.012,
 };
 
@@ -108,6 +112,78 @@ function mergeCloseBarlineRuns(runs, width, options) {
   return merged;
 }
 
+function hasDarkPixelInRun(mask, width, run, y) {
+  for (let x = run.start; x <= run.end; x += 1) {
+    if (mask[(y * width) + x]) return true;
+  }
+  return false;
+}
+
+function findVerticalStroke(mask, width, run, yStart, yEnd, maxGap) {
+  const strokes = [];
+  let start = -1;
+  let end = -1;
+  let gap = 0;
+  let darkRows = 0;
+
+  for (let y = yStart; y <= yEnd; y += 1) {
+    const hasDark = hasDarkPixelInRun(mask, width, run, y);
+
+    if (hasDark) {
+      if (start === -1) start = y;
+      end = y;
+      gap = 0;
+      darkRows += 1;
+      continue;
+    }
+
+    if (start === -1) continue;
+
+    gap += 1;
+    if (gap > maxGap) {
+      strokes.push({ start, end, darkRows });
+      start = -1;
+      end = -1;
+      gap = 0;
+      darkRows = 0;
+    }
+  }
+
+  if (start !== -1) strokes.push({ start, end, darkRows });
+  if (strokes.length === 0) return null;
+
+  return strokes.reduce((best, stroke) => {
+    if (!best) return stroke;
+    return stroke.darkRows > best.darkRows ? stroke : best;
+  }, null);
+}
+
+function isStaffAlignedBarline(run, staff, mask, width, height, options) {
+  const runWidth = run.end - run.start + 1;
+  const maxRunWidth = Math.max(4, Math.round(staff.averageGap * options.barlineMaxWidthRatio));
+  if (runWidth > maxRunWidth) return false;
+
+  const topLine = staff.lines[0].center;
+  const bottomLine = staff.lines[4].center;
+  const staffHeight = Math.max(1, bottomLine - topLine);
+  const endpointTolerance = Math.max(2, Math.round(staff.averageGap * options.barlineEndpointToleranceRatio));
+  const maxGap = Math.max(0, Math.round(staff.averageGap * options.barlineMaxGapRatio));
+  const yStart = Math.max(0, Math.floor(topLine - endpointTolerance));
+  const yEnd = Math.min(height - 1, Math.ceil(bottomLine + endpointTolerance));
+  const stroke = findVerticalStroke(mask, width, run, yStart, yEnd, maxGap);
+
+  if (!stroke) return false;
+
+  const minCoverage = staffHeight * options.barlineCoverageRatio;
+  return (
+    stroke.start >= topLine - endpointTolerance &&
+    stroke.start <= topLine + endpointTolerance &&
+    stroke.end >= bottomLine - endpointTolerance &&
+    stroke.end <= bottomLine + endpointTolerance &&
+    stroke.darkRows >= minCoverage
+  );
+}
+
 export function detectMeasureCountFromImageData(imageData, options = {}) {
   const settings = { ...DEFAULT_OPTIONS, ...options };
   const { width, height } = imageData ?? {};
@@ -148,7 +224,7 @@ export function detectMeasureCountFromImageData(imageData, options = {}) {
   const threshold = Math.max(settings.barlineHeightRatio, maxColumnRatio * settings.barlineThresholdRatio);
   const barlineRuns = mergeCloseBarlineRuns(
     collectRuns(columnRatios, threshold)
-      .filter(run => run.end - run.start <= Math.max(6, width * 0.08)),
+      .filter(run => isStaffAlignedBarline(run, staff, mask, width, height, settings)),
     width,
     settings,
   );

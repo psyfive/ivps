@@ -460,9 +460,15 @@ export function LibraryView() {
 
   const handleSaveCustomSkill = async (payload) => {
     setEditorError(null);
-    const result = editorSkill
-      ? await customSkill.update(editorSkill.id, payload)
-      : await customSkill.create(payload);
+    let result;
+    try {
+      result = editorSkill
+        ? await customSkill.update(editorSkill.id, payload)
+        : await customSkill.create(payload);
+    } catch (error) {
+      setEditorError(error?.message ?? '스킬 저장 중 오류가 발생했습니다.');
+      return;
+    }
 
     if (result?.error) {
       setEditorError(result.error);
