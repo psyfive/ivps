@@ -39,10 +39,24 @@ function drawBarline({ setBlack }, x, yStart = 17, yEnd = 55) {
   }
 }
 
+function drawThickBarline(ctx, x, width = 4, yStart = 17, yEnd = 55) {
+  for (let dx = 0; dx < width; dx += 1) {
+    drawBarline(ctx, x + dx, yStart, yEnd);
+  }
+}
+
 function drawVerticalMark({ setBlack }, x, yStart, yEnd) {
   for (let y = yStart; y <= yEnd; y += 1) {
     setBlack(x, y);
     setBlack(x + 1, y);
+  }
+}
+
+function drawRect({ setBlack }, xStart, yStart, width, height) {
+  for (let y = yStart; y < yStart + height; y += 1) {
+    for (let x = xStart; x < xStart + width; x += 1) {
+      setBlack(x, y);
+    }
   }
 }
 
@@ -90,6 +104,37 @@ describe('measure detection', () => {
       [14, 110, 206].forEach(x => drawBarline(ctx, x));
       [40, 58, 76].forEach(x => drawVerticalMark(ctx, x, 18, 39));
       [136, 154, 172].forEach(x => drawVerticalMark(ctx, x, 34, 56));
+    });
+
+    expect(detectMeasureCountFromImageData(imageData)).toBe(2);
+  });
+
+  it('does not count a full-height stem with an attached notehead', () => {
+    const imageData = makeImageData(220, 80, ctx => {
+      drawStaff(ctx);
+      [14, 110, 206].forEach(x => drawBarline(ctx, x));
+      drawVerticalMark(ctx, 58, 17, 55);
+      drawRect(ctx, 62, 47, 8, 6);
+    });
+
+    expect(detectMeasureCountFromImageData(imageData)).toBe(2);
+  });
+
+  it('does not count a full-height stem with an attached beam', () => {
+    const imageData = makeImageData(220, 80, ctx => {
+      drawStaff(ctx);
+      [14, 110, 206].forEach(x => drawBarline(ctx, x));
+      drawVerticalMark(ctx, 58, 17, 55);
+      drawRect(ctx, 46, 16, 26, 3);
+    });
+
+    expect(detectMeasureCountFromImageData(imageData)).toBe(2);
+  });
+
+  it('keeps thick staff-aligned barlines as barlines', () => {
+    const imageData = makeImageData(180, 80, ctx => {
+      drawStaff(ctx);
+      [14, 90, 162].forEach(x => drawThickBarline(ctx, x));
     });
 
     expect(detectMeasureCountFromImageData(imageData)).toBe(2);

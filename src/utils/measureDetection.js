@@ -8,6 +8,10 @@ const DEFAULT_OPTIONS = {
   barlineEndpointToleranceRatio: 0.45,
   barlineMaxGapRatio: 0.18,
   barlineMaxWidthRatio: 1.25,
+  barlineMorphCoverageRatio: 0.88,
+  barlineContextOffsetRatio: 0.28,
+  barlineContextBandRatio: 0.5,
+  barlineContextMaxDensity: 0.32,
   mergeDistanceRatio: 0.012,
 };
 
@@ -158,6 +162,78 @@ function findVerticalStroke(mask, width, run, yStart, yEnd, maxGap) {
   }, null);
 }
 
+function passesVerticalOpening(stroke, staffHeight, options) {
+  const span = Math.max(1, stroke.end - stroke.start + 1);
+  const minCoverage = staffHeight * options.barlineMorphCoverageRatio;
+  return stroke.darkRows >= minCoverage && (stroke.darkRows / span) >= options.barlineMorphCoverageRatio;
+}
+
+function clampRange(start, end, limit) {
+  const nextStart = Math.max(0, start);
+  const nextEnd = Math.min(limit - 1, end);
+  if (nextStart > nextEnd) return null;
+  return { start: nextStart, end: nextEnd };
+}
+
+function isNearStaffLine(y, staff, tolerance) {
+  return staff.lines.some(line => Math.abs(y - line.center) <= tolerance);
+}
+
+function sampleDensity(mask, width, xRange, yRange, staff, staffLineTolerance) {
+  let dark = 0;
+  let total = 0;
+
+  for (let y = yRange.start; y <= yRange.end; y += 1) {
+    if (isNearStaffLine(y, staff, staffLineTolerance)) continue;
+
+    for (let x = xRange.start; x <= xRange.end; x += 1) {
+      total += 1;
+      dark += mask[(y * width) + x];
+    }
+  }
+
+  return total === 0 ? 0 : dark / total;
+}
+
+function buildEndpointContextBands(staff, height, options) {
+  const gap = staff.averageGap;
+  const bandHeight = Math.max(2, Math.round(gap * options.barlineContextBandRatio));
+  const lineAvoid = Math.max(1, Math.round(gap * 0.18));
+  const topLine = staff.lines[0].center;
+  const bottomLine = staff.lines[4].center;
+  const candidates = [
+    [Math.floor(topLine + lineAvoid + 1), Math.floor(topLine + lineAvoid + bandHeight)],
+    [Math.ceil(bottomLine - lineAvoid - bandHeight), Math.ceil(bottomLine - lineAvoid - 1)],
+    [Math.ceil(topLine - lineAvoid - bandHeight), Math.ceil(topLine - lineAvoid - 1)],
+    [Math.floor(bottomLine + lineAvoid + 1), Math.floor(bottomLine + lineAvoid + bandHeight)],
+  ];
+
+  return candidates
+    .map(([start, end]) => clampRange(start, end, height))
+    .filter(Boolean);
+}
+
+function hasDenseAttachedContext(run, staff, mask, width, height, options) {
+  const gap = staff.averageGap;
+  const offset = Math.max(1, Math.round(gap * options.barlineContextOffsetRatio));
+  const sampleWidth = Math.max(2, Math.round(gap * 0.45));
+  const staffLineTolerance = Math.max(1, Math.round(gap * 0.18));
+  const bands = buildEndpointContextBands(staff, height, options);
+  const xRanges = [
+    clampRange(run.start - offset - sampleWidth, run.start - offset - 1, width),
+    clampRange(run.end + offset + 1, run.end + offset + sampleWidth, width),
+  ].filter(Boolean);
+
+  for (const yRange of bands) {
+    for (const xRange of xRanges) {
+      const density = sampleDensity(mask, width, xRange, yRange, staff, staffLineTolerance);
+      if (density > options.barlineContextMaxDensity) return true;
+    }
+  }
+
+  return false;
+}
+
 function isStaffAlignedBarline(run, staff, mask, width, height, options) {
   const runWidth = run.end - run.start + 1;
   const maxRunWidth = Math.max(4, Math.round(staff.averageGap * options.barlineMaxWidthRatio));
@@ -175,12 +251,18 @@ function isStaffAlignedBarline(run, staff, mask, width, height, options) {
   if (!stroke) return false;
 
   const minCoverage = staffHeight * options.barlineCoverageRatio;
-  return (
+  const alignedToStaff = (
     stroke.start >= topLine - endpointTolerance &&
     stroke.start <= topLine + endpointTolerance &&
     stroke.end >= bottomLine - endpointTolerance &&
     stroke.end <= bottomLine + endpointTolerance &&
     stroke.darkRows >= minCoverage
+  );
+
+  return (
+    alignedToStaff &&
+    passesVerticalOpening(stroke, staffHeight, options) &&
+    !hasDenseAttachedContext(run, staff, mask, width, height, options)
   );
 }
 
