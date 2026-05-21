@@ -92,6 +92,11 @@ function SkillCard({ skill, onSelect }) {
             내 스킬
           </span>
         )}
+        {skill.storage === 'local' && (
+          <span className="text-[10.5px] px-1.5 py-0.5 rounded bg-[rgba(126,168,144,.12)] text-[#7ea890] border border-[rgba(126,168,144,.25)]">
+            로컬 저장
+          </span>
+        )}
       </div>
 
       <div className="font-serif text-[17px] font-semibold text-[var(--ivps-text1)] mt-2 mb-1 leading-tight">
@@ -146,6 +151,7 @@ function CustomSkillEditor({
   skill,
   canSave,
   authConfigured,
+  storageMode,
   onClose,
   onSave,
   saving,
@@ -200,7 +206,9 @@ function CustomSkillEditor({
               {skill ? '내 스킬 편집' : '내 스킬 만들기'}
             </h2>
             <p className="text-[12px] text-[var(--ivps-text3)] mt-1">
-              계정에 저장되는 개인 taxonomy skill입니다.
+              {storageMode === 'remote'
+                ? '계정에 저장되는 개인 taxonomy skill입니다.'
+                : '현재 브라우저에 저장되는 개인 taxonomy skill입니다.'}
             </p>
           </div>
           <button
@@ -213,11 +221,11 @@ function CustomSkillEditor({
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
-          {!canSave && (
+          {storageMode === 'local' && (
             <div className="rounded-[10px] border border-[rgba(212,168,67,.28)] bg-[rgba(212,168,67,.08)] px-4 py-3 text-[12.5px] text-[var(--ivps-text2)] leading-relaxed">
               {authConfigured
-                ? '로그인하면 직접 만든 스킬을 계정에 저장할 수 있습니다.'
-                : 'Supabase 환경 변수가 설정되어 있지 않아 계정 저장 기능을 사용할 수 없습니다.'}
+                ? '로그인하지 않은 상태라 이 스킬은 현재 브라우저에 저장됩니다.'
+                : 'Supabase 환경 변수가 없어 이 스킬은 현재 브라우저에 저장됩니다.'}
             </div>
           )}
 
@@ -384,7 +392,8 @@ export function LibraryView() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorError, setEditorError] = useState(null);
 
-  const canSaveCustomSkill = Boolean(auth.configured && auth.user);
+  const customSkillStorageMode = auth.configured && auth.user ? 'remote' : 'local';
+  const editorStorageMode = editorSkill?.storage === 'local' ? 'local' : customSkillStorageMode;
   const savingCustomSkill = customSkillStatus === 'saving';
 
   const visibleGroups = useMemo(() =>
@@ -628,8 +637,9 @@ export function LibraryView() {
       {editorOpen && (
         <CustomSkillEditor
           skill={editorSkill}
-          canSave={canSaveCustomSkill}
+          canSave
           authConfigured={auth.configured}
+          storageMode={editorStorageMode}
           onClose={() => { setEditorOpen(false); setEditorSkill(null); }}
           onSave={handleSaveCustomSkill}
           saving={savingCustomSkill}

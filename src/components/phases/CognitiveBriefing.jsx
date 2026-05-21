@@ -303,6 +303,15 @@ function SegmentRow({ segment, index, onDelete, onUnmap, isSelected, onSelect, o
   const [dropActive, setDropActive] = useState(false);
   const measureCount = segment.measureCount ?? null;
   const measureSourceLabel = segment.measureCountSource === 'manual' ? '수동' : '자동';
+  const measureDetected = measureCount !== null;
+  const measureBadgeText = measureDetected
+    ? `${measureSourceLabel} ${measureCount}마디`
+    : '마디 미감지';
+  const measureBadgeClass = measureDetected
+    ? segment.measureCountSource === 'manual'
+      ? 'border-[var(--ivps-plum-border)] bg-[var(--ivps-plum-bg)] text-[var(--ivps-plum)]'
+      : 'border-[var(--ivps-gold-border)] bg-[var(--ivps-gold-bg)] text-[var(--ivps-gold)]'
+    : 'border-dashed border-[var(--ivps-border2)] bg-[var(--ivps-bg)] text-[var(--ivps-text4)]';
 
   const handleDragOver = useCallback((event) => {
     if (!hasSkillDragData(event)) return;
@@ -341,18 +350,21 @@ function SegmentRow({ segment, index, onDelete, onUnmap, isSelected, onSelect, o
       ].join(' ')}
     >
       {/* 헤더 */}
-      <div className="flex items-center justify-between mb-1.5">
-        <div className="flex items-center gap-1.5 min-w-0">
+      <div className="flex items-start justify-between gap-2 mb-1.5">
+        <div className="flex flex-wrap items-center gap-1.5 min-w-0">
           <span className="font-mono text-[10px] text-[var(--ivps-text3)]">
             {index + 1}구간
           </span>
-          <span className="px-1.5 py-0.5 rounded border border-[var(--ivps-border)] text-[9.5px] text-[var(--ivps-text3)] bg-[var(--ivps-bg)]">
-            {measureCount ? `${measureSourceLabel} ${measureCount}마디` : '마디 ?'}
+          <span className={[
+            'px-1.5 py-0.5 rounded border text-[9.5px] font-semibold shrink-0',
+            measureBadgeClass,
+          ].join(' ')}>
+            {measureBadgeText}
           </span>
         </div>
         <button
           onClick={e => { e.stopPropagation(); onDelete(segment.id); }}
-          className="text-[10px] text-[var(--ivps-text4)] hover:text-[var(--ivps-rust)] transition-colors"
+          className="shrink-0 text-[10px] text-[var(--ivps-text4)] hover:text-[var(--ivps-rust)] transition-colors"
         >✕</button>
       </div>
 
@@ -385,7 +397,7 @@ function SegmentRow({ segment, index, onDelete, onUnmap, isSelected, onSelect, o
       {/* 목표 메타 — 선택 시만 표시 */}
       {isSelected && (
         <div
-          className="flex items-center gap-2 mt-2 pt-2 border-t border-[var(--ivps-divider)]"
+          className="flex flex-wrap items-center gap-2 mt-2 pt-2 border-t border-[var(--ivps-divider)]"
           onClick={e => e.stopPropagation()}
           onPointerDown={e => e.stopPropagation()}
         >
@@ -419,7 +431,7 @@ function SegmentRow({ segment, index, onDelete, onUnmap, isSelected, onSelect, o
             />
           </div>
           <div className="flex items-center gap-1">
-            <span className="text-[9.5px] text-[var(--ivps-text3)]">마디</span>
+            <span className="text-[9.5px] text-[var(--ivps-text3)] whitespace-nowrap">마디 수</span>
             <input
               type="number"
               min="1" max="999"
@@ -767,6 +779,7 @@ export function CognitiveBriefing() {
   const [tab, setTab] = useState('setup');
 
   const segments   = activeScore?.segments ?? [];
+  const detectedMeasureCount = segments.filter(seg => seg.measureCount).length;
   const selectedSegment = segments.find(seg => seg.id === selectedSegmentId) ?? null;
   const selectedSegmentSkills = useMemo(() => (
     selectedSegment?.mappedSkills?.map(id => getSkillById(id)).filter(Boolean) ?? []
@@ -842,15 +855,20 @@ export function CognitiveBriefing() {
 
             {/* ── SEGMENT LIST ── */}
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-[10px] text-[var(--ivps-text3)] uppercase tracking-[.07em] font-semibold flex items-center gap-1.5">
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="text-[10px] text-[var(--ivps-text3)] uppercase tracking-[.07em] font-semibold flex flex-wrap items-center gap-1.5 min-w-0">
                   <span className={[
                     'inline-block w-1.5 h-1.5 rounded-full',
                     isSelectingSegment ? 'bg-[var(--ivps-plum)] animate-pulse' : 'bg-[var(--ivps-plum)]',
                   ].join(' ')} />
                   구간별 스킬 매핑
                   {segments.length > 0 && (
-                    <span className="font-mono text-[9px] text-[var(--ivps-text4)] ml-1">({segments.length})</span>
+                    <>
+                      <span className="font-mono text-[9px] text-[var(--ivps-text4)] ml-1">({segments.length})</span>
+                      <span className="px-1.5 py-0.5 rounded border border-[var(--ivps-border)] bg-[var(--ivps-bg)] text-[9px] text-[var(--ivps-text4)] normal-case tracking-normal">
+                        {segments.length}개 중 {detectedMeasureCount}개 감지
+                      </span>
+                    </>
                   )}
                 </div>
                 {/* 구간 설정 토글 버튼 (ScoreViewer 오버레이와 동일 기능) */}
@@ -861,7 +879,7 @@ export function CognitiveBriefing() {
                         e.stopPropagation();
                         segmentActs.startAddToSegment(selectedSegmentId);
                       }}
-                      className="flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-semibold transition-all bg-[var(--ivps-gold-bg)] border-[var(--ivps-gold-border)] text-[var(--ivps-gold)] hover:bg-[var(--ivps-active)]"
+                      className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-semibold transition-all bg-[var(--ivps-gold-bg)] border-[var(--ivps-gold-border)] text-[var(--ivps-gold)] hover:bg-[var(--ivps-active)]"
                     >
                       <span className="text-[11px] leading-none">＋</span>
                       구간 추가
@@ -872,7 +890,7 @@ export function CognitiveBriefing() {
                         e.stopPropagation();
                         segmentActs.toggleSegmentMode();
                       }}
-                      className="flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-semibold transition-all bg-[var(--ivps-plum-bg)] border-[var(--ivps-plum-border)] text-[var(--ivps-plum)] hover:bg-[var(--ivps-hover)]"
+                      className="shrink-0 flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-semibold transition-all bg-[var(--ivps-plum-bg)] border-[var(--ivps-plum-border)] text-[var(--ivps-plum)] hover:bg-[var(--ivps-hover)]"
                     >
                       <span className="text-[11px] leading-none">＋</span>
                       구간 설정
@@ -885,7 +903,7 @@ export function CognitiveBriefing() {
                       segmentActs.commitTempSegments();
                     }}
                     className={[
-                      'flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-semibold transition-all animate-pulse hover:animate-none',
+                      'shrink-0 flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-semibold transition-all animate-pulse hover:animate-none',
                       addingToSegmentId
                         ? 'bg-[var(--ivps-gold-bg)] border-[var(--ivps-gold-border)] text-[var(--ivps-gold)] hover:bg-[var(--ivps-active)]'
                         : 'bg-[var(--ivps-plum-bg)] border-[var(--ivps-plum-border)] text-[var(--ivps-plum)] hover:bg-[var(--ivps-hover)]',

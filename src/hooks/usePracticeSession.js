@@ -3,6 +3,7 @@ import { useReducer, useCallback, useEffect, useMemo } from 'react';
 import {
   createCustomSkillId,
   customSkillRowToSkill,
+  customSkillToLocalRow,
   customSkillToRow,
   getAllSkills,
   getSkillById,
@@ -231,6 +232,7 @@ const uid = () => Math.random().toString(36).slice(2, 9);
 const REVIEW_INTERVAL_DAYS = [1, 3, 7];
 const DAY_MS = 24 * 60 * 60 * 1000;
 const QUICK_TRAY_STORAGE_KEY = 'ivps-quick-tray-skills';
+const CUSTOM_SKILLS_STORAGE_KEY = 'ivps-custom-skills';
 const MIN_BOWING_SIZE = 60;
 const MAX_BOWING_SIZE = 180;
 
@@ -255,6 +257,38 @@ function savePersistedQuickTraySkills(skillIds) {
   } catch {
     // Storage can be unavailable in private or restricted browser contexts.
   }
+}
+
+function loadLocalCustomSkills() {
+  if (typeof window === 'undefined') return [];
+  try {
+    const rows = JSON.parse(window.localStorage.getItem(CUSTOM_SKILLS_STORAGE_KEY) ?? '[]');
+    if (!Array.isArray(rows)) return [];
+    return rows.map(row => customSkillRowToSkill({ ...row, storage: 'local', user_id: null })).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalCustomSkills(skills) {
+  if (typeof window === 'undefined') return { error: null };
+  try {
+    const rows = (skills ?? [])
+      .filter(skill => skill?.storage === 'local')
+      .map(skill => customSkillToLocalRow(skill));
+    window.localStorage.setItem(CUSTOM_SKILLS_STORAGE_KEY, JSON.stringify(rows));
+    return { error: null };
+  } catch {
+    return { error: 'Local browser storage is unavailable.' };
+  }
+}
+
+function mergeCustomSkills(remoteSkills, localSkills) {
+  const remoteIds = new Set((remoteSkills ?? []).map(skill => skill.id));
+  return [
+    ...(remoteSkills ?? []),
+    ...(localSkills ?? []).filter(skill => !remoteIds.has(skill.id)),
+  ];
 }
 
 function clampBowingSize(value) {
@@ -1266,11 +1300,13 @@ export function usePracticeSession() {
     let cancelled = false;
 
     async function loadCustomSkills() {
+      const localSkills = loadLocalCustomSkills();
+
       if (!supabase || !user?.id) {
         dispatch({
           type: ACTIONS.SET_CUSTOM_SKILLS,
-          skills: [],
-          status: supabase ? 'idle' : 'disabled',
+          skills: localSkills,
+          status: 'ready',
         });
         return;
       }
@@ -1295,7 +1331,12 @@ export function usePracticeSession() {
 
       dispatch({
         type: ACTIONS.SET_CUSTOM_SKILLS,
-        skills: (data ?? []).map(customSkillRowToSkill).filter(Boolean),
+        skills: mergeCustomSkills(
+          (data ?? [])
+            .map(row => customSkillRowToSkill({ ...row, storage: 'remote' }))
+            .filter(Boolean),
+          localSkills,
+        ),
         status: 'ready',
       });
     }
@@ -1567,9 +1608,18 @@ export function usePracticeSession() {
 
   const createCustomSkill = useCallback(async (payload) => {
     if (!supabase || !user?.id) {
-      const error = 'Supabase login is required to save custom skills.';
-      dispatch({ type: ACTIONS.SET_CUSTOM_SKILL_STATUS, status: 'error', error });
-      return { data: null, error };
+      const skill = customSkillRowToSkill(customSkillToLocalRow({
+        ...payload,
+        id: createCustomSkillId(payload?.category),
+      }));
+      const localSkills = [skill, ...state.customSkills.filter(item => item.storage === 'local')];
+      const { error } = saveLocalCustomSkills(localSkills);
+      if (error) {
+        dispatch({ type: ACTIONS.SET_CUSTOM_SKILL_STATUS, status: 'error', error });
+        return { data: null, error };
+      }
+      dispatch({ type: ACTIONS.UPSERT_CUSTOM_SKILL, skill });
+      return { data: skill, error: null };
     }
 
     const id = createCustomSkillId(payload?.category);
@@ -1587,19 +1637,31 @@ export function usePracticeSession() {
       return { data: null, error: error.message };
     }
 
-    const skill = customSkillRowToSkill(data);
+    const skill = customSkillRowToSkill({ ...data, storage: 'remote' });
     dispatch({ type: ACTIONS.UPSERT_CUSTOM_SKILL, skill });
     return { data: skill, error: null };
-  }, [user?.id]);
+  }, [state.customSkills, user?.id]);
 
   const updateCustomSkill = useCallback(async (skillId, payload) => {
-    if (!supabase || !user?.id) {
-      const error = 'Supabase login is required to save custom skills.';
-      dispatch({ type: ACTIONS.SET_CUSTOM_SKILL_STATUS, status: 'error', error });
-      return { data: null, error };
+    const existing = state.customSkills.find(skill => skill.id === skillId);
+    if (!existing || existing.storage === 'local' || !supabase || !user?.id) {
+      const skill = customSkillRowToSkill(customSkillToLocalRow({
+        ...existing,
+        ...payload,
+        id: skillId,
+        storage: 'local',
+      }));
+      const localSkills = state.customSkills
+        .filter(item => item.storage === 'local' && item.id !== skillId);
+      const { error } = saveLocalCustomSkills([skill, ...localSkills]);
+      if (error) {
+        dispatch({ type: ACTIONS.SET_CUSTOM_SKILL_STATUS, status: 'error', error });
+        return { data: null, error };
+      }
+      dispatch({ type: ACTIONS.UPSERT_CUSTOM_SKILL, skill });
+      return { data: skill, error: null };
     }
 
-    const existing = state.customSkills.find(skill => skill.id === skillId);
     const row = customSkillToRow({ ...existing, ...payload, id: skillId }, user.id);
     dispatch({ type: ACTIONS.SET_CUSTOM_SKILL_STATUS, status: 'saving' });
 
@@ -1616,16 +1678,23 @@ export function usePracticeSession() {
       return { data: null, error: error.message };
     }
 
-    const skill = customSkillRowToSkill(data);
+    const skill = customSkillRowToSkill({ ...data, storage: 'remote' });
     dispatch({ type: ACTIONS.UPSERT_CUSTOM_SKILL, skill });
     return { data: skill, error: null };
   }, [state.customSkills, user?.id]);
 
   const deleteCustomSkill = useCallback(async (skillId) => {
-    if (!supabase || !user?.id) {
-      const error = 'Supabase login is required to delete custom skills.';
-      dispatch({ type: ACTIONS.SET_CUSTOM_SKILL_STATUS, status: 'error', error });
-      return { error };
+    const existing = state.customSkills.find(skill => skill.id === skillId);
+    if (!existing || existing.storage === 'local' || !supabase || !user?.id) {
+      const localSkills = state.customSkills
+        .filter(skill => skill.storage === 'local' && skill.id !== skillId);
+      const { error } = saveLocalCustomSkills(localSkills);
+      if (error) {
+        dispatch({ type: ACTIONS.SET_CUSTOM_SKILL_STATUS, status: 'error', error });
+        return { error };
+      }
+      dispatch({ type: ACTIONS.DELETE_CUSTOM_SKILL, skillId });
+      return { error: null };
     }
 
     dispatch({ type: ACTIONS.SET_CUSTOM_SKILL_STATUS, status: 'saving' });
@@ -1642,7 +1711,7 @@ export function usePracticeSession() {
 
     dispatch({ type: ACTIONS.DELETE_CUSTOM_SKILL, skillId });
     return { error: null };
-  }, [user?.id]);
+  }, [state.customSkills, user?.id]);
 
   return {
     // 상태

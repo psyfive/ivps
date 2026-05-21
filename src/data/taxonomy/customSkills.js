@@ -37,6 +37,7 @@ export function customSkillRowToSkill(row) {
   if (!row) return null;
   const category = normalizeString(row.category) || normalizeString(row.id).charAt(0) || 'A';
   const groupId = normalizeString(row.group_id) || `${category}-1`;
+  const storage = row.storage === 'local' || !row.user_id ? 'local' : 'remote';
 
   return {
     id: normalizeString(row.id),
@@ -52,6 +53,7 @@ export function customSkillRowToSkill(row) {
     after: normalizeAfterItems(row.after_items),
     resources: normalizeResources(row.resources),
     isCustom: true,
+    storage,
     userId: row.user_id ?? null,
     createdAt: row.created_at ?? null,
     updatedAt: row.updated_at ?? null,
@@ -75,5 +77,17 @@ export function customSkillToRow(skill, userId) {
     after_items: normalizeAfterItems(skill?.after ?? skill?.after_items),
     resources: normalizeResources(skill?.resources),
     updated_at: new Date().toISOString(),
+  };
+}
+
+export function customSkillToLocalRow(skill) {
+  const now = new Date().toISOString();
+  const row = customSkillToRow(skill, null);
+  return {
+    ...row,
+    user_id: null,
+    storage: 'local',
+    created_at: skill?.createdAt ?? skill?.created_at ?? now,
+    updated_at: row.updated_at ?? now,
   };
 }

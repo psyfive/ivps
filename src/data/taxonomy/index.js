@@ -5,9 +5,9 @@ import { categoryB } from './categoryB.js';
 import { categoryC } from './categoryC.js';
 import { CATEGORY_META, SKILL_GROUPS } from './constants.js';
 import { PREREQUISITES, SYNERGIES } from './connections.js';
-import { customSkillRowToSkill, customSkillToRow, createCustomSkillId } from './customSkills.js';
+import { customSkillRowToSkill, customSkillToLocalRow, customSkillToRow, createCustomSkillId } from './customSkills.js';
 
-export { CATEGORY_META, SKILL_GROUPS, customSkillRowToSkill, customSkillToRow, createCustomSkillId };
+export { CATEGORY_META, SKILL_GROUPS, customSkillRowToSkill, customSkillToLocalRow, customSkillToRow, createCustomSkillId };
 
 export const TAXONOMY = [
   ...categoryA,

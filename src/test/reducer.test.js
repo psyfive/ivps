@@ -723,3 +723,36 @@ describe('During checklist bubble settings', () => {
     });
   });
 });
+
+describe('Custom taxonomy skills', () => {
+  it('DELETE_CUSTOM_SKILL: removes the skill from saved shortcuts and mapped segments', () => {
+    const state = {
+      ...INITIAL_STATE,
+      selectedSkillId: 'A-U-local',
+      activeSkillId: 'A-U-local',
+      quickTraySkills: ['A-U-local', 'A-1-001'],
+      skillCart: ['A-U-local', 'B-2-001'],
+      customSkills: [{ id: 'A-U-local', storage: 'local', isCustom: true }],
+      scores: [{
+        id: 'score-1',
+        sessions: [{ id: 'sess-1', skills: ['A-U-local', 'A-1-001'] }],
+        segments: [{ id: 'seg-1', mappedSkills: ['A-U-local', 'B-2-001'] }],
+        quickTraySkills: ['A-U-local', 'C-1-001'],
+      }],
+    };
+
+    const next = reducer(state, {
+      type: ACTIONS.DELETE_CUSTOM_SKILL,
+      skillId: 'A-U-local',
+    });
+
+    expect(next.selectedSkillId).toBeNull();
+    expect(next.activeSkillId).toBeNull();
+    expect(next.customSkills).toEqual([]);
+    expect(next.quickTraySkills).toEqual(['A-1-001']);
+    expect(next.skillCart).toEqual(['B-2-001']);
+    expect(next.scores[0].sessions[0].skills).toEqual(['A-1-001']);
+    expect(next.scores[0].segments[0].mappedSkills).toEqual(['B-2-001']);
+    expect(next.scores[0].quickTraySkills).toEqual(['C-1-001']);
+  });
+});

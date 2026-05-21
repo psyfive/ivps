@@ -7,6 +7,7 @@ import {
   buildSkillCartHierarchy,
   createCustomSkillId,
   customSkillRowToSkill,
+  customSkillToLocalRow,
   getAllSkills,
   getSkillDisplayName,
   getPrerequisites,
@@ -133,7 +134,37 @@ describe('taxonomy library', () => {
       during: ['[모양 확인] wrist', '[느낌 확인] release'],
       after: [{ symptom: 'tight', cause: 'overhold', prescription: 'reset' }],
       isCustom: true,
+      storage: 'remote',
       userId: 'user-1',
+    });
+  });
+
+  it('keeps local custom skills usable without a Supabase user', () => {
+    const row = customSkillToLocalRow({
+      id: 'B-U-local-skill',
+      category: 'B',
+      groupId: 'B-2',
+      name: 'Local custom skill',
+      corePrinciple: 'Saved in this browser.',
+      before: 'Warm up',
+      during: ['Listen'],
+      after: [{ symptom: 'scratch', cause: 'speed', prescription: 'slow bow' }],
+      resources: [],
+    });
+    const skill = customSkillRowToSkill(row);
+
+    expect(row).toMatchObject({
+      id: 'B-U-local-skill',
+      user_id: null,
+      storage: 'local',
+      group_id: 'B-2',
+    });
+    expect(skill).toMatchObject({
+      id: 'B-U-local-skill',
+      groupId: 'B-2',
+      isCustom: true,
+      storage: 'local',
+      userId: null,
     });
   });
 

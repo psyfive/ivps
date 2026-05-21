@@ -217,6 +217,11 @@ export function SkillDetailModal({ skill, onClose, onStartPractice, onEdit, onDe
                 <span className="text-[10.5px] px-2 py-0.5 rounded bg-[rgba(212,168,67,.13)] text-[var(--ivps-gold)] border border-[rgba(212,168,67,.25)]">
                   내 스킬
                 </span>
+                {skill.storage === 'local' && (
+                  <span className="text-[10.5px] px-2 py-0.5 rounded bg-[rgba(126,168,144,.12)] text-[#7ea890] border border-[rgba(126,168,144,.25)]">
+                    로컬 저장
+                  </span>
+                )}
                 {onEdit && (
                   <button
                     onClick={() => onEdit(skill)}
