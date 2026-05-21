@@ -13,7 +13,8 @@ const DEFAULT_OPTIONS = {
   barlineContextBandRatio: 0.5,
   barlineContextMaxDensity: 0.32,
   virtualLeftBoundaryBarlineRatio: 0.05,
-  virtualLeftBoundaryStaffRatio: 0.025,
+  virtualLeftBoundaryStaffSearchRatio: 0.25,
+  virtualLeftBoundaryStaffRunRatio: 3,
   mergeDistanceRatio: 0.012,
 };
 
@@ -268,38 +269,59 @@ function isStaffAlignedBarline(run, staff, mask, width, height, options) {
   );
 }
 
-function hasStaffAtLeftBoundary(mask, width, staff, options) {
-  const edgeWidth = Math.max(
-    4,
-    Math.round(Math.max(width * options.virtualLeftBoundaryStaffRatio, staff.averageGap * 1.25)),
+function hasStaffLineRun(mask, width, height, lineCenter, xStart, runLength, yTolerance) {
+  const xRange = clampRange(xStart, xStart + runLength - 1, width);
+  const yRange = clampRange(
+    Math.floor(lineCenter - yTolerance),
+    Math.ceil(lineCenter + yTolerance),
+    height,
   );
+  if (!xRange || !yRange) return false;
+
+  let hasLineAtStart = false;
+  for (let y = yRange.start; y <= yRange.end; y += 1) {
+    if (mask[(y * width) + xRange.start]) {
+      hasLineAtStart = true;
+      break;
+    }
+  }
+  if (!hasLineAtStart) return false;
+
+  let dark = 0;
+  let total = 0;
+  for (let y = yRange.start; y <= yRange.end; y += 1) {
+    for (let x = xRange.start; x <= xRange.end; x += 1) {
+      total += 1;
+      dark += mask[(y * width) + x];
+    }
+  }
+
+  return total > 0 && dark / total >= 0.22;
+}
+
+function findStaffStartX(mask, width, height, staff, options) {
+  const searchLimit = Math.min(
+    width - 1,
+    Math.max(staff.averageGap * 4, width * options.virtualLeftBoundaryStaffSearchRatio),
+  );
+  const runLength = Math.max(8, Math.round(staff.averageGap * options.virtualLeftBoundaryStaffRunRatio));
   const yTolerance = Math.max(1, Math.round(staff.averageGap * 0.18));
-  let staffLinesAtEdge = 0;
 
-  staff.lines.forEach(line => {
-    const yRange = clampRange(
-      Math.floor(line.center - yTolerance),
-      Math.ceil(line.center + yTolerance),
-      mask.length / width,
-    );
-    if (!yRange) return;
-
-    let dark = 0;
-    let total = 0;
-    for (let y = yRange.start; y <= yRange.end; y += 1) {
-      for (let x = 0; x <= edgeWidth; x += 1) {
-        total += 1;
-        dark += mask[(y * width) + x];
+  for (let x = 0; x <= searchLimit; x += 1) {
+    let staffLinesPresent = 0;
+    for (const line of staff.lines) {
+      if (hasStaffLineRun(mask, width, height, line.center, x, runLength, yTolerance)) {
+        staffLinesPresent += 1;
       }
     }
 
-    if (total > 0 && dark / total >= 0.2) staffLinesAtEdge += 1;
-  });
+    if (staffLinesPresent >= 4) return x;
+  }
 
-  return staffLinesAtEdge >= 4;
+  return null;
 }
 
-function hasBarlineNearLeftBoundary(barlineRuns, width, staff, options) {
+function hasBarlineNearStaffStart(barlineRuns, staffStartX, width, staff, options) {
   const firstRun = barlineRuns[0];
   if (!firstRun) return false;
 
@@ -307,13 +329,15 @@ function hasBarlineNearLeftBoundary(barlineRuns, width, staff, options) {
     staff.averageGap * 2.5,
     width * options.virtualLeftBoundaryBarlineRatio,
   );
-  return runCenter(firstRun) <= leftLimit;
+  return runCenter(firstRun) - staffStartX <= leftLimit;
 }
 
-function shouldUseVirtualLeftBoundary(barlineRuns, staff, mask, width, options) {
+function shouldUseVirtualLeftBoundary(barlineRuns, staff, mask, width, height, options) {
+  const staffStartX = findStaffStartX(mask, width, height, staff, options);
+  if (staffStartX === null) return false;
+
   return (
-    hasStaffAtLeftBoundary(mask, width, staff, options) &&
-    !hasBarlineNearLeftBoundary(barlineRuns, width, staff, options)
+    !hasBarlineNearStaffStart(barlineRuns, staffStartX, width, staff, options)
   );
 }
 
@@ -362,7 +386,7 @@ export function detectMeasureCountFromImageData(imageData, options = {}) {
     settings,
   );
 
-  const hasVirtualLeftBoundary = shouldUseVirtualLeftBoundary(barlineRuns, staff, mask, width, settings);
+  const hasVirtualLeftBoundary = shouldUseVirtualLeftBoundary(barlineRuns, staff, mask, width, height, settings);
   if (barlineRuns.length === 0 || (barlineRuns.length < 2 && !hasVirtualLeftBoundary)) return null;
   return Math.max(1, barlineRuns.length - (hasVirtualLeftBoundary ? 0 : 1));
 }

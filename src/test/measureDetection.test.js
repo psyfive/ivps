@@ -88,19 +88,28 @@ describe('measure detection', () => {
     expect(detectMeasureCountFromImageData(imageData)).toBe(6);
   });
 
-  it('uses the left crop edge as a virtual boundary when a staff starts without an opening barline', () => {
+  it('uses a staff start inside the left area as a virtual boundary without an opening barline', () => {
     const imageData = makeImageData(420, 80, ctx => {
-      drawStaff(ctx);
+      drawStaff(ctx, 20, 8, 36);
       [60, 112, 164, 216, 268, 320, 392].forEach(x => drawBarline(ctx, x));
     });
 
     expect(detectMeasureCountFromImageData(imageData)).toBe(7);
   });
 
-  it('does not add a virtual left boundary when the staff does not reach the crop edge', () => {
+  it('does not add a virtual left boundary when the staff starts too far into the crop', () => {
+    const imageData = makeImageData(420, 80, ctx => {
+      drawStaff(ctx, 20, 8, 140);
+      [164, 216, 268, 320, 392].forEach(x => drawBarline(ctx, x));
+    });
+
+    expect(detectMeasureCountFromImageData(imageData)).toBe(4);
+  });
+
+  it('does not duplicate the virtual boundary when a real barline is near the staff start', () => {
     const imageData = makeImageData(420, 80, ctx => {
       drawStaff(ctx, 20, 8, 36);
-      [60, 112, 164, 216, 268, 320, 392].forEach(x => drawBarline(ctx, x));
+      [42, 112, 164, 216, 268, 320, 392].forEach(x => drawBarline(ctx, x));
     });
 
     expect(detectMeasureCountFromImageData(imageData)).toBe(6);
