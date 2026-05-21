@@ -283,6 +283,81 @@ describe('시각적 구간 추가', () => {
     expect(next.selectedSegmentId).toBe('seg-1');
     expect(next.tempSegments).toEqual([]);
   });
+
+  it('ADD_TEMP_SEGMENT: preserves auto-detected measure count on the temp segment', () => {
+    const score = makeScore({ id: 's1' });
+    const state = { ...INITIAL_STATE, scores: [score], activeScoreId: 's1' };
+
+    const next = reducer(state, {
+      type: ACTIONS.ADD_TEMP_SEGMENT,
+      coordinates: { pageIndex: 0, x: 0.1, y: 0.1, width: 0.2, height: 0.2 },
+      measureCount: 4,
+      measureCountSource: 'auto',
+    });
+
+    expect(next.tempSegments[0].measureCount).toBe(4);
+    expect(next.tempSegments[0].measureCountSource).toBe('auto');
+  });
+
+  it('COMMIT_TEMP_SEGMENTS: stores auto measure count on the new segment', () => {
+    const score = makeScore({ id: 's1', segments: [] });
+    const state = {
+      ...INITIAL_STATE,
+      scores: [score],
+      activeScoreId: 's1',
+      isSelectingSegment: true,
+      tempSegments: [
+        {
+          id: 'tmp-1',
+          coordinates: { pageIndex: 0, x: 0.1, y: 0.1, width: 0.2, height: 0.2 },
+          mappedSkills: [],
+          measureCount: 2,
+          measureCountSource: 'auto',
+        },
+      ],
+    };
+
+    const next = reducer(state, { type: ACTIONS.COMMIT_TEMP_SEGMENTS });
+    const segment = next.scores[0].segments[0];
+
+    expect(segment.measureCount).toBe(2);
+    expect(segment.measureCountSource).toBe('auto');
+  });
+
+  it('SET_SEGMENT_META: stores user-edited measure count as manual', () => {
+    const segment = makeSegment({ id: 'seg-1', measureCount: 2, measureCountSource: 'auto' });
+    const score = makeScore({ id: 's1', segments: [segment] });
+    const state = { ...INITIAL_STATE, scores: [score], activeScoreId: 's1' };
+
+    const next = reducer(state, {
+      type: ACTIONS.SET_SEGMENT_META,
+      segmentId: 'seg-1',
+      measureCount: 3,
+      measureCountSource: 'manual',
+    });
+
+    expect(next.scores[0].segments[0].measureCount).toBe(3);
+    expect(next.scores[0].segments[0].measureCountSource).toBe('manual');
+  });
+
+  it('UPDATE_SEGMENT_COORD: does not overwrite manual measure count with auto-detection', () => {
+    const segment = makeSegment({ id: 'seg-1', measureCount: 3, measureCountSource: 'manual' });
+    const score = makeScore({ id: 's1', segments: [segment] });
+    const state = { ...INITIAL_STATE, scores: [score], activeScoreId: 's1' };
+
+    const next = reducer(state, {
+      type: ACTIONS.UPDATE_SEGMENT_COORD,
+      segmentId: 'seg-1',
+      coordIndex: 0,
+      coord: { x: 0.2, y: 0.2, width: 0.3, height: 0.3 },
+      measureCount: 8,
+      measureCountSource: 'auto',
+    });
+
+    expect(next.scores[0].segments[0].measureCount).toBe(3);
+    expect(next.scores[0].segments[0].measureCountSource).toBe('manual');
+    expect(next.scores[0].segments[0].coordinates[0].x).toBe(0.2);
+  });
 });
 
 describe('Rule of Three 안정성 트래커', () => {
