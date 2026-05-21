@@ -12,6 +12,8 @@ const DEFAULT_OPTIONS = {
   barlineContextOffsetRatio: 0.28,
   barlineContextBandRatio: 0.5,
   barlineContextMaxDensity: 0.32,
+  virtualLeftBoundaryBarlineRatio: 0.05,
+  virtualLeftBoundaryStaffRatio: 0.025,
   mergeDistanceRatio: 0.012,
 };
 
@@ -266,6 +268,55 @@ function isStaffAlignedBarline(run, staff, mask, width, height, options) {
   );
 }
 
+function hasStaffAtLeftBoundary(mask, width, staff, options) {
+  const edgeWidth = Math.max(
+    4,
+    Math.round(Math.max(width * options.virtualLeftBoundaryStaffRatio, staff.averageGap * 1.25)),
+  );
+  const yTolerance = Math.max(1, Math.round(staff.averageGap * 0.18));
+  let staffLinesAtEdge = 0;
+
+  staff.lines.forEach(line => {
+    const yRange = clampRange(
+      Math.floor(line.center - yTolerance),
+      Math.ceil(line.center + yTolerance),
+      mask.length / width,
+    );
+    if (!yRange) return;
+
+    let dark = 0;
+    let total = 0;
+    for (let y = yRange.start; y <= yRange.end; y += 1) {
+      for (let x = 0; x <= edgeWidth; x += 1) {
+        total += 1;
+        dark += mask[(y * width) + x];
+      }
+    }
+
+    if (total > 0 && dark / total >= 0.2) staffLinesAtEdge += 1;
+  });
+
+  return staffLinesAtEdge >= 4;
+}
+
+function hasBarlineNearLeftBoundary(barlineRuns, width, staff, options) {
+  const firstRun = barlineRuns[0];
+  if (!firstRun) return false;
+
+  const leftLimit = Math.max(
+    staff.averageGap * 2.5,
+    width * options.virtualLeftBoundaryBarlineRatio,
+  );
+  return runCenter(firstRun) <= leftLimit;
+}
+
+function shouldUseVirtualLeftBoundary(barlineRuns, staff, mask, width, options) {
+  return (
+    hasStaffAtLeftBoundary(mask, width, staff, options) &&
+    !hasBarlineNearLeftBoundary(barlineRuns, width, staff, options)
+  );
+}
+
 export function detectMeasureCountFromImageData(imageData, options = {}) {
   const settings = { ...DEFAULT_OPTIONS, ...options };
   const { width, height } = imageData ?? {};
@@ -311,8 +362,9 @@ export function detectMeasureCountFromImageData(imageData, options = {}) {
     settings,
   );
 
-  if (barlineRuns.length < 2) return null;
-  return Math.max(1, barlineRuns.length - 1);
+  const hasVirtualLeftBoundary = shouldUseVirtualLeftBoundary(barlineRuns, staff, mask, width, settings);
+  if (barlineRuns.length === 0 || (barlineRuns.length < 2 && !hasVirtualLeftBoundary)) return null;
+  return Math.max(1, barlineRuns.length - (hasVirtualLeftBoundary ? 0 : 1));
 }
 
 export function detectMeasureCountFromImageElement(image, coordinate) {

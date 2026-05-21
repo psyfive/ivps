@@ -22,10 +22,10 @@ function makeImageData(width, height, draw) {
   return { data, width, height };
 }
 
-function drawStaff({ setBlack, width }, yStart = 20, gap = 8) {
+function drawStaff({ setBlack, width }, yStart = 20, gap = 8, xStart = 4) {
   for (let line = 0; line < 5; line += 1) {
     const y = yStart + (line * gap);
-    for (let x = 4; x < width - 4; x += 1) {
+    for (let x = xStart; x < width - 4; x += 1) {
       setBlack(x, y);
       setBlack(x, y + 1);
     }
@@ -83,6 +83,24 @@ describe('measure detection', () => {
     const imageData = makeImageData(360, 80, ctx => {
       drawStaff(ctx);
       [12, 66, 120, 174, 228, 282, 348].forEach(x => drawBarline(ctx, x));
+    });
+
+    expect(detectMeasureCountFromImageData(imageData)).toBe(6);
+  });
+
+  it('uses the left crop edge as a virtual boundary when a staff starts without an opening barline', () => {
+    const imageData = makeImageData(420, 80, ctx => {
+      drawStaff(ctx);
+      [60, 112, 164, 216, 268, 320, 392].forEach(x => drawBarline(ctx, x));
+    });
+
+    expect(detectMeasureCountFromImageData(imageData)).toBe(7);
+  });
+
+  it('does not add a virtual left boundary when the staff does not reach the crop edge', () => {
+    const imageData = makeImageData(420, 80, ctx => {
+      drawStaff(ctx, 20, 8, 36);
+      [60, 112, 164, 216, 268, 320, 392].forEach(x => drawBarline(ctx, x));
     });
 
     expect(detectMeasureCountFromImageData(imageData)).toBe(6);
