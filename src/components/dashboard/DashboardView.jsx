@@ -20,12 +20,6 @@ function formatDateLong(ts) {
 }
 
 // ── XP / 레벨 계산 ────────────────────────────────────────────────────────
-function calcStats(xpLog) {
-  const totalXP     = xpLog.reduce((s, e) => s + e.xp, 0);
-  const level       = Math.floor(totalXP / 500) + 1;
-  return { totalXP, level };
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // SymptomQuickEntry — 증상 기반 퀵 온보딩
 // ─────────────────────────────────────────────────────────────────────────────
@@ -713,7 +707,6 @@ export function DashboardView() {
   const [symptomSkillId, setSymptomSkillId] = useState(null);
   const symptomSkill = symptomSkillId ? getSkillById(symptomSkillId) : null;
 
-  const { totalXP, level } = calcStats(xpLog);
   const today = formatDateLong(Date.now());
   const recentSessions = practiceSessions.slice(0, 5);
 
@@ -787,16 +780,6 @@ export function DashboardView() {
             </h1>
             <div className="text-[11.5px] text-[var(--ivps-text3)]">{today}</div>
           </div>
-          <span
-            className="font-mono text-[11px] px-2.5 py-1 rounded-lg"
-            style={{
-              background: 'rgba(212,168,67,.08)',
-              border: '1px solid rgba(212,168,67,.18)',
-              color: '#d4a843',
-            }}
-          >
-            Lv.{level} · {totalXP} XP
-          </span>
         </div>
 
         {/* ── 악보 섹션 ── */}
