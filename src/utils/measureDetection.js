@@ -12,9 +12,13 @@ const DEFAULT_OPTIONS = {
   barlineContextOffsetRatio: 0.28,
   barlineContextBandRatio: 0.5,
   barlineContextMaxDensity: 0.32,
-  virtualLeftBoundaryBarlineRatio: 0.05,
-  virtualLeftBoundaryStaffSearchRatio: 0.25,
-  virtualLeftBoundaryStaffRunRatio: 3,
+  virtualLeftBoundaryStaffStartRatio: 2,
+  virtualLeftBoundaryStaffRunRatio: 0.75,
+  virtualLeftBoundaryBarlineDistanceRatio: 0.8,
+  systemStartMarkerSearchRatio: 1.25,
+  systemStartMarkerMinSpanRatio: 0.55,
+  systemStartMarkerMinDarkRatio: 0.42,
+  rightEdgeBarlineSearchRatio: 0.35,
   mergeDistanceRatio: 0.012,
 };
 
@@ -269,6 +273,13 @@ function isStaffAlignedBarline(run, staff, mask, width, height, options) {
   );
 }
 
+function getStaffBounds(staff) {
+  const topLine = staff.lines[0].center;
+  const bottomLine = staff.lines[4].center;
+  const staffHeight = Math.max(1, bottomLine - topLine);
+  return { topLine, bottomLine, staffHeight };
+}
+
 function hasStaffLineRun(mask, width, height, lineCenter, xStart, runLength, yTolerance) {
   const xRange = clampRange(xStart, xStart + runLength - 1, width);
   const yRange = clampRange(
@@ -300,11 +311,12 @@ function hasStaffLineRun(mask, width, height, lineCenter, xStart, runLength, yTo
 }
 
 function findStaffStartX(mask, width, height, staff, options) {
+  const { staffHeight } = getStaffBounds(staff);
   const searchLimit = Math.min(
     width - 1,
-    Math.max(staff.averageGap * 4, width * options.virtualLeftBoundaryStaffSearchRatio),
+    Math.round(staffHeight * options.virtualLeftBoundaryStaffStartRatio),
   );
-  const runLength = Math.max(8, Math.round(staff.averageGap * options.virtualLeftBoundaryStaffRunRatio));
+  const runLength = Math.max(8, Math.round(staffHeight * options.virtualLeftBoundaryStaffRunRatio));
   const yTolerance = Math.max(1, Math.round(staff.averageGap * 0.18));
 
   for (let x = 0; x <= searchLimit; x += 1) {
@@ -321,24 +333,105 @@ function findStaffStartX(mask, width, height, staff, options) {
   return null;
 }
 
-function hasBarlineNearStaffStart(barlineRuns, staffStartX, width, staff, options) {
+function hasBarlineNearStaffStart(barlineRuns, staffStartX, staff, options) {
   const firstRun = barlineRuns[0];
   if (!firstRun) return false;
+  const { staffHeight } = getStaffBounds(staff);
 
-  const leftLimit = Math.max(
-    staff.averageGap * 2.5,
-    width * options.virtualLeftBoundaryBarlineRatio,
-  );
+  const leftLimit = Math.max(staff.averageGap * 2, staffHeight * options.virtualLeftBoundaryBarlineDistanceRatio);
   return runCenter(firstRun) - staffStartX <= leftLimit;
+}
+
+function hasSystemStartMarker(mask, width, height, staff, staffStartX, options) {
+  const { topLine, bottomLine, staffHeight } = getStaffBounds(staff);
+  const xEnd = Math.min(
+    width - 1,
+    Math.ceil(staffStartX + (staffHeight * options.systemStartMarkerSearchRatio)),
+  );
+  const yStart = Math.max(0, Math.floor(topLine - (staff.averageGap * 0.8)));
+  const yEnd = Math.min(height - 1, Math.ceil(bottomLine + (staff.averageGap * 0.8)));
+  const maxGap = Math.max(1, Math.round(staff.averageGap * 0.5));
+  const barlineEndpointTolerance = Math.max(2, Math.round(staff.averageGap * options.barlineEndpointToleranceRatio));
+  const minSpan = staffHeight * options.systemStartMarkerMinSpanRatio;
+  const minDarkRows = staffHeight * options.systemStartMarkerMinDarkRatio;
+
+  for (let x = 0; x <= xEnd; x += 1) {
+    const stroke = findVerticalStroke(mask, width, { start: x, end: x }, yStart, yEnd, maxGap);
+    if (!stroke) continue;
+
+    const span = stroke.end - stroke.start + 1;
+    const overshootsStaff = (
+      stroke.start < topLine - barlineEndpointTolerance ||
+      stroke.end > bottomLine + barlineEndpointTolerance
+    );
+    if (overshootsStaff && span >= minSpan && stroke.darkRows >= minDarkRows) return true;
+  }
+
+  return false;
+}
+
+function isLikelySystemStart(staffStartX, staff, mask, width, height, options) {
+  const { staffHeight } = getStaffBounds(staff);
+  return (
+    staffStartX <= staffHeight * options.virtualLeftBoundaryStaffStartRatio &&
+    hasSystemStartMarker(mask, width, height, staff, staffStartX, options)
+  );
 }
 
 function shouldUseVirtualLeftBoundary(barlineRuns, staff, mask, width, height, options) {
   const staffStartX = findStaffStartX(mask, width, height, staff, options);
   if (staffStartX === null) return false;
 
+  if (isLikelySystemStart(staffStartX, staff, mask, width, height, options)) return true;
+  return !hasBarlineNearStaffStart(barlineRuns, staffStartX, staff, options);
+}
+
+function isRightEdgeAlignedBarline(run, staff, mask, width, height, options) {
+  const runWidth = run.end - run.start + 1;
+  const maxRunWidth = Math.max(4, Math.round(staff.averageGap * options.barlineMaxWidthRatio));
+  if (runWidth > maxRunWidth) return false;
+
+  const { topLine, bottomLine, staffHeight } = getStaffBounds(staff);
+  const endpointTolerance = Math.max(2, Math.round(staff.averageGap * options.barlineEndpointToleranceRatio));
+  const maxGap = Math.max(0, Math.round(staff.averageGap * options.barlineMaxGapRatio));
+  const yStart = Math.max(0, Math.floor(topLine - endpointTolerance));
+  const yEnd = Math.min(height - 1, Math.ceil(bottomLine + endpointTolerance));
+  const stroke = findVerticalStroke(mask, width, run, yStart, yEnd, maxGap);
+
+  if (!stroke) return false;
+
   return (
-    !hasBarlineNearStaffStart(barlineRuns, staffStartX, width, staff, options)
+    stroke.start >= topLine - endpointTolerance &&
+    stroke.start <= topLine + endpointTolerance &&
+    stroke.end >= bottomLine - endpointTolerance &&
+    stroke.end <= bottomLine + endpointTolerance &&
+    stroke.darkRows >= staffHeight * options.barlineCoverageRatio &&
+    passesVerticalOpening(stroke, staffHeight, options)
   );
+}
+
+function findRightEdgeBarlineRun(mask, width, height, staff, options) {
+  const { staffHeight } = getStaffBounds(staff);
+  const searchWidth = Math.max(2, Math.round(staffHeight * options.rightEdgeBarlineSearchRatio));
+  const xStart = Math.max(0, width - searchWidth);
+  const runs = [];
+  let start = -1;
+
+  for (let x = xStart; x < width; x += 1) {
+    const run = { start: x, end: x };
+    if (isRightEdgeAlignedBarline(run, staff, mask, width, height, options)) {
+      if (start === -1) start = x;
+      continue;
+    }
+
+    if (start !== -1) {
+      runs.push({ start, end: x - 1, strength: x - start });
+      start = -1;
+    }
+  }
+
+  if (start !== -1) runs.push({ start, end: width - 1, strength: width - start });
+  return runs.find(run => isRightEdgeAlignedBarline(run, staff, mask, width, height, options)) ?? null;
 }
 
 export function detectMeasureCountFromImageData(imageData, options = {}) {
@@ -379,12 +472,17 @@ export function detectMeasureCountFromImageData(imageData, options = {}) {
 
   const maxColumnRatio = Math.max(...columnRatios);
   const threshold = Math.max(settings.barlineHeightRatio, maxColumnRatio * settings.barlineThresholdRatio);
-  const barlineRuns = mergeCloseBarlineRuns(
+  let barlineRuns = mergeCloseBarlineRuns(
     collectRuns(columnRatios, threshold)
       .filter(run => isStaffAlignedBarline(run, staff, mask, width, height, settings)),
     width,
     settings,
   );
+
+  const rightEdgeRun = findRightEdgeBarlineRun(mask, width, height, staff, settings);
+  if (rightEdgeRun) {
+    barlineRuns = mergeCloseBarlineRuns([...barlineRuns, rightEdgeRun], width, settings);
+  }
 
   const hasVirtualLeftBoundary = shouldUseVirtualLeftBoundary(barlineRuns, staff, mask, width, height, settings);
   if (barlineRuns.length === 0 || (barlineRuns.length < 2 && !hasVirtualLeftBoundary)) return null;

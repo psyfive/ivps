@@ -52,13 +52,7 @@ function CartSkillRow({ skill, quickTrayIds, selectedSegmentId, onMapSkill, onTo
       ].join(' ')}
       title={selectedSegmentId ? `${displayName} 매핑` : `${displayName} - 구간으로 드래그하거나 먼저 구간을 선택하세요`}
     >
-      <span
-        className="font-mono text-[8.5px] px-1.5 py-0.5 rounded flex-shrink-0"
-        style={{ background: `${meta.color}18`, color: meta.color }}
-      >
-        {skill.id}
-      </span>
-      <span className="text-[11.5px] text-[var(--ivps-text2)] leading-snug flex-1 min-w-0 truncate">
+      <span className="text-[11.5px] text-[var(--ivps-text2)] leading-[1.45] flex-1 min-w-0 whitespace-normal break-words">
         {displayName}
       </span>
       <button
@@ -109,7 +103,7 @@ function CartCategoryPanel({
             <span className="font-mono text-[10px] font-semibold" style={{ color: meta.color }}>
               {category.code}
             </span>
-            <span className="text-[11.5px] font-semibold text-[var(--ivps-text1)] truncate">
+            <span className="text-[11.5px] font-semibold text-[var(--ivps-text1)] leading-tight whitespace-normal break-words">
               {categoryName}
             </span>
           </div>
@@ -137,7 +131,7 @@ function CartCategoryPanel({
                 >
                   {group.id}
                 </span>
-                <span className="text-[10.5px] font-semibold text-[var(--ivps-text2)] leading-tight truncate">
+                <span className="text-[10.5px] font-semibold text-[var(--ivps-text2)] leading-tight whitespace-normal break-words">
                   {group.name}
                 </span>
               </div>
@@ -158,7 +152,7 @@ function CartCategoryPanel({
                 <div key={subgroup.id} className="px-1.5 py-1">
                   <div className="flex items-center gap-1.5 px-1 pb-1">
                     <span className="h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ background: meta.color }} />
-                    <span className="text-[9px] uppercase tracking-[.06em] text-[var(--ivps-text3)] truncate">
+                    <span className="text-[9px] uppercase tracking-[.06em] text-[var(--ivps-text3)] leading-tight whitespace-normal break-words">
                       {subgroup.label}
                     </span>
                     <span className="font-mono text-[8px] text-[var(--ivps-text4)] flex-shrink-0">
@@ -276,8 +270,7 @@ function ScoreQuickTray({ quickTraySkillIds, selectedSegmentId, onTapMap, onRemo
                 title={isDisabled ? `${displayName} - 구간으로 드래그하거나 먼저 구간을 선택하세요` : `${displayName} 매핑`}
                 onClick={() => { if (!isDisabled) onTapMap(s.id); }}
               >
-                <span className="font-mono">{s.id}</span>
-                <span className="text-[11px] text-[var(--ivps-text2)] max-w-[68px] truncate">{displayName}</span>
+                <span className="text-[11px] text-[var(--ivps-text2)] max-w-[116px] leading-[1.25] whitespace-normal break-words">{displayName}</span>
                 <button
                   type="button"
                   onPointerDown={e => e.stopPropagation()}
@@ -377,16 +370,20 @@ function SegmentRow({ segment, index, onDelete, onUnmap, isSelected, onSelect, o
         <div className="flex flex-wrap gap-1">
           {mappedSkills.map(s => {
             const meta = getCategoryMeta(s.id);
+            const displayName = getSkillDisplayName(s);
             return (
               <div key={s.id}
-                className="flex items-center gap-1 pl-1.5 pr-1 py-0.5 rounded-full border text-[10px]"
+                className="flex items-start gap-1 pl-2 pr-1 py-1 rounded-lg border text-[10px] max-w-full"
                 style={{ background: `${meta.color}10`, borderColor: `${meta.color}28`, color: meta.color }}
+                title={`${displayName} (${s.id})`}
               >
-                <span className="font-mono">{s.id}</span>
+                <span className="text-[10.5px] leading-[1.35] whitespace-normal break-words text-[var(--ivps-text2)]">
+                  {displayName}
+                </span>
                 <button
                   onPointerDown={e => e.stopPropagation()}
                   onClick={e => { e.stopPropagation(); onUnmap(segment.id, s.id); }}
-                  className="opacity-50 hover:opacity-100 text-[9px] transition-opacity"
+                  className="shrink-0 opacity-50 hover:opacity-100 text-[9px] leading-none transition-opacity mt-0.5"
                 >×</button>
               </div>
             );

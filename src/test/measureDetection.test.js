@@ -60,6 +60,11 @@ function drawRect({ setBlack }, xStart, yStart, width, height) {
   }
 }
 
+function drawSystemStartMarker(ctx, x = 14, yStart = 13, yEnd = 60) {
+  drawVerticalMark(ctx, x, yStart, yEnd);
+  drawVerticalMark(ctx, x + 4, yStart + 4, yEnd - 4);
+}
+
 describe('measure detection', () => {
   it('counts two measures from five staff lines and three barlines', () => {
     const imageData = makeImageData(140, 80, ctx => {
@@ -90,6 +95,7 @@ describe('measure detection', () => {
 
   it('uses a staff start inside the left area as a virtual boundary without an opening barline', () => {
     const imageData = makeImageData(420, 80, ctx => {
+      drawSystemStartMarker(ctx);
       drawStaff(ctx, 20, 8, 36);
       [60, 112, 164, 216, 268, 320, 392].forEach(x => drawBarline(ctx, x));
     });
@@ -97,8 +103,25 @@ describe('measure detection', () => {
     expect(detectMeasureCountFromImageData(imageData)).toBe(7);
   });
 
+  it('keeps system-start measure count stable when only the right crop padding changes', () => {
+    const narrowImage = makeImageData(260, 80, ctx => {
+      drawSystemStartMarker(ctx);
+      drawStaff(ctx, 20, 8, 36);
+      [72, 124, 176, 236].forEach(x => drawBarline(ctx, x));
+    });
+    const wideImage = makeImageData(420, 80, ctx => {
+      drawSystemStartMarker(ctx);
+      drawStaff(ctx, 20, 8, 36);
+      [72, 124, 176, 236].forEach(x => drawBarline(ctx, x));
+    });
+
+    expect(detectMeasureCountFromImageData(narrowImage)).toBe(4);
+    expect(detectMeasureCountFromImageData(wideImage)).toBe(4);
+  });
+
   it('does not add a virtual left boundary when the staff starts too far into the crop', () => {
     const imageData = makeImageData(420, 80, ctx => {
+      drawSystemStartMarker(ctx, 88);
       drawStaff(ctx, 20, 8, 140);
       [164, 216, 268, 320, 392].forEach(x => drawBarline(ctx, x));
     });
@@ -109,10 +132,21 @@ describe('measure detection', () => {
   it('does not duplicate the virtual boundary when a real barline is near the staff start', () => {
     const imageData = makeImageData(420, 80, ctx => {
       drawStaff(ctx, 20, 8, 36);
+      drawRect(ctx, 12, 8, 8, 6);
+      drawRect(ctx, 20, 58, 14, 4);
       [42, 112, 164, 216, 268, 320, 392].forEach(x => drawBarline(ctx, x));
     });
 
     expect(detectMeasureCountFromImageData(imageData)).toBe(6);
+  });
+
+  it('keeps a right-edge partial barline in the count', () => {
+    const imageData = makeImageData(180, 80, ctx => {
+      drawStaff(ctx);
+      [14, 90, 179].forEach(x => drawBarline(ctx, x));
+    });
+
+    expect(detectMeasureCountFromImageData(imageData)).toBe(2);
   });
 
   it('does not count note stems that do not span the full staff', () => {
