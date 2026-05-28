@@ -233,8 +233,46 @@ const REVIEW_INTERVAL_DAYS = [1, 3, 7];
 const DAY_MS = 24 * 60 * 60 * 1000;
 const QUICK_TRAY_STORAGE_KEY = 'ivps-quick-tray-skills';
 const CUSTOM_SKILLS_STORAGE_KEY = 'ivps-custom-skills';
+const APP_STATE_STORAGE_KEY = 'ivps-app-state-v1';
 const MIN_BOWING_SIZE = 60;
 const MAX_BOWING_SIZE = 180;
+
+// 새로고침 후에도 복원할 상태 필드 목록
+const PERSIST_KEYS = [
+  'scores', 'activeScoreId',
+  'practiceSessions', 'reviewReminders', 'xpLog',
+  'bpm', 'beatsPerBar', 'subdivision', 'ghostTrainBars', 'ghostTrainReadyBars',
+  'grapeTotal', 'grapeBpmIncrement',
+  'practiceFlowMode',
+  'activeInstrument',
+  'duringChecklistMode', 'duringChecklistBubblePositions',
+  'screen',
+];
+
+function loadPersistedAppState() {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = window.localStorage.getItem(APP_STATE_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return typeof parsed === 'object' && parsed !== null ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function savePersistedAppState(state) {
+  if (typeof window === 'undefined') return;
+  try {
+    const partial = {};
+    for (const key of PERSIST_KEYS) {
+      partial[key] = state[key];
+    }
+    window.localStorage.setItem(APP_STATE_STORAGE_KEY, JSON.stringify(partial));
+  } catch {
+    // QuotaExceededError: 악보 이미지가 너무 크면 저장 생략
+  }
+}
 
 function normalizeSkillIds(value) {
   if (!Array.isArray(value)) return [];
@@ -298,9 +336,36 @@ function clampBowingSize(value) {
 }
 
 function initState(initialState) {
+  const persisted = loadPersistedAppState();
   return {
     ...initialState,
+    ...persisted,
     quickTraySkills: loadPersistedQuickTraySkills(),
+    // 항상 초기화: 세션 간 유지하면 안 되는 일시적 상태
+    phase: 'before',
+    metroPlaying: false,
+    currentBeat: -1,
+    tunerActive: false,
+    tunerNote: null,
+    grapeFilled: 0,
+    isSelectingSegment: false,
+    selectedSegmentId: null,
+    addingToSegmentId: null,
+    tempSegments: [],
+    drawingMode: false,
+    practiceFullscreen: false,
+    duringStartTime: null,
+    pickerSessionId: null,
+    activeSessionId: null,
+    customSkillStatus: 'idle',
+    customSkillError: null,
+    customSkills: [],
+    skillCart: [],
+    interleaveHistory: [],
+    reviewSegmentIndex: 0,
+    symptomFilter: null,
+    selectedSkillId: null,
+    activeSkillId: null,
   };
 }
 
@@ -1295,6 +1360,30 @@ export function usePracticeSession() {
   useEffect(() => {
     savePersistedQuickTraySkills(state.quickTraySkills);
   }, [state.quickTraySkills]);
+
+  // 앱 상태 지속성 — 새로고침 후에도 악보·구간·기록이 유지되도록 500ms 디바운스 저장
+  useEffect(() => {
+    const id = setTimeout(() => savePersistedAppState(state), 500);
+    return () => clearTimeout(id);
+  }, [
+    state.scores,
+    state.activeScoreId,
+    state.practiceSessions,
+    state.reviewReminders,
+    state.xpLog,
+    state.bpm,
+    state.beatsPerBar,
+    state.subdivision,
+    state.ghostTrainBars,
+    state.ghostTrainReadyBars,
+    state.grapeTotal,
+    state.grapeBpmIncrement,
+    state.practiceFlowMode,
+    state.activeInstrument,
+    state.duringChecklistMode,
+    state.duringChecklistBubblePositions,
+    state.screen,
+  ]);
 
   useEffect(() => {
     let cancelled = false;

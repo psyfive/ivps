@@ -15,7 +15,8 @@
       "Bash(npm run:*)",
       "Bash(xargs grep *)",
       "Bash(npm.cmd run *)",
-      "Bash(npx.cmd vitest *)"
+      "Bash(npx.cmd vitest *)",
+      "Bash(node_modules\\\\.bin\\\\vite.cmd build *)"
     ]
   }
 }
