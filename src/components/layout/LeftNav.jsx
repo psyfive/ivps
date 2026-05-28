@@ -6,6 +6,7 @@ import { AuthPanel } from './AuthPanel';
 const NAV_ITEMS = [
   { id: 'dashboard', icon: '📊', label: '대시보드' },
   { id: 'library',   icon: '📚', label: '연습 라이브러리' },
+  { id: 'guide',     icon: '📖', label: '연습 가이드' },
 ];
 
 const INSTRUMENT_GROUPS = [
