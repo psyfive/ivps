@@ -446,6 +446,65 @@ function findRightEdgeBarlineRun(mask, width, height, staff, options) {
   return runs.find(run => isRightEdgeAlignedBarline(run, staff, mask, width, height, options)) ?? null;
 }
 
+// 이미지 안의 겹치지 않는 오선 그룹을 모두 수집한다.
+// 찾은 오선의 y 범위(±averageGap*2)를 0으로 마스킹한 뒤 반복 탐색.
+function findAllStaffLineGroups(rowRatios, options) {
+  const groups = [];
+  const working = rowRatios.slice();
+  const MAX_GROUPS = 24;
+
+  while (groups.length < MAX_GROUPS) {
+    const group = findBestStaffLineGroup(working, options);
+    if (!group) break;
+
+    groups.push(group);
+
+    const top = group.lines[0].center;
+    const bottom = group.lines[4].center;
+    const pad = group.averageGap * 2;
+    const zeroStart = Math.max(0, Math.floor(top - pad));
+    const zeroEnd = Math.min(working.length - 1, Math.ceil(bottom + pad));
+    for (let i = zeroStart; i <= zeroEnd; i += 1) working[i] = 0;
+  }
+
+  groups.sort((a, b) => a.lines[0].center - b.lines[0].center);
+  return groups;
+}
+
+// 단일 오선 그룹에 대해 마디 수를 계산한다.
+function countMeasuresForStaff(staff, mask, width, height, options) {
+  const topLine = staff.lines[0].center;
+  const bottomLine = staff.lines[4].center;
+  const pad = Math.max(2, staff.averageGap * 0.45);
+  const yStart = Math.max(0, Math.floor(topLine - pad));
+  const yEnd = Math.min(height - 1, Math.ceil(bottomLine + pad));
+  const staffHeight = Math.max(1, yEnd - yStart + 1);
+
+  const columnRatios = Array.from({ length: width }, (_, x) => {
+    let dark = 0;
+    for (let y = yStart; y <= yEnd; y += 1) dark += mask[(y * width) + x];
+    return dark / staffHeight;
+  });
+
+  const maxColumnRatio = Math.max(...columnRatios);
+  const threshold = Math.max(options.barlineHeightRatio, maxColumnRatio * options.barlineThresholdRatio);
+  let barlineRuns = mergeCloseBarlineRuns(
+    collectRuns(columnRatios, threshold)
+      .filter(run => isStaffAlignedBarline(run, staff, mask, width, height, options)),
+    width,
+    options,
+  );
+
+  const rightEdgeRun = findRightEdgeBarlineRun(mask, width, height, staff, options);
+  if (rightEdgeRun) {
+    barlineRuns = mergeCloseBarlineRuns([...barlineRuns, rightEdgeRun], width, options);
+  }
+
+  const hasVirtualLeftBoundary = shouldUseVirtualLeftBoundary(barlineRuns, staff, mask, width, height, options);
+  if (barlineRuns.length === 0 || (barlineRuns.length < 2 && !hasVirtualLeftBoundary)) return null;
+  return Math.max(1, barlineRuns.length - (hasVirtualLeftBoundary ? 0 : 1));
+}
+
 export function detectMeasureCountFromImageData(imageData, options = {}) {
   const settings = { ...DEFAULT_OPTIONS, ...options };
   const { width, height } = imageData ?? {};
@@ -458,47 +517,20 @@ export function detectMeasureCountFromImageData(imageData, options = {}) {
   const rowRatios = Array.from({ length: height }, (_, y) => {
     let dark = 0;
     const rowOffset = y * width;
-    for (let x = 0; x < width; x += 1) {
-      dark += mask[rowOffset + x];
-    }
+    for (let x = 0; x < width; x += 1) dark += mask[rowOffset + x];
     return dark / width;
   });
 
-  const staff = findBestStaffLineGroup(rowRatios, settings);
-  if (!staff) return null;
+  const staffGroups = findAllStaffLineGroups(rowRatios, settings);
+  if (staffGroups.length === 0) return null;
 
-  const topLine = staff.lines[0].center;
-  const bottomLine = staff.lines[4].center;
-  const pad = Math.max(2, staff.averageGap * 0.45);
-  const yStart = Math.max(0, Math.floor(topLine - pad));
-  const yEnd = Math.min(height - 1, Math.ceil(bottomLine + pad));
-  const staffHeight = Math.max(1, yEnd - yStart + 1);
-
-  const columnRatios = Array.from({ length: width }, (_, x) => {
-    let dark = 0;
-    for (let y = yStart; y <= yEnd; y += 1) {
-      dark += mask[(y * width) + x];
-    }
-    return dark / staffHeight;
-  });
-
-  const maxColumnRatio = Math.max(...columnRatios);
-  const threshold = Math.max(settings.barlineHeightRatio, maxColumnRatio * settings.barlineThresholdRatio);
-  let barlineRuns = mergeCloseBarlineRuns(
-    collectRuns(columnRatios, threshold)
-      .filter(run => isStaffAlignedBarline(run, staff, mask, width, height, settings)),
-    width,
-    settings,
-  );
-
-  const rightEdgeRun = findRightEdgeBarlineRun(mask, width, height, staff, settings);
-  if (rightEdgeRun) {
-    barlineRuns = mergeCloseBarlineRuns([...barlineRuns, rightEdgeRun], width, settings);
+  let total = 0;
+  for (const staff of staffGroups) {
+    const count = countMeasuresForStaff(staff, mask, width, height, settings);
+    if (count !== null) total += count;
   }
 
-  const hasVirtualLeftBoundary = shouldUseVirtualLeftBoundary(barlineRuns, staff, mask, width, height, settings);
-  if (barlineRuns.length === 0 || (barlineRuns.length < 2 && !hasVirtualLeftBoundary)) return null;
-  return Math.max(1, barlineRuns.length - (hasVirtualLeftBoundary ? 0 : 1));
+  return total > 0 ? total : null;
 }
 
 export function detectMeasureCountFromImageElement(image, coordinate) {
