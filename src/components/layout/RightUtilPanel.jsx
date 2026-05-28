@@ -4,7 +4,7 @@
 // AudioContext 로직이 훅으로 이동되어 이 파일은 순수 UI만 담당.
 // ─────────────────────────────────────────────────────────────────────────────
 import { useCallback, useState, useEffect } from 'react';
-import { usePractice } from '../../context/PracticeContext';
+import { usePractice, useMetro, useTuner as useTunerCtx } from '../../context/PracticeContext';
 import { useMetronome } from '../../hooks/useMetronome';
 import { useTuner, centsColor, VIOLIN_OPEN_STRINGS } from '../../hooks/useTuner';
 
@@ -25,8 +25,8 @@ function UtilCard({ icon, title, children }) {
 // Metronome UI
 // ─────────────────────────────────────────────────────────────────────────────
 function Metronome() {
-  const { bpm, beatsPerBar, metroPlaying, currentBeat, metro, activeScore, selectedSegmentId,
-          subdivision } = usePractice();
+  const { bpm, beatsPerBar, metroPlaying, currentBeat, metro, subdivision } = useMetro();
+  const { activeScore, selectedSegmentId } = usePractice();
 
   // 선택된 구간의 targetBpm이 있으면 우선 적용, 없으면 전체 bpm
   const segments = activeScore?.segments ?? [];
@@ -149,7 +149,7 @@ function Metronome() {
 // Tuner UI
 // ─────────────────────────────────────────────────────────────────────────────
 function Tuner() {
-  const { tunerActive, tunerNote, tuner } = usePractice();
+  const { tunerActive, tunerNote, tuner } = useTunerCtx();
 
   // 훅 연결 — 음 감지 시 Context에 저장
   const { start, stop } = useTuner({
@@ -253,7 +253,8 @@ function Tuner() {
 // GrapeChecker UI
 // ─────────────────────────────────────────────────────────────────────────────
 function GrapeChecker() {
-  const { grapeTotal, grapeFilled, grapeBpmIncrement, bpm, grape } = usePractice();
+  const { bpm } = useMetro();
+  const { grapeTotal, grapeFilled, grapeBpmIncrement, grape } = usePractice();
   const pct = grapeTotal > 0 ? Math.round((grapeFilled / grapeTotal) * 100) : 0;
 
   return (

@@ -17,7 +17,7 @@
 //   After   → ScoreViewer(세션 클릭)     + DiagnosticInterface
 // ─────────────────────────────────────────────────────────────────────────────
 import { useCallback, useState, useEffect } from 'react';
-import { usePractice } from '../../context/PracticeContext';
+import { usePractice, useMetro } from '../../context/PracticeContext';
 import { getCategoryMeta } from '../../data/taxonomy';
 import { requestNativeFullscreen, exitNativeFullscreen } from '../../utils/nativeFullscreen';
 import { ScoreViewer } from '../score/ScoreViewer';
@@ -112,11 +112,11 @@ function PhasePanel({ phase, onOpenAfterSheet }) {
 // CockpitView — 메인 컴포넌트
 // ─────────────────────────────────────────────────────────────────────────────
 export function CockpitView() {
+  const { bpm } = useMetro();
   const {
     phase,
     activeSkill,
     activeScore,
-    bpm,
     practiceFullscreen,
     selectedSegmentId,
     nav,

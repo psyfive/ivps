@@ -1802,6 +1802,91 @@ export function usePracticeSession() {
     return { error: null };
   }, [state.customSkills, user?.id]);
 
+  // ── 컨텍스트 최적화: 액션 네임스페이스 메모이제이션 ───────────────────────
+  // 각 네임스페이스 객체를 useMemo로 안정화해서 PracticeContext의 슬라이스 메모가
+  // currentBeat/tunerNote 변화에 반응하지 않도록 한다.
+  const navNs = useMemo(() => ({
+    navigate, setPhase, goSkillPractice, enterLastAfter, exitLastAfter, setReviewIndex,
+  }), [navigate, setPhase, goSkillPractice, enterLastAfter, exitLastAfter, setReviewIndex]);
+
+  const skillNs = useMemo(() => ({
+    openSkillModal, closeSkillModal, setSymptomFilter,
+  }), [openSkillModal, closeSkillModal, setSymptomFilter]);
+
+  const customSkillNs = useMemo(() => ({
+    create: createCustomSkill, update: updateCustomSkill, remove: deleteCustomSkill,
+  }), [createCustomSkill, updateCustomSkill, deleteCustomSkill]);
+
+  const taxonomyNs = useMemo(() => ({
+    allSkills, customSkills: state.customSkills, getSkillById: resolveSkillById,
+  }), [allSkills, state.customSkills, resolveSkillById]);
+
+  const scoreNs = useMemo(() => ({
+    addScore, setActiveScore, deleteScore, renameScore, changePage, setPage,
+  }), [addScore, setActiveScore, deleteScore, renameScore, changePage, setPage]);
+
+  const sessionNs = useMemo(() => ({
+    addSession, deleteSession, selectSession, assignSkill, removeSkill,
+    toggleCheck, openPicker, closePicker,
+  }), [addSession, deleteSession, selectSession, assignSkill, removeSkill,
+      toggleCheck, openPicker, closePicker]);
+
+  const cartNs = useMemo(() => ({
+    addToCart, removeFromCart, addQuickTraySkill, removeQuickTraySkill, toggleQuickTraySkill,
+  }), [addToCart, removeFromCart, addQuickTraySkill, removeQuickTraySkill, toggleQuickTraySkill]);
+
+  const segmentNs = useMemo(() => ({
+    toggleSegmentCheck, toggleSegmentMode, startAddToSegment, selectSegment,
+    deleteSegment, deleteSegmentCoord, setSegmentMeta, updateSegmentCoord,
+    mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment,
+    commitTempSegments, setSegmentDifficulty, recordAttempt, resetPracticeStats,
+  }), [
+    toggleSegmentCheck, toggleSegmentMode, startAddToSegment, selectSegment,
+    deleteSegment, deleteSegmentCoord, setSegmentMeta, updateSegmentCoord,
+    mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment,
+    commitTempSegments, setSegmentDifficulty, recordAttempt, resetPracticeStats,
+  ]);
+
+  const practiceFlowNs = useMemo(() => ({
+    setMode: setPracticeFlowMode, pickNextSegment,
+  }), [setPracticeFlowMode, pickNextSegment]);
+
+  const reviewNs = useMemo(() => ({ markReminderDone }), [markReminderDone]);
+
+  const drawingNs = useMemo(() => ({
+    addStroke, updateStroke, removeStroke, undoStroke, clearDrawings,
+    setDrawingMode, setDrawingTool, setDrawingColor, setDrawingFontSize, setDrawingBowingSize,
+  }), [
+    addStroke, updateStroke, removeStroke, undoStroke, clearDrawings,
+    setDrawingMode, setDrawingTool, setDrawingColor, setDrawingFontSize, setDrawingBowingSize,
+  ]);
+
+  const metroNs = useMemo(() => ({
+    setBpm, setBeatsPerBar, setMetroPlaying, setCurrentBeat,
+    setSubdivision, setGhostTrainBars, setGhostTrainReadyBars,
+  }), [setBpm, setBeatsPerBar, setMetroPlaying, setCurrentBeat,
+      setSubdivision, setGhostTrainBars, setGhostTrainReadyBars]);
+
+  const tunerNs = useMemo(() => ({
+    setTunerActive, setTunerNote,
+  }), [setTunerActive, setTunerNote]);
+
+  const grapeNs = useMemo(() => ({
+    toggleGrape, resetGrapes, adjustGrapeTotal,
+  }), [toggleGrape, resetGrapes, adjustGrapeTotal]);
+
+  const settingsNs = useMemo(() => ({
+    setGrapeBpmIncrement, setInstrument, setDuringChecklistMode,
+    setDuringChecklistBubblePosition, resetDuringChecklistBubblePosition,
+  }), [
+    setGrapeBpmIncrement, setInstrument, setDuringChecklistMode,
+    setDuringChecklistBubblePosition, resetDuringChecklistBubblePosition,
+  ]);
+
+  const xpNs = useMemo(() => ({ logXp }), [logXp]);
+
+  const uiNs = useMemo(() => ({ setPracticeFullscreen }), [setPracticeFullscreen]);
+
   return {
     // 상태
     ...state,
@@ -1813,30 +1898,24 @@ export function usePracticeSession() {
     allSkills,
     resolveSkillById,
 
-    // 액션 (그룹화)
-    nav: { navigate, setPhase, goSkillPractice, enterLastAfter, exitLastAfter, setReviewIndex },
-    skill: { openSkillModal, closeSkillModal, setSymptomFilter },
-    customSkill: { create: createCustomSkill, update: updateCustomSkill, remove: deleteCustomSkill },
-    taxonomy: { allSkills, customSkills: state.customSkills, getSkillById: resolveSkillById },
-    score: { addScore, setActiveScore, deleteScore, renameScore, changePage, setPage },
-    session: { addSession, deleteSession, selectSession, assignSkill, removeSkill, toggleCheck, openPicker, closePicker },
-    cart: { addToCart, removeFromCart, addQuickTraySkill, removeQuickTraySkill, toggleQuickTraySkill },
-    segment: { toggleSegmentCheck, toggleSegmentMode, startAddToSegment, selectSegment, deleteSegment, deleteSegmentCoord, setSegmentMeta, updateSegmentCoord, mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment, commitTempSegments, setSegmentDifficulty, recordAttempt, resetPracticeStats },
-    practiceFlow: { setMode: setPracticeFlowMode, pickNextSegment },
-    review: { markReminderDone },
-    drawing: { addStroke, updateStroke, removeStroke, undoStroke, clearDrawings, setDrawingMode, setDrawingTool, setDrawingColor, setDrawingFontSize, setDrawingBowingSize },
-    metro: { setBpm, setBeatsPerBar, setMetroPlaying, setCurrentBeat, setSubdivision, setGhostTrainBars, setGhostTrainReadyBars },
-    tuner: { setTunerActive, setTunerNote },
-    grape: { toggleGrape, resetGrapes, adjustGrapeTotal },
-    settings: {
-      setGrapeBpmIncrement,
-      setInstrument,
-      setDuringChecklistMode,
-      setDuringChecklistBubblePosition,
-      resetDuringChecklistBubblePosition,
-    },
-    xp: { logXp },
-    ui: { setPracticeFullscreen },
+    // 액션 (그룹화) — 메모이제이션된 네임스페이스 객체 사용
+    nav: navNs,
+    skill: skillNs,
+    customSkill: customSkillNs,
+    taxonomy: taxonomyNs,
+    score: scoreNs,
+    session: sessionNs,
+    cart: cartNs,
+    segment: segmentNs,
+    practiceFlow: practiceFlowNs,
+    review: reviewNs,
+    drawing: drawingNs,
+    metro: metroNs,
+    tuner: tunerNs,
+    grape: grapeNs,
+    settings: settingsNs,
+    xp: xpNs,
+    ui: uiNs,
   };
 }
 

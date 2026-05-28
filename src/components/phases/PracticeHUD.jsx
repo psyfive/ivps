@@ -1,6 +1,6 @@
 // src/components/phases/PracticeHUD.jsx
 import { useState, useCallback, useEffect } from 'react';
-import { usePractice } from '../../context/PracticeContext';
+import { usePractice, useMetro } from '../../context/PracticeContext';
 import { getSkillById, getCategoryMeta, getSkillDisplayName } from '../../data/taxonomy';
 import { requestNativeFullscreen } from '../../utils/nativeFullscreen';
 import { FOCUS_CATEGORY_META, getFocusItems, pickRandomFocusIndexes } from '../../utils/duringFocusItems';
@@ -132,7 +132,8 @@ function SelectSegmentGuide({ segments, selectedSegmentId, onSelect }) {
 }
 
 export function PracticeHUD({ onOpenAfterSheet }) {
-  const { activeScore, activeSkill, selectedSegmentId, bpm, nav, ui, score: scoreActs, segment: segmentActs } = usePractice();
+  const { bpm } = useMetro();
+  const { activeScore, activeSkill, selectedSegmentId, nav, ui, score: scoreActs, segment: segmentActs } = usePractice();
 
   const segments = activeScore?.segments ?? [];
   const selectedSegment = segments.find(s => s.id === selectedSegmentId) ?? null;

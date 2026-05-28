@@ -5,7 +5,7 @@
 //   [↩ Before]  |  [← 이전구간]  [♩BPM]  [🍇]  [⏱]  [다음구간 →]  |  [⏹ 연습종료]
 // ─────────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { usePractice } from '../../context/PracticeContext';
+import { usePractice, useMetro } from '../../context/PracticeContext';
 import { useMetronome } from '../../hooks/useMetronome';
 import { exitNativeFullscreen } from '../../utils/nativeFullscreen';
 
@@ -332,22 +332,24 @@ export function DuringMiniControls() {
     bpm,
     beatsPerBar,
     metroPlaying,
+    subdivision,
+    ghostTrainBars,
+    ghostTrainReadyBars,
+    currentBeat,
+    metro,
+  } = useMetro();
+  const {
     grapeFilled,
     grapeTotal,
     grapeBpmIncrement,
     activeScore,
     selectedSegmentId,
     practiceFlowMode,
-    subdivision,
-    ghostTrainBars,
-    ghostTrainReadyBars,
-    currentBeat,
     drawingMode,
     drawingTool,
     drawingColor,
     drawingFontSize,
     drawingBowingSize,
-    metro,
     grape,
     nav,
     score: scoreActs,
