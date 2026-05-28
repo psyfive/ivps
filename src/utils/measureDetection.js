@@ -182,6 +182,17 @@ function clampRange(start, end, limit) {
   return { start: nextStart, end: nextEnd };
 }
 
+// 검색 범위(yStart/yEnd) 바로 바깥 1행에 어두운 픽셀이 있으면
+// 마크가 오선을 넘어 연장된 것으로 판단(음자리표·브래킷 등 거부).
+function hasExtendedBeyondStaff(mask, width, run, yStart, yEnd, height) {
+  const topCheckY = Math.max(0, yStart - 1);
+  const bottomCheckY = Math.min(height - 1, yEnd + 1);
+  return (
+    hasDarkPixelInRun(mask, width, run, topCheckY) ||
+    hasDarkPixelInRun(mask, width, run, bottomCheckY)
+  );
+}
+
 function isNearStaffLine(y, staff, tolerance) {
   return staff.lines.some(line => Math.abs(y - line.center) <= tolerance);
 }
@@ -268,6 +279,7 @@ function isStaffAlignedBarline(run, staff, mask, width, height, options) {
 
   return (
     alignedToStaff &&
+    !hasExtendedBeyondStaff(mask, width, run, yStart, yEnd, height) &&
     passesVerticalOpening(stroke, staffHeight, options) &&
     !hasDenseAttachedContext(run, staff, mask, width, height, options)
   );

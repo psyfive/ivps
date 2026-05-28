@@ -208,4 +208,50 @@ describe('measure detection', () => {
 
     expect(detectMeasureCountFromImageData(imageData)).toBeNull();
   });
+
+  it('counts one measure from two barlines bounding a single measure', () => {
+    const imageData = makeImageData(100, 80, ctx => {
+      drawStaff(ctx);
+      [14, 86].forEach(x => drawBarline(ctx, x));
+    });
+
+    expect(detectMeasureCountFromImageData(imageData)).toBe(1);
+  });
+
+  it('counts two measures correctly when staff gap is larger (gap=12)', () => {
+    // gap=12 → staffHeight ≈ 48, barline yStart=17 yEnd=67 → scale invariance check
+    const imageData = makeImageData(200, 100, ctx => {
+      drawStaff(ctx, 20, 12);
+      [14, 100, 186].forEach(x => drawBarline(ctx, x, 17, 68));
+    });
+
+    expect(detectMeasureCountFromImageData(imageData)).toBe(2);
+  });
+
+  it('does not count a clef-like tall mark that extends beyond the staff boundary', () => {
+    const imageData = makeImageData(220, 100, ctx => {
+      drawStaff(ctx);
+      // real barlines
+      [14, 110, 206].forEach(x => drawBarline(ctx, x));
+      // clef-like mark: y=2 to y=72, well outside the tolerance window
+      drawVerticalMark(ctx, 60, 2, 72);
+    });
+
+    expect(detectMeasureCountFromImageData(imageData)).toBe(2);
+  });
+
+  it('still counts a barline that has a single-pixel ink dropout gap', () => {
+    const imageData = makeImageData(220, 80, ctx => {
+      drawStaff(ctx);
+      [14, 206].forEach(x => drawBarline(ctx, x));
+      // barline at x=110 with a 1-pixel gap at y=36
+      for (let y = 17; y <= 55; y += 1) {
+        if (y === 36) continue;
+        ctx.setBlack(110, y);
+        ctx.setBlack(111, y);
+      }
+    });
+
+    expect(detectMeasureCountFromImageData(imageData)).toBe(2);
+  });
 });
