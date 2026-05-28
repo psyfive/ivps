@@ -494,7 +494,7 @@ export function LibraryView() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="px-7 pt-6 pb-4 flex-shrink-0 border-b border-[var(--ivps-border)]">
+      <div className="px-4 tabletLg:px-7 pt-6 pb-4 flex-shrink-0 border-b border-[var(--ivps-border)]">
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
             <h1 className="font-serif text-[24px] font-bold text-[var(--ivps-text1)] leading-tight">
@@ -579,7 +579,7 @@ export function LibraryView() {
       </div>
 
       {visibleGroups.length > 0 && (
-        <div className="px-7 py-3 border-b border-[var(--ivps-border)] flex-shrink-0 overflow-x-auto">
+        <div className="px-4 tabletLg:px-7 py-3 border-b border-[var(--ivps-border)] flex-shrink-0 overflow-x-auto">
           <div className="flex gap-2 min-w-max">
             <GroupChip
               group={{ id: 'ALL', name: '전체 그룹', category: activeCat === 'ALL' ? 'A' : activeCat }}
@@ -598,7 +598,7 @@ export function LibraryView() {
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto px-7 py-5">
+      <div className="flex-1 overflow-y-auto px-4 tabletLg:px-7 py-5">
         <div className="text-[10px] text-[var(--ivps-text4)] font-mono mb-4">
           {filteredSkills.length}개 스킬
           {query && ` · "${query}" 검색 결과`}

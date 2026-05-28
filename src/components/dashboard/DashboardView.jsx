@@ -667,7 +667,7 @@ function ScoreSection({ scores, onOpen, onRename, onDelete, onUpload }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function SectionHeader({ title, action }) {
   return (
-    <div className="flex items-center justify-between mb-3">
+    <div className="flex items-center justify-between mb-3 flex-wrap gap-y-1">
       <div className="text-[10px] text-[var(--ivps-text3)] uppercase tracking-[.08em] font-semibold">
         {title}
       </div>
@@ -770,7 +770,7 @@ export function DashboardView() {
         onChange={handleFileChange}
       />
 
-      <div className="px-7 py-6 max-w-[900px]">
+      <div className="px-4 tabletLg:px-7 py-6 max-w-[900px]">
 
         {/* ── 페이지 헤더 ── */}
         <div className="mb-5 flex items-end justify-between">
@@ -792,7 +792,7 @@ export function DashboardView() {
         />
 
         {/* ── 2열: 추천 코스 | 증상 퀵 진입 ── */}
-        <div className="grid grid-cols-2 gap-4 mb-5">
+        <div className="grid grid-cols-1 tabletLg:grid-cols-2 gap-4 mb-5">
 
           {/* 추천 연습 코스 (placeholder) */}
           <Panel
@@ -840,7 +840,7 @@ export function DashboardView() {
         </div>
 
         {/* ── 하단 2열: 히트맵(좌) + 최근 세션(우) ── */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 tabletLg:grid-cols-2 gap-4 mb-6">
 
           {/* 좌하단: 100일 10×10 히트맵 */}
           <Panel title="🗓 100일 연습 기록">

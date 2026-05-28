@@ -635,3 +635,49 @@ input[type="range"] {
 .dark .ivps-theme-toggle-knob {
   left: 16px;
 }
+
+/* ── 터치 기기: 포인터 hover 효과 제거 (@media hover: none) ── */
+@media (hover: none) {
+  .ivps-nav-btn:hover {
+    background: transparent;
+    color: var(--ivps-text3);
+  }
+  .ivps-skill-card:hover {
+    border-color: var(--ivps-border);
+    background: var(--ivps-surface);
+    box-shadow: none;
+    transform: none;
+  }
+  .ivps-hud-btn:hover {
+    background: var(--ivps-hud-control);
+    border-color: var(--ivps-hud-border);
+    color: var(--ivps-hud-muted);
+  }
+  .ivps-hud-btn-accent:hover {
+    background: var(--ivps-plum-bg);
+    border-color: var(--ivps-plum-border);
+  }
+  .ivps-btn-gold:hover {
+    background: var(--ivps-gold);
+    color: var(--ivps-bg);
+    box-shadow: none;
+  }
+  .ivps-btn-ghost:hover {
+    background: transparent;
+    border-color: var(--ivps-border2);
+  }
+  .ivps-btn-danger:hover {
+    background: transparent;
+  }
+  .ivps-upload-zone:hover {
+    background: var(--ivps-score-bg);
+    border-color: var(--ivps-border2);
+  }
+  .ivps-theme-toggle:hover {
+    border-color: var(--ivps-border2);
+    box-shadow: var(--ivps-shadow-md);
+  }
+  .ivps-theme-toggle:hover .ivps-theme-toggle-icon {
+    transform: none;
+  }
+}
