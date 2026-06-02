@@ -4,6 +4,10 @@ export default {
   content: ['./index.html', './src/**/*.{js,jsx,ts,tsx}'],
   theme: {
     extend: {
+      screens: {
+        tablet: '768px',
+        tabletLg: '1024px',
+      },
       fontFamily: {
         sans:  ['IBM Plex Sans', 'sans-serif'],
         serif: ['Playfair Display', 'serif'],

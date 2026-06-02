@@ -19,6 +19,7 @@
 import { useCallback, useState, useEffect } from 'react';
 import { usePractice, useMetro } from '../../context/PracticeContext';
 import { getCategoryMeta } from '../../data/taxonomy';
+import { useBreakpoint } from '../../hooks/useBreakpoint';
 import { requestNativeFullscreen, exitNativeFullscreen } from '../../utils/nativeFullscreen';
 import { ScoreViewer } from '../score/ScoreViewer';
 import { CognitiveBriefing } from '../phases/CognitiveBriefing';
@@ -32,15 +33,15 @@ import { LastAfterPhase } from './LastAfterPhase';
 
 // ── 위상(Phase) 메타 ──────────────────────────────────────────────────────
 const PHASES = [
-  { id: 'before', label: 'BEFORE', sub: '인지·준비',  color: '#7ea890' },
-  { id: 'during', label: 'DURING', sub: '집중·HUD',   color: '#9b7fc8' },
-  { id: 'after',  label: 'AFTER',  sub: '진단·처방',  color: '#e07070' },
+  { id: 'before', label: 'BEFORE', short: 'B', sub: '인지·준비',  color: '#7ea890' },
+  { id: 'during', label: 'DURING', short: 'D', sub: '집중·HUD',   color: '#9b7fc8' },
+  { id: 'after',  label: 'AFTER',  short: 'A', sub: '진단·처방',  color: '#e07070' },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TopBar
 // ─────────────────────────────────────────────────────────────────────────────
-function TopBar({ skill, score, phase, bpm, onBack, onPhaseChange }) {
+function TopBar({ skill, score, phase, bpm, onBack, onPhaseChange, isTabletOnly }) {
   const catMeta = skill ? getCategoryMeta(skill.id) : null;
 
   return (
@@ -84,13 +85,15 @@ function TopBar({ skill, score, phase, bpm, onBack, onPhaseChange }) {
             ].join(' ')}
             style={phase === p.id ? { color: p.color } : {}}
           >
-            <span>{p.label}</span>
+            <span>{isTabletOnly ? p.short : p.label}</span>
           </button>
         ))}
       </div>
 
-      {/* BPM 표시 */}
-      <span className="font-mono text-[10px] text-[var(--ivps-text4)] flex-shrink-0">♩={bpm}</span>
+      {/* BPM 표시 — portrait 태블릿에서 숨김 */}
+      {!isTabletOnly && (
+        <span className="font-mono text-[10px] text-[var(--ivps-text4)] flex-shrink-0">♩={bpm}</span>
+      )}
     </div>
   );
 }
@@ -113,6 +116,7 @@ function PhasePanel({ phase, onOpenAfterSheet }) {
 // ─────────────────────────────────────────────────────────────────────────────
 export function CockpitView() {
   const { bpm } = useMetro();
+  const { isTabletOnly } = useBreakpoint();
   const {
     phase,
     activeSkill,
@@ -178,22 +182,23 @@ export function CockpitView() {
           bpm={bpm}
           onBack={handleBack}
           onPhaseChange={handlePhaseChange}
+          isTabletOnly={isTabletOnly}
         />
       )}
 
       {/* During phase 전용 — 최상단 HUD 바 */}
       <TopHUD />
 
-      {/* 본문 — ScoreViewer(좌) + PhasePanel(우) */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      {/* 본문 — 데스크탑: 가로(ScoreViewer+PhasePanel), 태블릿 portrait: 세로 스택 */}
+      <div className={['flex flex-1 min-h-0 overflow-hidden', isTabletOnly && !practiceFullscreen ? 'flex-col' : ''].join(' ')}>
 
         {/* ── 악보 영역 ── */}
         <div
           className={[
             'relative flex flex-col overflow-hidden',
-            practiceFullscreen ? '' : 'border-r border-[var(--ivps-border)]',
+            practiceFullscreen ? '' : (isTabletOnly ? 'border-b border-[var(--ivps-border)]' : 'border-r border-[var(--ivps-border)]'),
           ].join(' ')}
-          style={{ flex: practiceFullscreen ? '1' : '1.7' }}
+          style={{ flex: practiceFullscreen ? '1' : (isTabletOnly ? '1.1' : '1.7') }}
         >
           {/* ScoreViewer */}
           <ScoreViewer phase={phase} />

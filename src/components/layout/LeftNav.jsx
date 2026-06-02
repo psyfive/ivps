@@ -356,7 +356,7 @@ function SpecialThanksPanel({ onClose }) {
 }
 
 // ── LeftNav ────────────────────────────────────────────────────────────────
-export function LeftNav() {
+export function LeftNav({ onClose }) {
   const { screen, nav, activeInstrument, settings } = usePractice();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [pickerOpen, setPickerOpen]     = useState(false);
@@ -398,6 +398,7 @@ export function LeftNav() {
             onClick={() => {
               closeAll();
               nav.navigate('dashboard');
+              onClose?.();
             }}
             className="font-serif text-[15px] font-bold text-[var(--ivps-text1)] tracking-wide hover:text-[var(--ivps-gold)] transition-colors"
             title="메인화면으로 이동"
@@ -421,7 +422,7 @@ export function LeftNav() {
         {NAV_ITEMS.map(({ id, icon, label }) => (
           <button
             key={id}
-            onClick={() => nav.navigate(id)}
+            onClick={() => { nav.navigate(id); onClose?.(); }}
             className={[
               'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg mb-1',
               'text-[12.5px] font-sans text-left border-l-2',
