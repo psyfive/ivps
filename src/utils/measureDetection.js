@@ -11,7 +11,7 @@ const DEFAULT_OPTIONS = {
   barlineMorphCoverageRatio: 0.88,
   barlineContextOffsetRatio: 0.28,
   barlineContextBandRatio: 0.5,
-  barlineContextMaxDensity: 0.32,
+  barlineContextMaxDensity: 0.42,
   virtualLeftBoundaryStaffStartRatio: 2,
   virtualLeftBoundaryStaffRunRatio: 0.75,
   virtualLeftBoundaryBarlineDistanceRatio: 0.8,
@@ -182,11 +182,14 @@ function clampRange(start, end, limit) {
   return { start: nextStart, end: nextEnd };
 }
 
-// 검색 범위(yStart/yEnd) 바로 바깥 1행에 어두운 픽셀이 있으면
-// 마크가 오선을 넘어 연장된 것으로 판단(음자리표·브래킷 등 거부).
-function hasExtendedBeyondStaff(mask, width, run, yStart, yEnd, height) {
-  const topCheckY = Math.max(0, yStart - 1);
-  const bottomCheckY = Math.min(height - 1, yEnd + 1);
+// 검색 범위(yStart/yEnd) 바깥으로 averageGap*0.75 이상 어두운 픽셀이 연장되면
+// 오선을 크게 넘은 마크(음자리표·브래킷 등)로 판단해 거부.
+// 1px 체크였던 이전 버전은 오선 경계 근처 음표 기둥/머리 때문에
+// 정상 바라인도 거부하는 과도한 거름 현상이 있었다.
+function hasExtendedBeyondStaff(mask, width, run, yStart, yEnd, height, averageGap) {
+  const margin = Math.max(2, Math.round(averageGap * 0.75));
+  const topCheckY = Math.max(0, yStart - margin);
+  const bottomCheckY = Math.min(height - 1, yEnd + margin);
   return (
     hasDarkPixelInRun(mask, width, run, topCheckY) ||
     hasDarkPixelInRun(mask, width, run, bottomCheckY)
@@ -269,17 +272,20 @@ function isStaffAlignedBarline(run, staff, mask, width, height, options) {
   if (!stroke) return false;
 
   const minCoverage = staffHeight * options.barlineCoverageRatio;
+  // yStart/yEnd는 이미 Math.floor/ceil로 정수화된 값이므로 float 비교 오류 없음.
+  // topLine - endpointTolerance는 float이 되어 stroke.start(정수)와 비교 시
+  // note 잉크로 stroke가 yStart에서 시작하는 경우 "yStart >= yStart+ε" 조건 실패 가능.
   const alignedToStaff = (
-    stroke.start >= topLine - endpointTolerance &&
-    stroke.start <= topLine + endpointTolerance &&
-    stroke.end >= bottomLine - endpointTolerance &&
-    stroke.end <= bottomLine + endpointTolerance &&
+    stroke.start >= yStart &&
+    stroke.start <= Math.ceil(topLine + endpointTolerance) &&
+    stroke.end >= Math.floor(bottomLine - endpointTolerance) &&
+    stroke.end <= yEnd &&
     stroke.darkRows >= minCoverage
   );
 
   return (
     alignedToStaff &&
-    !hasExtendedBeyondStaff(mask, width, run, yStart, yEnd, height) &&
+    !hasExtendedBeyondStaff(mask, width, run, yStart, yEnd, height, staff.averageGap) &&
     passesVerticalOpening(stroke, staffHeight, options) &&
     !hasDenseAttachedContext(run, staff, mask, width, height, options)
   );
