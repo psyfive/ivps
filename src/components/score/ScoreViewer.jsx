@@ -23,6 +23,8 @@ import { DuringChecklistBubble } from './DuringChecklistBubble';
 
 const FULLSCREEN_STAGE_PAD_X = 16;
 const FULLSCREEN_STAGE_PAD_Y = 66;
+const BEFORE_STAGE_PAD_X = 8;
+const BEFORE_STAGE_PAD_Y = 8;
 
 function UploadZone({ onFile }) {
   const [dragging, setDragging] = useState(false);
@@ -575,6 +577,26 @@ export function ScoreViewer({ phase }) {
     : { width: `${fitBox.width}px`, height: `${fitBox.height}px`, maxWidth: '100%', maxHeight: '100%' };
   const renderScoreOverlays = !isFullscreenDuring || hasMeasuredPage;
 
+  // Before/After 비전체화면 fit — 이미지 전체가 스크롤 없이 뷰포트에 맞도록 계산
+  const beforeFitBox = {
+    width:  Math.max(0, viewportSize.width  - BEFORE_STAGE_PAD_X),
+    height: Math.max(0, viewportSize.height - BEFORE_STAGE_PAD_Y),
+  };
+  const beforeFit = fitContainedSize(
+    pageNaturalSize.width,
+    pageNaturalSize.height,
+    beforeFitBox.width,
+    beforeFitBox.height,
+  );
+  const hasMeasuredBeforePage = beforeFit.width > 0;
+  const beforeFrameStyle = hasMeasuredBeforePage
+    ? { width: `${beforeFit.width}px`, height: `${beforeFit.height}px` }
+    : { width: 'fit-content', maxWidth: '100%' };
+
+  // 공통 판단: fullscreen during이거나 before/after fit이 계산된 경우
+  const useContainedLayout = isFullscreenDuring || hasMeasuredBeforePage;
+  const activeFrameStyle   = isFullscreenDuring ? fullscreenFrameStyle : beforeFrameStyle;
+
   const enterDuringFullscreen = useCallback(() => {
     ui.setPracticeFullscreen(true);
     requestNativeFullscreen();
@@ -629,7 +651,7 @@ export function ScoreViewer({ phase }) {
         ref={viewportRef}
         className={[
           'flex-1 relative bg-[#1a1f2e]',
-          isFullscreenDuring ? 'overflow-hidden' : 'overflow-auto',
+          useContainedLayout ? 'overflow-hidden' : 'overflow-auto',
         ].join(' ')}
       >
         {loading.active && (
@@ -655,15 +677,17 @@ export function ScoreViewer({ phase }) {
               'relative flex justify-center',
               isFullscreenDuring
                 ? 'h-full w-full items-center overflow-hidden px-2 pt-2 pb-[58px]'
-                : 'min-h-full items-start',
+                : hasMeasuredBeforePage
+                  ? 'h-full w-full items-center overflow-hidden p-1'
+                  : 'min-h-full items-start',
             ].join(' ')}
           >
             <div
               className={[
                 'relative flex-shrink-0',
-                isFullscreenDuring ? '' : 'max-w-full',
+                !useContainedLayout ? 'max-w-full' : '',
               ].join(' ')}
-              style={isFullscreenDuring ? fullscreenFrameStyle : { width: 'fit-content', maxWidth: '100%' }}
+              style={activeFrameStyle}
             >
             {/* 악보 이미지 */}
             <img
@@ -672,7 +696,7 @@ export function ScoreViewer({ phase }) {
               alt={activeScore.name}
                 className={[
                   'select-none block',
-                  isFullscreenDuring ? 'w-full h-full object-contain' : 'max-w-full h-auto',
+                  useContainedLayout ? 'w-full h-full object-contain' : 'max-w-full h-auto',
                 ].join(' ')}
               draggable={false}
               style={{ userSelect: 'none', WebkitUserDrag: 'none' }}
