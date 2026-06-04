@@ -8,6 +8,12 @@ import { PREREQUISITES, SYNERGIES } from './connections.js';
 import { customSkillRowToSkill, customSkillToLocalRow, customSkillToRow, createCustomSkillId } from './customSkills.js';
 
 export { CATEGORY_META, SKILL_GROUPS, customSkillRowToSkill, customSkillToLocalRow, customSkillToRow, createCustomSkillId };
+export {
+  SYMPTOM_CATEGORIES,
+  getSymptomCategories,
+  getRecommendedSkills,
+  getSymptomCategoriesForSkill,
+} from './recommendations.js';
 
 export const TAXONOMY = [
   ...categoryA,

@@ -54,8 +54,7 @@ export const INITIAL_STATE = {
   // ─ XP (세션 결과) ─
   xpLog: [],                  // [{ skillId, result, xp, timestamp }]
 
-  // ─ Skill Cart (Before Phase) ─
-  skillCart: [],              // string[] — 오늘 연습에 사용할 스킬 ID 목록
+  // ─ Quick Tray (Before Phase) ─
   quickTraySkills: [],        // string[] — 악보를 넘어 유지되는 빠른 매핑 스킬 ID 목록
 
   // ─ 시각적 구간 선택 모드 ─
@@ -153,9 +152,7 @@ export const ACTIONS = {
   // XP
   LOG_XP:            'LOG_XP',
 
-  // Skill Cart
-  ADD_TO_CART:             'ADD_TO_CART',
-  REMOVE_FROM_CART:        'REMOVE_FROM_CART',
+  // Quick Tray
   ADD_QUICK_TRAY_SKILL:    'ADD_QUICK_TRAY_SKILL',
   REMOVE_QUICK_TRAY_SKILL: 'REMOVE_QUICK_TRAY_SKILL',
   TOGGLE_QUICK_TRAY_SKILL: 'TOGGLE_QUICK_TRAY_SKILL',
@@ -171,6 +168,7 @@ export const ACTIONS = {
   SET_SEGMENT_META:        'SET_SEGMENT_META',
   MAP_SKILL_TO_SEGMENT:    'MAP_SKILL_TO_SEGMENT',
   UNMAP_SKILL_FROM_SEGMENT:'UNMAP_SKILL_FROM_SEGMENT',
+  SET_SEGMENT_SYMPTOM_TAGS:'SET_SEGMENT_SYMPTOM_TAGS',
   // 임시 구간 버퍼 (드래그 완료 → 확정 전 대기)
   ADD_TEMP_SEGMENT:        'ADD_TEMP_SEGMENT',
   DELETE_TEMP_SEGMENT:     'DELETE_TEMP_SEGMENT',
@@ -340,6 +338,10 @@ function initState(initialState) {
   return {
     ...initialState,
     ...persisted,
+    // 구형 저장 구간을 풍부한 매핑 모델로 lazy 백필 (하위 호환)
+    scores: Array.isArray(persisted.scores)
+      ? persisted.scores.map(migrateSegmentMappings)
+      : initialState.scores,
     quickTraySkills: loadPersistedQuickTraySkills(),
     // 항상 초기화: 세션 간 유지하면 안 되는 일시적 상태
     phase: 'before',
@@ -360,7 +362,6 @@ function initState(initialState) {
     customSkillStatus: 'idle',
     customSkillError: null,
     customSkills: [],
-    skillCart: [],
     interleaveHistory: [],
     reviewSegmentIndex: 0,
     symptomFilter: null,
@@ -387,6 +388,22 @@ function normalizeMeasureCount(value) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return null;
   return Math.max(1, Math.min(999, Math.round(numeric)));
+}
+
+// 구형 구간(mappedSkills만 있고 skillMappings 없음)을 풍부한 매핑 모델로 1회 백필.
+// mappedSkills는 진실원본으로 유지하고, skillMappings를 'search' 출처로 파생한다.
+export function migrateSegmentMappings(score) {
+  if (!score || !Array.isArray(score.segments)) return score;
+  let changed = false;
+  const segments = score.segments.map(seg => {
+    if (!seg || Array.isArray(seg.skillMappings)) return seg;
+    changed = true;
+    return {
+      ...seg,
+      skillMappings: (seg.mappedSkills ?? []).map(id => ({ skillId: id, source: 'search', addedAt: 0 })),
+    };
+  });
+  return changed ? { ...score, segments } : score;
 }
 
 function getActiveScore(state) {
@@ -474,7 +491,6 @@ export function reducer(state, action) {
         selectedSkillId: state.selectedSkillId === action.skillId ? null : state.selectedSkillId,
         activeSkillId: state.activeSkillId === action.skillId ? null : state.activeSkillId,
         quickTraySkills: state.quickTraySkills.filter(id => id !== action.skillId),
-        skillCart: state.skillCart.filter(id => id !== action.skillId),
         scores: state.scores.map(score => ({
           ...score,
           sessions: (score.sessions ?? []).map(session => ({
@@ -984,14 +1000,24 @@ export function reducer(state, action) {
     }
 
     case ACTIONS.MAP_SKILL_TO_SEGMENT:
+      // mappedSkills(진실원본)에 ID를 더하고, 풍부한 메타는 skillMappings에 함께 기록.
       return {
         ...state,
         scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
-          segments: (s.segments ?? []).map(seg =>
-            seg.id === action.segmentId && !seg.mappedSkills.includes(action.skillId)
-              ? { ...seg, mappedSkills: [...seg.mappedSkills, action.skillId] }
-              : seg
-          ),
+          segments: (s.segments ?? []).map(seg => {
+            if (seg.id !== action.segmentId || seg.mappedSkills.includes(action.skillId)) return seg;
+            const mapping = {
+              skillId: action.skillId,
+              source: action.source ?? 'search',
+              ...(action.symptomId ? { symptomId: action.symptomId } : {}),
+              addedAt: Date.now(),
+            };
+            return {
+              ...seg,
+              mappedSkills: [...seg.mappedSkills, action.skillId],
+              skillMappings: [...(seg.skillMappings ?? []), mapping],
+            };
+          }),
         })),
       };
 
@@ -1001,11 +1027,29 @@ export function reducer(state, action) {
         scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
           segments: (s.segments ?? []).map(seg =>
             seg.id === action.segmentId
-              ? { ...seg, mappedSkills: seg.mappedSkills.filter(id => id !== action.skillId) }
+              ? {
+                  ...seg,
+                  mappedSkills: seg.mappedSkills.filter(id => id !== action.skillId),
+                  skillMappings: (seg.skillMappings ?? []).filter(m => m.skillId !== action.skillId),
+                }
               : seg
           ),
         })),
       };
+
+    case ACTIONS.SET_SEGMENT_SYMPTOM_TAGS: {
+      const tags = Array.isArray(action.tagIds)
+        ? [...new Set(action.tagIds.filter(t => typeof t === 'string'))]
+        : [];
+      return {
+        ...state,
+        scores: updateActiveScore(state.scores, state.activeScoreId, s => ({
+          segments: (s.segments ?? []).map(seg =>
+            seg.id === action.segmentId ? { ...seg, symptomTags: tags } : seg
+          ),
+        })),
+      };
+    }
 
     case ACTIONS.SET_SEGMENT_DIFFICULTY:
       return {
@@ -1102,14 +1146,7 @@ export function reducer(state, action) {
       };
     }
 
-    // ── Skill Cart ────────────────────────────────────────────────────
-    case ACTIONS.ADD_TO_CART:
-      if (state.skillCart.includes(action.skillId)) return state;
-      return { ...state, skillCart: [...state.skillCart, action.skillId] };
-
-    case ACTIONS.REMOVE_FROM_CART:
-      return { ...state, skillCart: state.skillCart.filter(id => id !== action.skillId) };
-
+    // ── Quick Tray ────────────────────────────────────────────────────
     case ACTIONS.ADD_QUICK_TRAY_SKILL:
       if (!getSkillById(action.skillId) || state.quickTraySkills.includes(action.skillId)) return state;
       return { ...state, quickTraySkills: [...state.quickTraySkills, action.skillId] };
@@ -1583,11 +1620,20 @@ export function usePracticeSession() {
   const updateSegmentCoord = useCallback((segmentId, coordIndex, coord, meta = {}) =>
     dispatch({ type: ACTIONS.UPDATE_SEGMENT_COORD, segmentId, coordIndex, coord, ...meta }), []);
 
-  const mapSkillToSegment = useCallback((segmentId, skillId) =>
-    dispatch({ type: ACTIONS.MAP_SKILL_TO_SEGMENT, segmentId, skillId }), []);
+  const mapSkillToSegment = useCallback((segmentId, skillId, meta = {}) =>
+    dispatch({
+      type: ACTIONS.MAP_SKILL_TO_SEGMENT,
+      segmentId,
+      skillId,
+      source: meta.source,
+      symptomId: meta.symptomId,
+    }), []);
 
   const unmapSkillFromSegment = useCallback((segmentId, skillId) =>
     dispatch({ type: ACTIONS.UNMAP_SKILL_FROM_SEGMENT, segmentId, skillId }), []);
+
+  const setSegmentSymptomTags = useCallback((segmentId, tagIds) =>
+    dispatch({ type: ACTIONS.SET_SEGMENT_SYMPTOM_TAGS, segmentId, tagIds }), []);
 
   const addTempSegment = useCallback((coordinates, meta = {}) =>
     dispatch({ type: ACTIONS.ADD_TEMP_SEGMENT, coordinates, ...meta }), []);
@@ -1616,13 +1662,7 @@ export function usePracticeSession() {
   const markReminderDone = useCallback((reminderId) =>
     dispatch({ type: ACTIONS.MARK_REVIEW_REMINDER_DONE, reminderId }), []);
 
-  // ── Skill Cart 액션 ──────────────────────────────────────────────
-  const addToCart = useCallback((skillId) =>
-    dispatch({ type: ACTIONS.ADD_TO_CART, skillId }), []);
-
-  const removeFromCart = useCallback((skillId) =>
-    dispatch({ type: ACTIONS.REMOVE_FROM_CART, skillId }), []);
-
+  // ── Quick Tray 액션 ──────────────────────────────────────────────
   const addQuickTraySkill = useCallback((skillId) =>
     dispatch({ type: ACTIONS.ADD_QUICK_TRAY_SKILL, skillId }), []);
 
@@ -1832,18 +1872,20 @@ export function usePracticeSession() {
       toggleCheck, openPicker, closePicker]);
 
   const cartNs = useMemo(() => ({
-    addToCart, removeFromCart, addQuickTraySkill, removeQuickTraySkill, toggleQuickTraySkill,
-  }), [addToCart, removeFromCart, addQuickTraySkill, removeQuickTraySkill, toggleQuickTraySkill]);
+    addQuickTraySkill, removeQuickTraySkill, toggleQuickTraySkill,
+  }), [addQuickTraySkill, removeQuickTraySkill, toggleQuickTraySkill]);
 
   const segmentNs = useMemo(() => ({
     toggleSegmentCheck, toggleSegmentMode, startAddToSegment, selectSegment,
     deleteSegment, deleteSegmentCoord, setSegmentMeta, updateSegmentCoord,
-    mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment,
+    mapSkillToSegment, unmapSkillFromSegment, setSegmentSymptomTags,
+    addTempSegment, deleteTempSegment,
     commitTempSegments, setSegmentDifficulty, recordAttempt, resetPracticeStats,
   }), [
     toggleSegmentCheck, toggleSegmentMode, startAddToSegment, selectSegment,
     deleteSegment, deleteSegmentCoord, setSegmentMeta, updateSegmentCoord,
-    mapSkillToSegment, unmapSkillFromSegment, addTempSegment, deleteTempSegment,
+    mapSkillToSegment, unmapSkillFromSegment, setSegmentSymptomTags,
+    addTempSegment, deleteTempSegment,
     commitTempSegments, setSegmentDifficulty, recordAttempt, resetPracticeStats,
   ]);
 

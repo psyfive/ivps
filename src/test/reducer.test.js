@@ -3,7 +3,7 @@
 // reducer는 순수함수(state, action) => newState 이므로 React 환경 없이 테스트 가능.
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { reducer, INITIAL_STATE, ACTIONS } from '../hooks/usePracticeSession';
+import { reducer, INITIAL_STATE, ACTIONS, migrateSegmentMappings } from '../hooks/usePracticeSession';
 
 // ── 테스트 유틸 ────────────────────────────────────────────────────────────
 function makeScore(overrides = {}) {
@@ -652,6 +652,98 @@ describe('Quick Tray', () => {
     const next = reducer(state, { type: ACTIONS.MAP_SKILL_TO_SEGMENT, segmentId: 'seg-1', skillId: 'B-2-001' });
     expect(next.scores[0].segments[0].mappedSkills).toEqual(['B-2-001']);
   });
+
+  it('MAP_SKILL_TO_SEGMENT: source/symptomId 메타를 skillMappings에 기록한다', () => {
+    const segment = makeSegment({ id: 'seg-1', mappedSkills: [] });
+    const score = makeScore({ id: 's1', segments: [segment] });
+    const state = { ...INITIAL_STATE, scores: [score], activeScoreId: 's1' };
+    const next = reducer(state, {
+      type: ACTIONS.MAP_SKILL_TO_SEGMENT,
+      segmentId: 'seg-1',
+      skillId: 'B-2-001',
+      source: 'recommended',
+      symptomId: 'harshTone',
+    });
+    const seg = next.scores[0].segments[0];
+    expect(seg.mappedSkills).toEqual(['B-2-001']);
+    expect(seg.skillMappings).toHaveLength(1);
+    expect(seg.skillMappings[0]).toMatchObject({
+      skillId: 'B-2-001',
+      source: 'recommended',
+      symptomId: 'harshTone',
+    });
+    expect(typeof seg.skillMappings[0].addedAt).toBe('number');
+  });
+
+  it('MAP_SKILL_TO_SEGMENT: source 미지정 시 search로 기본 기록된다', () => {
+    const segment = makeSegment({ id: 'seg-1', mappedSkills: [] });
+    const score = makeScore({ id: 's1', segments: [segment] });
+    const state = { ...INITIAL_STATE, scores: [score], activeScoreId: 's1' };
+    const next = reducer(state, { type: ACTIONS.MAP_SKILL_TO_SEGMENT, segmentId: 'seg-1', skillId: 'B-2-001' });
+    expect(next.scores[0].segments[0].skillMappings[0].source).toBe('search');
+    expect(next.scores[0].segments[0].skillMappings[0]).not.toHaveProperty('symptomId');
+  });
+
+  it('UNMAP_SKILL_FROM_SEGMENT: mappedSkills와 skillMappings 양쪽에서 제거한다', () => {
+    const segment = makeSegment({
+      id: 'seg-1',
+      mappedSkills: ['B-2-001', 'A-1-001'],
+      skillMappings: [
+        { skillId: 'B-2-001', source: 'search', addedAt: 1 },
+        { skillId: 'A-1-001', source: 'recommended', symptomId: 'intonation', addedAt: 2 },
+      ],
+    });
+    const score = makeScore({ id: 's1', segments: [segment] });
+    const state = { ...INITIAL_STATE, scores: [score], activeScoreId: 's1' };
+    const next = reducer(state, { type: ACTIONS.UNMAP_SKILL_FROM_SEGMENT, segmentId: 'seg-1', skillId: 'B-2-001' });
+    const seg = next.scores[0].segments[0];
+    expect(seg.mappedSkills).toEqual(['A-1-001']);
+    expect(seg.skillMappings.map(m => m.skillId)).toEqual(['A-1-001']);
+  });
+
+  it('SET_SEGMENT_SYMPTOM_TAGS: 구간의 symptomTags를 중복 제거하여 설정한다', () => {
+    const segment = makeSegment({ id: 'seg-1', mappedSkills: [] });
+    const score = makeScore({ id: 's1', segments: [segment] });
+    const state = { ...INITIAL_STATE, scores: [score], activeScoreId: 's1' };
+    const next = reducer(state, {
+      type: ACTIONS.SET_SEGMENT_SYMPTOM_TAGS,
+      segmentId: 'seg-1',
+      tagIds: ['intonation', 'intonation', 'shifting'],
+    });
+    expect(next.scores[0].segments[0].symptomTags).toEqual(['intonation', 'shifting']);
+  });
+});
+
+describe('migrateSegmentMappings (구형 → 풍부한 매핑 백필)', () => {
+  it('skillMappings가 없는 구간을 mappedSkills에서 search 출처로 파생한다', () => {
+    const score = makeScore({
+      segments: [makeSegment({ id: 'seg-1', mappedSkills: ['A-1-001', 'B-2-001'] })],
+    });
+    const migrated = migrateSegmentMappings(score);
+    expect(migrated.segments[0].skillMappings).toEqual([
+      { skillId: 'A-1-001', source: 'search', addedAt: 0 },
+      { skillId: 'B-2-001', source: 'search', addedAt: 0 },
+    ]);
+    // mappedSkills(진실원본)는 그대로 유지
+    expect(migrated.segments[0].mappedSkills).toEqual(['A-1-001', 'B-2-001']);
+  });
+
+  it('이미 skillMappings가 있으면 동일 참조를 그대로 반환한다(멱등)', () => {
+    const score = makeScore({
+      segments: [makeSegment({
+        id: 'seg-1',
+        mappedSkills: ['A-1-001'],
+        skillMappings: [{ skillId: 'A-1-001', source: 'recommended', symptomId: 'intonation', addedAt: 5 }],
+      })],
+    });
+    const migrated = migrateSegmentMappings(score);
+    expect(migrated).toBe(score);
+  });
+
+  it('segments가 없는 score도 안전하게 처리한다', () => {
+    expect(migrateSegmentMappings({ id: 's1' })).toEqual({ id: 's1' });
+    expect(migrateSegmentMappings(null)).toBeNull();
+  });
 });
 
 describe('Practice fullscreen phase behavior', () => {
@@ -731,7 +823,6 @@ describe('Custom taxonomy skills', () => {
       selectedSkillId: 'A-U-local',
       activeSkillId: 'A-U-local',
       quickTraySkills: ['A-U-local', 'A-1-001'],
-      skillCart: ['A-U-local', 'B-2-001'],
       customSkills: [{ id: 'A-U-local', storage: 'local', isCustom: true }],
       scores: [{
         id: 'score-1',
@@ -750,7 +841,6 @@ describe('Custom taxonomy skills', () => {
     expect(next.activeSkillId).toBeNull();
     expect(next.customSkills).toEqual([]);
     expect(next.quickTraySkills).toEqual(['A-1-001']);
-    expect(next.skillCart).toEqual(['B-2-001']);
     expect(next.scores[0].sessions[0].skills).toEqual(['A-1-001']);
     expect(next.scores[0].segments[0].mappedSkills).toEqual(['B-2-001']);
     expect(next.scores[0].quickTraySkills).toEqual(['C-1-001']);
