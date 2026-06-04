@@ -1,5 +1,5 @@
 // src/hooks/usePracticeSession.js
-import { useReducer, useCallback, useEffect, useMemo } from 'react';
+import { useReducer, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   createCustomSkillId,
   customSkillRowToSkill,
@@ -223,6 +223,10 @@ export const ACTIONS = {
 
   // 증상 필터
   SET_SYMPTOM_FILTER:      'SET_SYMPTOM_FILTER',
+
+  // 클라우드 동기화
+  MERGE_CLOUD_DATA:        'MERGE_CLOUD_DATA',
+  UPDATE_SCORE_STORAGE:    'UPDATE_SCORE_STORAGE',
 };
 
 // ── 유틸 ───────────────────────────────────────────────────────────────────
@@ -234,6 +238,123 @@ const CUSTOM_SKILLS_STORAGE_KEY = 'ivps-custom-skills';
 const APP_STATE_STORAGE_KEY = 'ivps-app-state-v1';
 const MIN_BOWING_SIZE = 60;
 const MAX_BOWING_SIZE = 180;
+
+// ── Supabase 동기화 헬퍼 ──────────────────────────────────────────────────────
+
+function scoreToDbRow(score, userId) {
+  return {
+    id: score.id,
+    user_id: userId,
+    name: score.name,
+    uploaded_at: score.uploadedAt ?? null,
+    page_count: score.pageData?.length ?? 1,
+    segments: score.segments ?? [],
+    drawings: score.drawings ?? [],
+    page_storage_paths: score.storagePaths ?? [],
+    updated_at: new Date().toISOString(),
+  };
+}
+
+function dbRowToScore(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    uploadedAt: row.uploaded_at,
+    dataUrl: null,
+    sessions: [],
+    segments: (row.segments ?? []).map(seg => ({
+      ...seg,
+      skillMappings: seg.skillMappings ?? (seg.mappedSkills ?? []).map(id => ({ skillId: id, source: 'search', addedAt: 0 })),
+    })),
+    drawings: row.drawings ?? [],
+    pageData: Array.from({ length: row.page_count ?? 1 }, () => ({ dataUrl: null, sessions: [] })),
+    currentPageIndex: 0,
+    quickTraySkills: [],
+    storagePaths: row.page_storage_paths ?? [],
+    _cloudOnly: true,
+  };
+}
+
+function practiceSessionToDbRow(session, userId) {
+  return {
+    id: session.id,
+    user_id: userId,
+    score_id: session.scoreId ?? null,
+    score_name: session.scoreName ?? null,
+    skill_ids: session.skillIds ?? [],
+    xp_gained: session.xpGained ?? 0,
+    duration_minutes: session.durationMinutes ?? 0,
+    has_quality_bonus: session.hasQualityBonus ?? false,
+    session_date: session.date ?? null,
+  };
+}
+
+function dbRowToPracticeSession(row) {
+  return {
+    id: row.id,
+    scoreId: row.score_id,
+    scoreName: row.score_name,
+    skillIds: row.skill_ids ?? [],
+    xpGained: row.xp_gained ?? 0,
+    durationMinutes: row.duration_minutes ?? 0,
+    hasQualityBonus: row.has_quality_bonus ?? false,
+    date: row.session_date,
+  };
+}
+
+// base64 dataUrl → Blob 변환
+function dataUrlToBlob(dataUrl) {
+  const [header, data] = dataUrl.split(',');
+  const mime = (header.match(/:(.*?);/) ?? [])[1] ?? 'image/jpeg';
+  const binary = atob(data);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
+
+// 악보 페이지 이미지를 Supabase Storage에 업로드, storage paths 배열 반환
+async function uploadScoreImages(scoreId, pageData, userId) {
+  const paths = [];
+  for (let i = 0; i < pageData.length; i++) {
+    const { dataUrl } = pageData[i];
+    if (!dataUrl || !supabase) { paths.push(null); continue; }
+    try {
+      const blob = dataUrlToBlob(dataUrl);
+      const ext = blob.type.includes('png') ? 'png' : 'jpg';
+      const path = `${userId}/${scoreId}/page-${i}.${ext}`;
+      const { error } = await supabase.storage
+        .from('score-images')
+        .upload(path, blob, { upsert: true, contentType: blob.type });
+      paths.push(error ? null : path);
+    } catch {
+      paths.push(null);
+    }
+  }
+  return paths;
+}
+
+// Storage paths → 서명된 URL 배열 생성 (1시간 유효)
+async function createSignedUrlsForPaths(paths) {
+  const EXPIRES_IN = 3600;
+  return Promise.all(
+    paths.map(async (path) => {
+      if (!path || !supabase) return null;
+      try {
+        const { data, error } = await supabase.storage
+          .from('score-images')
+          .createSignedUrl(path, EXPIRES_IN);
+        return error ? null : (data?.signedUrl ?? null);
+      } catch {
+        return null;
+      }
+    })
+  );
+}
+
+// base64 dataUrl 여부 확인 (서명된 URL과 구분하기 위해 사용)
+function isBase64DataUrl(str) {
+  return typeof str === 'string' && str.startsWith('data:');
+}
 
 // 새로고침 후에도 복원할 상태 필드 목록
 const PERSIST_KEYS = [
@@ -509,11 +630,11 @@ export function reducer(state, action) {
 
     // ── 악보 ────────────────────────────────────────────────────────
     case ACTIONS.ADD_SCORE: {
-      const { name, pageData } = action;
+      const { name, pageData, id: providedId } = action;
       // 각 페이지에 sessions 슬롯 보장 (segments는 score 레벨 — 페이지별 저장 불필요)
       const normalizedPageData = pageData.map(p => ({ sessions: [], ...p }));
       const score = {
-        id: uid(),
+        id: providedId ?? uid(),
         name,
         dataUrl: normalizedPageData[0].dataUrl,
         uploadedAt: Date.now(),
@@ -1381,6 +1502,70 @@ export function reducer(state, action) {
     case ACTIONS.SET_SYMPTOM_FILTER:
       return { ...state, symptomFilter: action.value };
 
+    case ACTIONS.MERGE_CLOUD_DATA: {
+      const { remoteScores, remoteSessions } = action;
+      const localScoreIds = new Set(state.scores.map(s => s.id));
+
+      // 로컬에 있는 악보: 이미지(dataUrl) 유지, 구간/필기는 원격이 더 많으면 원격 우선
+      const mergedLocalScores = state.scores.map(local => {
+        const remote = remoteScores.find(r => r.id === local.id);
+        if (!remote) return local;
+        const useRemoteSegments = (remote.segments?.length ?? 0) > (local.segments?.length ?? 0);
+        const useRemoteDrawings = (remote.drawings?.length ?? 0) > (local.drawings?.length ?? 0);
+        return {
+          ...local,
+          segments: useRemoteSegments ? remote.segments : local.segments,
+          drawings: useRemoteDrawings ? remote.drawings : local.drawings,
+        };
+      });
+
+      // 원격에만 있는 악보 (다른 기기에서 생성됨, 이미지 없음)
+      const cloudOnlyScores = remoteScores.filter(r => !localScoreIds.has(r.id));
+
+      // 세션: 원격 우선, 로컬에만 있는 것 보완
+      const remoteSessionIds = new Set(remoteSessions.map(s => s.id));
+      const localOnlySessions = state.practiceSessions.filter(s => !remoteSessionIds.has(s.id));
+      const mergedSessions = [...remoteSessions, ...localOnlySessions];
+
+      return {
+        ...state,
+        scores: [...mergedLocalScores, ...cloudOnlyScores],
+        practiceSessions: state.isPatron ? mergedSessions : mergedSessions.slice(0, 50),
+      };
+    }
+
+    case ACTIONS.UPDATE_SCORE_STORAGE: {
+      // action.storagePaths  : Storage에 업로드된 경로 배열 (업로드 완료 후)
+      // action.signedUrls    : Storage에서 가져온 서명된 URL 배열 (로그인 시 이미지 복원)
+      // 규칙: base64 dataUrl은 절대 덮어쓰지 않음 → 로컬 이미지 보존
+      return {
+        ...state,
+        scores: state.scores.map(s => {
+          if (s.id !== action.scoreId) return s;
+
+          let pageData = s.pageData;
+          if (action.signedUrls) {
+            pageData = s.pageData.map((p, i) => ({
+              ...p,
+              dataUrl: isBase64DataUrl(p.dataUrl)
+                ? p.dataUrl                                    // 로컬 base64 유지
+                : (action.signedUrls[i] ?? p.dataUrl),        // 클라우드 전용: 서명 URL 적용
+            }));
+          }
+
+          return {
+            ...s,
+            dataUrl: isBase64DataUrl(s.dataUrl)
+              ? s.dataUrl
+              : (action.signedUrls?.[0] ?? s.dataUrl),
+            pageData,
+            storagePaths: action.storagePaths ?? s.storagePaths,
+            _cloudOnly: action.signedUrls ? false : s._cloudOnly,
+          };
+        }),
+      };
+    }
+
     default:
       return state;
   }
@@ -1421,6 +1606,75 @@ export function usePracticeSession() {
     state.duringChecklistBubblePositions,
     state.screen,
   ]);
+
+  // 로그인 시 Supabase에서 scores / practice_sessions 로드 후 로컬과 병합
+  useEffect(() => {
+    let cancelled = false;
+
+    async function syncFromCloud() {
+      if (!supabase || !user?.id) return;
+
+      const [{ data: scoreRows, error: scoreErr }, { data: sessionRows, error: sessionErr }] =
+        await Promise.all([
+          supabase.from('scores').select('*').eq('user_id', user.id).order('uploaded_at', { ascending: false }),
+          supabase.from('practice_sessions').select('*').eq('user_id', user.id).order('session_date', { ascending: false }),
+        ]);
+
+      if (cancelled || scoreErr || sessionErr) return;
+
+      const remoteScores = (scoreRows ?? []).map(dbRowToScore);
+
+      dispatch({
+        type: ACTIONS.MERGE_CLOUD_DATA,
+        remoteScores,
+        remoteSessions: (sessionRows ?? []).map(dbRowToPracticeSession),
+      });
+
+      // Storage에 이미지가 있는 악보의 서명된 URL 생성 (만료 1시간)
+      // base64 dataUrl이 있는 로컬 악보는 건너뜀 (isBase64DataUrl 체크는 reducer에서 처리)
+      for (const remoteScore of remoteScores) {
+        if (cancelled) break;
+        const paths = remoteScore.storagePaths ?? [];
+        if (!paths.some(p => p)) continue;
+
+        const signedUrls = await createSignedUrlsForPaths(paths);
+        if (cancelled) break;
+        if (signedUrls.some(u => u)) {
+          dispatch({
+            type: ACTIONS.UPDATE_SCORE_STORAGE,
+            scoreId: remoteScore.id,
+            signedUrls,
+          });
+        }
+      }
+    }
+
+    syncFromCloud();
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
+  // scores / practice_sessions 변경 시 Supabase에 2초 디바운스 저장
+  const cloudSyncTimerRef = useRef(null);
+  useEffect(() => {
+    if (!supabase || !user?.id) return;
+
+    clearTimeout(cloudSyncTimerRef.current);
+    cloudSyncTimerRef.current = setTimeout(async () => {
+      const scoreRows = state.scores.map(s => scoreToDbRow(s, user.id));
+      const sessionRows = state.practiceSessions.map(s => practiceSessionToDbRow(s, user.id));
+
+      const ops = [];
+      if (scoreRows.length > 0) {
+        ops.push(supabase.from('scores').upsert(scoreRows, { onConflict: 'id' }));
+      }
+      if (sessionRows.length > 0) {
+        ops.push(supabase.from('practice_sessions').upsert(sessionRows, { onConflict: 'id' }));
+      }
+      await Promise.all(ops);
+    }, 2000);
+
+    return () => clearTimeout(cloudSyncTimerRef.current);
+  }, [state.scores, state.practiceSessions, user?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1501,17 +1755,40 @@ export function usePracticeSession() {
   const closeSkillModal = useCallback(() =>
     dispatch({ type: ACTIONS.SET_SELECTED_SKILL, skillId: null }), []);
   // ── 악보 액션 ─────────────────────────────────────────────────────
-  const addScore = useCallback((name, pageData) =>
-    dispatch({ type: ACTIONS.ADD_SCORE, name, pageData }), []);
+  const addScore = useCallback(async (name, pageData) => {
+    const scoreId = uid();
+    dispatch({ type: ACTIONS.ADD_SCORE, name, pageData, id: scoreId });
+
+    if (!supabase || !user?.id) return;
+
+    // 페이지 이미지를 Storage에 업로드 (백그라운드, 낙관적 업데이트 후)
+    const storagePaths = await uploadScoreImages(scoreId, pageData, user.id);
+    if (storagePaths.some(p => p)) {
+      dispatch({ type: ACTIONS.UPDATE_SCORE_STORAGE, scoreId, storagePaths });
+      // DB에 storagePaths 즉시 반영 (디바운스 사이클 기다리지 않음)
+      await supabase.from('scores')
+        .update({ page_storage_paths: storagePaths, updated_at: new Date().toISOString() })
+        .eq('id', scoreId).eq('user_id', user.id);
+    }
+  }, [user?.id]);
 
   const setActiveScore = useCallback((scoreId) =>
     dispatch({ type: ACTIONS.SET_ACTIVE_SCORE, scoreId }), []);
 
-  const deleteScore = useCallback((scoreId) =>
-    dispatch({ type: ACTIONS.DELETE_SCORE, scoreId }), []);
+  const deleteScore = useCallback(async (scoreId) => {
+    dispatch({ type: ACTIONS.DELETE_SCORE, scoreId });
+    if (supabase && user?.id) {
+      await supabase.from('scores').delete().eq('id', scoreId).eq('user_id', user.id);
+    }
+  }, [user?.id]);
 
-  const renameScore = useCallback((scoreId, name) =>
-    dispatch({ type: ACTIONS.RENAME_SCORE, scoreId, name }), []);
+  const renameScore = useCallback(async (scoreId, name) => {
+    dispatch({ type: ACTIONS.RENAME_SCORE, scoreId, name });
+    if (supabase && user?.id) {
+      await supabase.from('scores').update({ name, updated_at: new Date().toISOString() })
+        .eq('id', scoreId).eq('user_id', user.id);
+    }
+  }, [user?.id]);
 
   const changePage = useCallback((direction) =>
     dispatch({ type: ACTIONS.CHANGE_PAGE, direction }), []);
