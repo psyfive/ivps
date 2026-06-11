@@ -15,7 +15,7 @@ import { fileToPageData } from '../../utils/fileToPageData';
 import { requestNativeFullscreen, exitNativeFullscreen } from '../../utils/nativeFullscreen';
 import { fitContainedSize } from '../../utils/scorePageFit';
 import { hasSkillDragData } from '../../utils/skillDrag';
-import { detectMeasureCountFromImageElement } from '../../utils/measureDetection';
+import { detectMeasureCountFromImageElement, warmScoreAnalysis } from '../../utils/measureDetection';
 import { SegmentCanvas } from './SegmentCanvas';
 import { SegmentHeatmap } from './SegmentHeatmap';
 import { DrawingCanvas } from './DrawingCanvas';
@@ -478,6 +478,9 @@ export function ScoreViewer({ phase }) {
         ? prev
         : { width: image.naturalWidth, height: image.naturalHeight }
     ));
+
+    // 첫 박스 드로잉 전에 글로벌 바라인 맵을 미리 분석해 둔다.
+    setTimeout(() => warmScoreAnalysis(image), 0);
   }, []);
 
   // ── 파일 처리 ───────────────────────────────────────────────────────────

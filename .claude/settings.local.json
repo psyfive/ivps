@@ -20,7 +20,14 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/)",
       "mcp__Claude_in_Chrome__list_connected_browsers",
       "mcp__Claude_Preview__preview_start",
-      "Bash(node_modules\\\\.bin\\\\vitest --run src/test)"
+      "Bash(node_modules\\\\.bin\\\\vitest --run src/test)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(gh pr *)",
+      "PowerShell(Get-Command gh -ErrorAction SilentlyContinue)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Owner\\\\Desktop\\\\vn app\\\\vnwebsite\\\\opus\" -Recurse -Directory -Include \"src\")",
+      "Bash(Select-Object -First 1)"
     ]
   }
 }

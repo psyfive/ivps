@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { detectMeasureCountFromImageData } from '../utils/measureDetection';
+import {
+  analyzeScoreImageData,
+  countMeasuresInBox,
+  detectMeasureCountFromImageData,
+} from '../utils/measureDetection';
 
 function makeImageData(width, height, draw) {
   const data = new Uint8ClampedArray(width * height * 4);
@@ -240,6 +244,17 @@ describe('measure detection', () => {
     expect(detectMeasureCountFromImageData(imageData)).toBe(2);
   });
 
+  it('drops a full-height stem too close to a barline to form a real measure', () => {
+    const imageData = makeImageData(220, 80, ctx => {
+      drawStaff(ctx);
+      [14, 110, 206].forEach(x => drawBarline(ctx, x));
+      // 바라인(110) 바로 옆 8px 거리의 전체 높이 기둥 — 마디가 되기엔 너무 좁다
+      drawVerticalMark(ctx, 118, 17, 55);
+    });
+
+    expect(detectMeasureCountFromImageData(imageData)).toBe(2);
+  });
+
   it('still counts a barline that has a single-pixel ink dropout gap', () => {
     const imageData = makeImageData(220, 80, ctx => {
       drawStaff(ctx);
@@ -253,5 +268,87 @@ describe('measure detection', () => {
     });
 
     expect(detectMeasureCountFromImageData(imageData)).toBe(2);
+  });
+});
+
+// 두 시스템(오선 2개) × 마디 4개 합성 페이지.
+// 바라인 x = [14, 110, 206, 302, 398], 시스템 1 오선 y=20~52, 시스템 2 오선 y=120~152.
+function makeTwoSystemPage() {
+  return makeImageData(420, 200, ctx => {
+    drawStaff(ctx, 20, 8);
+    [14, 110, 206, 302, 398].forEach(x => drawBarline(ctx, x, 17, 55));
+    drawStaff(ctx, 120, 8);
+    [14, 110, 206, 302, 398].forEach(x => drawBarline(ctx, x, 117, 155));
+  });
+}
+
+// px 박스를 0~1 정규화 좌표로 변환 (이미지 420×200 기준)
+function box(left, top, right, bottom, width = 420, height = 200) {
+  return {
+    x: left / width,
+    y: top / height,
+    width: (right - left) / width,
+    height: (bottom - top) / height,
+  };
+}
+
+describe('global barline map analysis', () => {
+  it('extracts barline coordinates for every staff system on the page', () => {
+    const analysis = analyzeScoreImageData(makeTwoSystemPage());
+
+    expect(analysis).not.toBeNull();
+    expect(analysis.staves).toHaveLength(2);
+
+    for (const staff of analysis.staves) {
+      expect(staff.barlineXs).toHaveLength(5);
+      [14.5, 110.5, 206.5, 302.5, 398.5].forEach((expected, i) => {
+        expect(Math.abs(staff.barlineXs[i] - expected)).toBeLessThanOrEqual(2);
+      });
+      expect(staff.boundaries).toHaveLength(5);
+    }
+
+    expect(analysis.staves[0].topLineY).toBeLessThan(60);
+    expect(analysis.staves[1].topLineY).toBeGreaterThan(110);
+  });
+
+  it('returns null when the page has no staff lines', () => {
+    const imageData = makeImageData(140, 80, ctx => {
+      [14, 70, 126].forEach(x => drawBarline(ctx, x));
+    });
+
+    expect(analyzeScoreImageData(imageData)).toBeNull();
+  });
+});
+
+describe('countMeasuresInBox', () => {
+  const analysis = analyzeScoreImageData(makeTwoSystemPage());
+
+  it('counts measures between barlines when box edges sit on barlines', () => {
+    // 바라인 14~302 위에 양끝 → 사이 마디 3개
+    expect(countMeasuresInBox(analysis, box(14, 8, 302, 62))).toBe(3);
+  });
+
+  it('includes partial measures when box edges fall mid-measure with enough overlap', () => {
+    // 양끝이 마디 중간(겹침 > 35%) → 부분 마디 2개 + 온전한 마디 1개 = 3
+    expect(countMeasuresInBox(analysis, box(60, 8, 250, 62))).toBe(3);
+  });
+
+  it('excludes sliver measures below the overlap ratio', () => {
+    // 양끝 부분 마디 겹침이 각각 ~21%, ~24% → 제외, 가운데 마디만 카운트
+    expect(countMeasuresInBox(analysis, box(90, 8, 230, 62))).toBe(1);
+  });
+
+  it('sums measures across systems when the box spans two staves', () => {
+    expect(countMeasuresInBox(analysis, box(14, 8, 302, 162))).toBe(6);
+  });
+
+  it('returns null when the box does not overlap any staff', () => {
+    // 두 시스템 사이 여백
+    expect(countMeasuresInBox(analysis, box(14, 70, 302, 100))).toBeNull();
+  });
+
+  it('ignores a staff the box only grazes vertically', () => {
+    // 시스템 1은 완전히 포함, 시스템 2는 밴드의 50% 미만만 걸침
+    expect(countMeasuresInBox(analysis, box(14, 8, 302, 125))).toBe(3);
   });
 });

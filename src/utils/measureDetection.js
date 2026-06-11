@@ -20,6 +20,9 @@ const DEFAULT_OPTIONS = {
   systemStartMarkerMinDarkRatio: 0.42,
   rightEdgeBarlineSearchRatio: 0.35,
   mergeDistanceRatio: 0.012,
+  minMeasureWidthGapRatio: 1.5,
+  minMeasureOverlapRatio: 0.35,
+  staffBandOverlapRatio: 0.5,
 };
 
 function luminanceAt(data, offset) {
@@ -477,8 +480,27 @@ function findAllStaffLineGroups(rowRatios, options) {
   return groups;
 }
 
-// 단일 오선 그룹에 대해 마디 수를 계산한다.
-function countMeasuresForStaff(staff, mask, width, height, options) {
+// merge 후에도 살아남은 인접 후보(겹바라인 잔여, 바라인 옆 음표 기둥 등)는
+// 마디가 되기엔 너무 좁은 간격(averageGap*minMeasureWidthGapRatio 미만)으로 나타난다.
+// strength가 더 약한 쪽을 제거한다.
+function enforceMinimumMeasureWidth(runs, staff, options) {
+  const minWidth = staff.averageGap * options.minMeasureWidthGapRatio;
+  const result = [];
+
+  runs.forEach(run => {
+    const previous = result[result.length - 1];
+    if (previous && runCenter(run) - runCenter(previous) < minWidth) {
+      if (run.strength > previous.strength) result[result.length - 1] = run;
+      return;
+    }
+    result.push(run);
+  });
+
+  return result;
+}
+
+// 단일 오선 그룹에서 검증을 통과한 바라인 run 목록과 가상 왼쪽 경계 여부를 수집한다.
+function collectBarlinesForStaff(staff, mask, width, height, options) {
   const topLine = staff.lines[0].center;
   const bottomLine = staff.lines[4].center;
   const pad = Math.max(2, staff.averageGap * 0.45);
@@ -506,13 +528,21 @@ function countMeasuresForStaff(staff, mask, width, height, options) {
     barlineRuns = mergeCloseBarlineRuns([...barlineRuns, rightEdgeRun], width, options);
   }
 
+  barlineRuns = enforceMinimumMeasureWidth(barlineRuns, staff, options);
+
   const hasVirtualLeftBoundary = shouldUseVirtualLeftBoundary(barlineRuns, staff, mask, width, height, options);
+  return { barlineRuns, hasVirtualLeftBoundary };
+}
+
+// 단일 오선 그룹에 대해 마디 수를 계산한다.
+function countMeasuresForStaff(staff, mask, width, height, options) {
+  const { barlineRuns, hasVirtualLeftBoundary } = collectBarlinesForStaff(staff, mask, width, height, options);
   if (barlineRuns.length === 0 || (barlineRuns.length < 2 && !hasVirtualLeftBoundary)) return null;
   return Math.max(1, barlineRuns.length - (hasVirtualLeftBoundary ? 0 : 1));
 }
 
-export function detectMeasureCountFromImageData(imageData, options = {}) {
-  const settings = { ...DEFAULT_OPTIONS, ...options };
+// 이진 마스크와 오선 그룹 탐지까지의 공통 전처리.
+function prepareMaskAndStaves(imageData, settings) {
   const { width, height } = imageData ?? {};
 
   if (!imageData?.data || width < 20 || height < 20) {
@@ -530,6 +560,15 @@ export function detectMeasureCountFromImageData(imageData, options = {}) {
   const staffGroups = findAllStaffLineGroups(rowRatios, settings);
   if (staffGroups.length === 0) return null;
 
+  return { mask, staffGroups, width, height };
+}
+
+export function detectMeasureCountFromImageData(imageData, options = {}) {
+  const settings = { ...DEFAULT_OPTIONS, ...options };
+  const prepared = prepareMaskAndStaves(imageData, settings);
+  if (!prepared) return null;
+
+  const { mask, staffGroups, width, height } = prepared;
   let total = 0;
   for (const staff of staffGroups) {
     const count = countMeasuresForStaff(staff, mask, width, height, settings);
@@ -539,8 +578,127 @@ export function detectMeasureCountFromImageData(imageData, options = {}) {
   return total > 0 ? total : null;
 }
 
-export function detectMeasureCountFromImageElement(image, coordinate) {
-  if (!image?.complete || !coordinate) return null;
+// 페이지 전체 이미지에서 오선/바라인 글로벌 좌표 맵을 추출한다.
+// 박스 crop 없이 전체 문맥에서 한 번만 탐지하므로 오선 절단·경계 바라인 누락이 없다.
+export function analyzeScoreImageData(imageData, options = {}) {
+  const settings = { ...DEFAULT_OPTIONS, ...options };
+  const prepared = prepareMaskAndStaves(imageData, settings);
+  if (!prepared) return null;
+
+  const { mask, staffGroups, width, height } = prepared;
+  const staves = [];
+
+  for (const staff of staffGroups) {
+    const { barlineRuns, hasVirtualLeftBoundary } = collectBarlinesForStaff(staff, mask, width, height, settings);
+    if (barlineRuns.length === 0) continue;
+
+    const barlineXs = barlineRuns.map(runCenter);
+    let boundaries = barlineXs;
+    if (hasVirtualLeftBoundary) {
+      const staffStartX = findStaffStartX(mask, width, height, staff, settings) ?? 0;
+      if (staffStartX < barlineXs[0]) {
+        boundaries = [staffStartX, ...barlineXs];
+      }
+    }
+    if (boundaries.length < 2) continue;
+
+    staves.push({
+      topLineY: staff.lines[0].center,
+      bottomLineY: staff.lines[4].center,
+      averageGap: staff.averageGap,
+      barlineXs,
+      boundaries,
+    });
+  }
+
+  return staves.length > 0 ? { width, height, staves } : null;
+}
+
+// 글로벌 바라인 맵을 기준으로 박스(0~1 정규화 좌표)에 포함된 마디 수를 계산한다.
+// 마디 구간(인접 경계 쌍)의 가로 폭 중 minMeasureOverlapRatio 이상이 박스에
+// 포함되면 카운트 — 박스 양끝이 바라인 위든 마디 중간이든 같은 규칙으로 보정된다.
+export function countMeasuresInBox(analysis, coordinate, options = {}) {
+  const settings = { ...DEFAULT_OPTIONS, ...options };
+  if (!analysis?.staves?.length || !coordinate) return null;
+
+  const { width, height } = analysis;
+  const boxLeft = coordinate.x * width;
+  const boxRight = (coordinate.x + coordinate.width) * width;
+  const boxTop = coordinate.y * height;
+  const boxBottom = (coordinate.y + coordinate.height) * height;
+  if (boxRight <= boxLeft || boxBottom <= boxTop) return null;
+
+  let total = 0;
+  let matchedStaff = false;
+
+  for (const staff of analysis.staves) {
+    const pad = Math.max(2, staff.averageGap * 0.45);
+    const bandTop = staff.topLineY - pad;
+    const bandBottom = staff.bottomLineY + pad;
+    const bandHeight = Math.max(1, bandBottom - bandTop);
+    const verticalOverlap = Math.min(boxBottom, bandBottom) - Math.max(boxTop, bandTop);
+    if (verticalOverlap < bandHeight * settings.staffBandOverlapRatio) continue;
+    matchedStaff = true;
+
+    for (let i = 0; i < staff.boundaries.length - 1; i += 1) {
+      const start = staff.boundaries[i];
+      const end = staff.boundaries[i + 1];
+      const intervalWidth = end - start;
+      if (intervalWidth <= 0) continue;
+
+      const overlap = Math.min(boxRight, end) - Math.max(boxLeft, start);
+      if (overlap >= intervalWidth * settings.minMeasureOverlapRatio) total += 1;
+    }
+  }
+
+  if (!matchedStaff || total === 0) return null;
+  return total;
+}
+
+const ANALYSIS_CACHE_LIMIT = 8;
+const analysisCache = new Map();
+
+function readFullImageData(image) {
+  const naturalWidth = image.naturalWidth || image.width;
+  const naturalHeight = image.naturalHeight || image.height;
+  if (!naturalWidth || !naturalHeight) return null;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = naturalWidth;
+  canvas.height = naturalHeight;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return null;
+
+  try {
+    ctx.drawImage(image, 0, 0);
+    return ctx.getImageData(0, 0, naturalWidth, naturalHeight);
+  } catch {
+    return null;
+  }
+}
+
+// 페이지 이미지(data URL) 단위로 글로벌 분석 결과를 캐시한다.
+// 분석 실패(null)도 캐시해 박스 이동/리사이즈마다 전체 스캔이 반복되지 않게 한다.
+function getCachedScoreAnalysis(image) {
+  if (!image?.complete || !image.src) return null;
+  if (analysisCache.has(image.src)) return analysisCache.get(image.src);
+
+  const imageData = readFullImageData(image);
+  const analysis = imageData ? analyzeScoreImageData(imageData) : null;
+
+  if (analysisCache.size >= ANALYSIS_CACHE_LIMIT) {
+    analysisCache.delete(analysisCache.keys().next().value);
+  }
+  analysisCache.set(image.src, analysis);
+  return analysis;
+}
+
+// 이미지 로드 직후 호출해 첫 박스 드로잉 전에 전체 페이지 분석을 미리 수행한다.
+export function warmScoreAnalysis(image) {
+  getCachedScoreAnalysis(image);
+}
+
+function detectMeasureCountFromCroppedImage(image, coordinate) {
   const naturalWidth = image.naturalWidth || image.width;
   const naturalHeight = image.naturalHeight || image.height;
   if (!naturalWidth || !naturalHeight) return null;
@@ -562,4 +720,17 @@ export function detectMeasureCountFromImageElement(image, coordinate) {
   } catch {
     return null;
   }
+}
+
+export function detectMeasureCountFromImageElement(image, coordinate) {
+  if (!image?.complete || !coordinate) return null;
+
+  const analysis = getCachedScoreAnalysis(image);
+  if (analysis) {
+    const count = countMeasuresInBox(analysis, coordinate);
+    if (count !== null) return count;
+  }
+
+  // 글로벌 맵에서 답을 못 찾은 경우(오선 미검출 등)만 기존 crop 방식으로 fallback.
+  return detectMeasureCountFromCroppedImage(image, coordinate);
 }
